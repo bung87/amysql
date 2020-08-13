@@ -1,35 +1,76 @@
 language: c
 
+cache: ccache
+# env: 
+#   jobs:
+#     - CHANNEL=stable
+#     - CHANNEL=devel
 matrix:
   include:
     # Build and test against the master (stable) and devel branches of Nim
     - os: linux
-      env: CHANNEL=stable
+      name: linux with mysql
       compiler: gcc
       services:
         mysql
 
+    - os: linux
+      name: linux with mariadb
+      compiler: gcc
+      addons:
+        mariadb: '10.4'
+      # before_install:
+      #   - sudo mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';"
+      #   - sudo systemctl restart mysql
     # On OSX we only test against clang (gcc is mapped to clang by default)
     - os: osx
-      env: CHANNEL=stable
+      name: osx with mysql
       compiler: clang
       before_install:
+        - brew install ccache
+        - export PATH="/usr/local/opt/ccache/libexec:$PATH"
         - brew install mysql
         - mysql.server start
+    - os: osx
+      name: osx with mariadb
+      compiler: clang
+      before_install:
+        - brew install ccache
+        - rm -f /etc/my.cnf
+        - brew install mariadb@10.4
+        - brew services start mariadb
 
   allow_failures:
     # Ignore failures when building against the devel Nim branch
     # Also ignore OSX, due to very long build queue
     - os: osx
+      env: CHANNEL=devel
   fast_finish: true
 
 before_script:
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then 
-      mysql.server start; 
+
+  # - |
+  #   if [ -z "$TRAVIS_MARIADB_VERSION" ] 
+  #   then
+  #     sudo systemctl stop mysql
+  #     sudo mysqld_safe --skip-grant-tables --skip-networking &
+  #     # mariadb 10.4 and later replace to mysql.global_priv https://mariadb.com/kb/en/mysqluser-table/
+  #     # sudo mysql -u root -e "use mysql;UPDATE user SET authentication_string = PASSWORD('123456') WHERE User = 'root' AND Host = 'localhost';UPDATE user SET password = PASSWORD('123456') WHERE User = 'root' AND Host = 'localhost';FLUSH PRIVILEGES;"
+  #     sudo mysql -u root -e "UPDATE mysql.user SET plugin = 'mysql_native_password' WHERE user = 'root' AND plugin = 'unix_socket';FLUSH PRIVILEGES;"
+
+  #     sudo systemctl start mysql;
+  #   fi
+
+  - sudo mysql -u root -e "create database if not exists test;"
+  - |
+    if [ -z "$TRAVIS_MARIADB_VERSION" ] 
+    then
+      sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
+    else
+      sudo mysql -u root  -e "create user 'test_user'@'localhost' identified VIA mysql_native_password USING PASSWORD('123456');"
     fi
-  - mysql -h 127.0.0.1 -u root -e "create database if not exists test;"
-  - mysql -h 127.0.0.1 -u root -e "create user 'mysql'@'127.0.0.1' identified WITH mysql_native_password by '123456';"
-  - mysql -h 127.0.0.1 -u root -e "grant all on *.* to 'mysql'@'127.0.0.1';"
+
+  - sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
   # - mysql -h 127.0.0.1 -u root -e "create user 'mysql2'@'127.0.0.1' identified by '123456';"
   # - mysql -h 127.0.0.1 -u root -e "grant all on *.* to 'mysql2'@'127.0.0.1';"
 
@@ -40,7 +81,7 @@ install:
   - sh init.sh -y
   - export PATH=~/.nimble/bin:$PATH
   - echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile
-  - choosenim $CHANNEL
+  # - choosenim $CHANNEL
   - nimble install -d -y
 
 script:

@@ -9,5 +9,3 @@ srcDir        = "src"
 
 
 # Dependencies
-
-requires "nim >= 1.3.5"
