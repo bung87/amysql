@@ -185,26 +185,16 @@ proc approximatePackedSize(p: ParameterBinding): int {.inline.} =
   of paramInt, paramUInt:
     return 4
 
+proc asParam*(s: string): ParameterBinding =
+  ParameterBinding(typ: paramString,strVal:s)
+
 macro asParam*(s: untyped): untyped =
-  if s.kind == nnkNilLit:
-    nnkObjConstr.newTree(
+  doAssert s.kind == nnkNilLit
+  nnkObjConstr.newTree(
       newIdentNode("ParameterBinding"),
       nnkExprColonExpr.newTree(
         newIdentNode("typ"),
         newIdentNode("paramNull")
-      )
-    )
-
-  else:
-    nnkObjConstr.newTree(
-      newIdentNode("ParameterBinding"),
-      nnkExprColonExpr.newTree(
-        newIdentNode("typ"),
-        newIdentNode("paramString")
-      ),
-      nnkExprColonExpr.newTree(
-        newIdentNode("strVal"),
-        s
       )
     )
 

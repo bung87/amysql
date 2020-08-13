@@ -1,4 +1,4 @@
-import async_mysql, asyncdispatch, asyncnet, os, parseutils
+import async_mysql, asyncdispatch, asyncnet, os
 from nativesockets import AF_INET, SOCK_STREAM
 import unittest
 import net
