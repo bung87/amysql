@@ -37,7 +37,8 @@ matrix:
       before_install:
         - brew install ccache
         - rm -f /etc/my.cnf
-        - brew install mariadb@10.4
+        # - brew install mariadb@10.4
+        - brew install mariadb
         - brew services start mariadb
 
   allow_failures:
