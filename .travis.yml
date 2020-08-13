@@ -19,9 +19,7 @@ matrix:
       compiler: gcc
       addons:
         mariadb: '10.4'
-      # before_install:
-      #   - sudo mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';"
-      #   - sudo systemctl restart mysql
+
     # On OSX we only test against clang (gcc is mapped to clang by default)
     - os: osx
       name: osx with mysql
@@ -34,10 +32,11 @@ matrix:
     - os: osx
       name: osx with mariadb
       compiler: clang
+      # mariadb-10.5.5.high_sierra.bottle.tar.gz
+      env: TRAVIS_MARIADB_VERSION=10.5.5
       before_install:
         - brew install ccache
         - rm -f /etc/my.cnf
-        # - brew install mariadb@10.4
         - brew install mariadb
         - brew services start mariadb
 
