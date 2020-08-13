@@ -11,7 +11,7 @@
 ##
 # include async_mysqlpkg/private/protocol_basic
 include async_mysqlpkg/private/protocol
-import asyncnet, asyncdispatch,std/sha1
+import asyncnet, asyncdispatch,std/sha1,macros
 import strutils#, unsigned
 import openssl  # Needed for sha1 from libcrypto even if we don't support ssl connections
 
@@ -185,11 +185,28 @@ proc approximatePackedSize(p: ParameterBinding): int {.inline.} =
   of paramInt, paramUInt:
     return 4
 
-proc asParam*(s: string): ParameterBinding =
-  # if isNil(s):
-  #   ParameterBinding(typ: paramNull)
-  # else:
-  ParameterBinding(typ: paramString, strVal: s)
+macro asParam*(s: untyped): untyped =
+  if s.kind == nnkNilLit:
+    nnkObjConstr.newTree(
+      newIdentNode("ParameterBinding"),
+      nnkExprColonExpr.newTree(
+        newIdentNode("typ"),
+        newIdentNode("paramNull")
+      )
+    )
+
+  else:
+    nnkObjConstr.newTree(
+      newIdentNode("ParameterBinding"),
+      nnkExprColonExpr.newTree(
+        newIdentNode("typ"),
+        newIdentNode("paramString")
+      ),
+      nnkExprColonExpr.newTree(
+        newIdentNode("strVal"),
+        s
+      )
+    )
 
 proc asParam*(i: int): ParameterBinding = ParameterBinding(typ: paramInt, intVal: i)
 
@@ -349,7 +366,7 @@ proc receiveMetadata(conn: Connection, count: Positive): Future[seq[ColumnDefini
   let endPacket = await conn.receivePacket()
   if uint8(endPacket[0]) != ResponseCode_EOF:
     raise newException(ProtocolError, "Expected EOF after column defs, got something else")
-    
+
 proc prepareStatement*(conn: Connection, query: string): Future[PreparedStatement] {.async.} =
   var buf: string = newStringOfCap(4 + 1 + len(query))
   buf.setLen(4)
@@ -652,13 +669,7 @@ proc close*(conn: Connection): Future[void] {.async.} =
 
 
 when isMainModule or defined(test):
-  proc hexstr(s: string): string =
-    result = ""
-    let chs = "0123456789abcdef"
-    for ch in s:
-      let i = int(ch)
-      result.add(chs[ (i and 0xF0) shr 4])
-      result.add(chs[  i and 0x0F ])
+
   proc expect(expected: string, got: string) =
     if expected == got:
       stdmsg.writeLine("OK")
@@ -687,53 +698,6 @@ when isMainModule or defined(test):
       test_native_hash("<G.N}OR-(~e^+VQtrao-",
                       "aaaaaaaaaaaaaaaaaaaabbbbbbbbbb",
                       "78797fae31fc733107e778ee36e124436761bddc")
-
-  proc test_prim_values() =
-    echo "- Packing/unpacking of primitive types"
-    stdmsg.write("  packing: ")
-    var buf: string = ""
-    putLenInt(buf, 0)
-    putLenInt(buf, 1)
-    putLenInt(buf, 250)
-    putLenInt(buf, 251)
-    putLenInt(buf, 252)
-    putLenInt(buf, 512)
-    putLenInt(buf, 640)
-    putLenInt(buf, 65535)
-    putLenInt(buf, 65536)
-    putLenInt(buf, 15715755)
-    putU32(buf, uint32(65535))
-    putU32(buf, uint32(65536))
-    putU32(buf, 0x80C00AAA'u32)
-    expect("0001fafcfb00fcfc00fc0002fc8002fcfffffd000001fdabcdefffff000000000100aa0ac080", hexstr(buf))
-    stdmsg.write("  unpacking: ")
-    var pos: int = 0
-    var fails: int = 0
-    fails += expectint(0      , scanLenInt(buf, pos))
-    fails += expectint(1      , scanLenInt(buf, pos))
-    fails += expectint(250    , scanLenInt(buf, pos))
-    fails += expectint(251    , scanLenInt(buf, pos))
-    fails += expectint(252    , scanLenInt(buf, pos))
-    fails += expectint(512    , scanLenInt(buf, pos))
-    fails += expectint(640    , scanLenInt(buf, pos))
-    fails += expectint(0x0FFFF, scanLenInt(buf, pos))
-    fails += expectint(0x10000, scanLenInt(buf, pos))
-    fails += expectint(15715755, scanLenInt(buf, pos))
-    fails += expectint(65535, int(scanU32(buf, pos)))
-    fails += expectint(65535'u16, scanU16(buf, pos))
-    fails += expectint(255'u16, scanU16(buf, pos+1))
-    fails += expectint(0'u16, scanU16(buf, pos+2))
-    pos += 4
-    fails += expectint(65536, int(scanU32(buf, pos)))
-    pos += 4
-    fails += expectint(0x80C00AAA, int(scanU32(buf, pos)))
-    pos += 4
-    fails += expectint(0x80C00AAA00010000'u64, scanU64(buf, pos-8))
-    fails += expectint(len(buf), pos)
-    if fails == 0:
-      stdmsg.writeLine(" OK")
-    else:
-      stdmsg.writeLine(" FAIL")
 
   proc test_param_pack() =
     echo "- Testing parameter packing"
@@ -767,7 +731,7 @@ when isMainModule or defined(test):
 
   proc runInternalTests*() =
     echo "Running asyncmysql internal tests"
-    test_prim_values()
+
     test_param_pack()
     when declared(openssl.EvpSHA1) and declared(EvpDigestCtxCreate):
       test_hashes()

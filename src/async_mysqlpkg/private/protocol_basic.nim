@@ -122,3 +122,52 @@ proc hexdump(buf: openarray[char], fp: File) =
       fp.write(ch)
     pos += 16
     fp.write("|\n")
+
+when isMainModule or defined(test):
+  proc hexstr(s: string): string =
+    result = ""
+    let chs = "0123456789abcdef"
+    for ch in s:
+      let i = int(ch)
+      result.add(chs[ (i and 0xF0) shr 4])
+      result.add(chs[  i and 0x0F ])
+
+  echo "- Packing/unpacking of primitive types"
+  var buf: string = ""
+  putLenInt(buf, 0)
+  putLenInt(buf, 1)
+  putLenInt(buf, 250)
+  putLenInt(buf, 251)
+  putLenInt(buf, 252)
+  putLenInt(buf, 512)
+  putLenInt(buf, 640)
+  putLenInt(buf, 65535)
+  putLenInt(buf, 65536)
+  putLenInt(buf, 15715755)
+  putU32(buf, uint32(65535))
+  putU32(buf, uint32(65536))
+  putU32(buf, 0x80C00AAA'u32)
+  assert "0001fafcfb00fcfc00fc0002fc8002fcfffffd000001fdabcdefffff000000000100aa0ac080" == hexstr(buf)
+  var pos: int = 0
+
+  assert 0 == scanLenInt(buf, pos)
+  assert 1    == scanLenInt(buf, pos)
+  assert 250  == scanLenInt(buf, pos)
+  assert 251  == scanLenInt(buf, pos)
+  assert 252  == scanLenInt(buf, pos)
+  assert 512  == scanLenInt(buf, pos)
+  assert 640  == scanLenInt(buf, pos)
+  assert 0x0FFFF == scanLenInt(buf, pos)
+  assert 0x10000 ==  scanLenInt(buf, pos)
+  assert 15715755 ==  scanLenInt(buf, pos)
+  assert 65535 ==  int(scanU32(buf, pos))
+  assert 65535'u16 ==  scanU16(buf, pos)
+  assert 255'u16 ==  scanU16(buf, pos+1)
+  assert 0'u16 ==  scanU16(buf, pos+2)
+  pos += 4
+  assert 65536 == int(scanU32(buf, pos))
+  pos += 4
+  assert 0x80C00AAA ==  int(scanU32(buf, pos))
+  pos += 4
+  assert 0x80C00AAA00010000'u64 ==  scanU64(buf, pos-8)
+  assert len(buf) ==  pos
