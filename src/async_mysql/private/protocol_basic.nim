@@ -125,14 +125,14 @@ proc hexdump(buf: openarray[char], fp: File) =
 
 when isMainModule or defined(test):
   proc hexstr(s: string): string =
-    result = ""
-    let chs = "0123456789abcdef"
-    for ch in s:
-      let i = int(ch)
-      result.add(chs[ (i and 0xF0) shr 4])
-      result.add(chs[  i and 0x0F ])
+    const HexChars = "0123456789abcdef"
+    result = newString(s.len * 2)
+    for pos, c in s:
+      var n = ord(c)
+      result[pos * 2 + 1] = HexChars[n and 0xF]
+      n = n shr 4
+      result[pos * 2] = HexChars[n]
 
-  echo "- Packing/unpacking of primitive types"
   var buf: string = ""
   putLenInt(buf, 0)
   putLenInt(buf, 1)

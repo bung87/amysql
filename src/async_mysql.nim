@@ -9,14 +9,11 @@
 ##
 ## Copyright (c) 2015 William Lewis
 ##
-# include async_mysqlpkg/private/protocol_basic
-include async_mysqlpkg/private/protocol
+
+include async_mysql/private/protocol
 import asyncnet, asyncdispatch,std/sha1,macros
 import strutils#, unsigned
-import openssl  # Needed for sha1 from libcrypto even if we don't support ssl connections
-
-when defined(ssl):
-  import net  # needed for the SslContext type
+import net  # needed for the SslContext type
 
 
 type
@@ -278,47 +275,6 @@ converter asBool*(v: ResultValue): bool =
   else:
     raise newException(ValueError, "cannot convert " & $(v.typ) & " to boolean")
 
-
-when declared(openssl.EvpSHA1) and declared(EvpDigestCtxCreate):
-  # This implements the "mysql_native_password" auth plugin,
-  # which is the only auth we support.
-  proc mysql_native_password_hash(scramble: string, password: string): string =
-    let sha1 = EvpSHA1()
-    let ctx = EvpDigestCtxCreate()
-    proc add(buf: string) = ctx.update(cast[seq[char]](buf))
-    proc add(buf: seq[uint8]) {.inline.} = ctx.update(cast[seq[char]](buf))
-    proc hashfinal(): seq[char] =
-      newSeq(result, EvpDigestSize(sha1))
-      if ctx.final(result[0].addr, nil) == 0:
-        doAssert(false, "EVP_DigestFinal_ex failed")
-      ctx.cleanup()
-
-    block:
-      let ok = ctx.init(sha1, nil)
-      doAssert(ok != 0, "EVP_DigestInit_ex failed")
-    add(password)
-    let phash1 = hashfinal()
-
-    block:
-      let ok = ctx.init(sha1, nil)
-      doAssert(ok != 0, "EVP_DigestInit_ex failed")
-    ctx.update(phash1)
-    let phash2 = hashfinal()
-
-    block:
-      let ok = ctx.init(sha1, nil)
-      doAssert(ok != 0, "EVP_DigestInit_ex failed")
-    add(scramble)
-    ctx.update(phash2)
-    let rhs = hashfinal()
-
-    EvpDigestCtxDestroy(ctx)
-
-    result = newString(len(phash1))
-    for i in 0 .. len(phash1)-1:
-      result[i] = char(uint8(phash1[i]) xor uint8(rhs[i]))
-
-
 proc parseTextRow(pkt: string): seq[string] =
   var pos = 0
   result = newSeq[string]()
@@ -532,10 +488,7 @@ proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
                                   greet: greetingVars): Future[void] {.async.} =
   # password authentication
-  when declared(mysql_native_password_hash):
-    let authResponse = (if isNil(password): nil else: mysql_native_password_hash(greet.scramble, password) )
-  else:
-    var authResponse = token(greet.scramble, password)
+  var authResponse = token(greet.scramble, password)
   await conn.writeHandshakeResponse(username, authResponse, database, "")
 
   # await confirmation from the server
@@ -651,80 +604,3 @@ proc close*(conn: Connection): Future[void] {.async.} =
   let pkt = await conn.receivePacket(drop_ok=true)
   conn.socket.close()
 
-## ######################################################################
-##
-## Internal tests
-## These don't try to test everything, just basic things and things
-## that won't be exercised by functional testing against a server
-
-
-when isMainModule or defined(test):
-
-  proc expect(expected: string, got: string) =
-    if expected == got:
-      stdmsg.writeLine("OK")
-    else:
-      stdmsg.writeLine("FAIL")
-      stdmsg.writeLine("    expected: ", expected)
-      stdmsg.writeLine("         got: ", got)
-  proc expectint[T](expected: T, got: T): int =
-    if expected == got:
-      return 0
-    stdmsg.write(" ", expected, "!=", got)
-    return 1
-  when declared(openssl.EvpSHA1) and declared(EvpDigestCtxCreate):
-    proc test_native_hash(scramble: string, password: string, expected: string) =
-      let got = mysql_native_password_hash(scramble, password)
-      expect(expected, hexstr(got))
-
-    proc test_hashes() =
-      echo "- Password hashing"
-      # Test vectors captured from tcp traces of official mysql
-      stdmsg.write("  test vec 1: ")
-      test_native_hash("L\\i{NQ09k2W>p<yk/DK+",
-                      "foo",
-                      "f828cd1387160a4c920f6c109d37285d281f7c85")
-      stdmsg.write("  test vec 2: ")
-      test_native_hash("<G.N}OR-(~e^+VQtrao-",
-                      "aaaaaaaaaaaaaaaaaaaabbbbbbbbbb",
-                      "78797fae31fc733107e778ee36e124436761bddc")
-
-  proc test_param_pack() =
-    echo "- Testing parameter packing"
-    let dummy_param = ColumnDefinition()
-    var sth: PreparedStatement
-    new(sth)
-    sth.statement_id = ['\0', '\xFF', '\xAA', '\x55' ]
-    sth.parameters = @[dummy_param, dummy_param, dummy_param, dummy_param, dummy_param, dummy_param, dummy_param, dummy_param]
-    stdmsg.write("  packing small numbers, 1: ")
-    let buf = formatBoundParams(sth, [ asParam(0), asParam(1), asParam(127), asParam(128), asParam(255), asParam(256), asParam(-1), asParam(-127) ])
-    expect("000000001700ffaa5500010000000001" &  # packet header
-           "01800180018001800180028001000100" &  # wire type info
-           "00017f80ff0001ff81",                 # packed values
-           hexstr(buf))
-    stdmsg.write("  packing numbers and NULLs: ")
-    sth.parameters = sth.parameters & dummy_param
-    let buf2 = formatBoundParams(sth, [ asParam(-128), asParam(-129), asParam(-255), asParam(nil), asParam(nil), asParam(-256), asParam(-257), asParam(-32768), asParam(nil)  ])
-    expect("000000001700ffaa550001000000180101" &  # packet header
-           "010002000200020002000200" &            # wire type info
-           "807fff01ff00fffffe0080",               # packed values
-           hexstr(buf2))
-
-    stdmsg.write("  more values: ")
-    let buf3 = formatBoundParams(sth, [ asParam("hello"), asParam(nil),
-      asParam(0xFFFF), asParam(0xF1F2F3), asParam(0xFFFFFFFF), asParam(0xFFFFFFFFFF),
-      asParam(-12885), asParam(-2160069290), asParam(low(int64) + 512) ])
-    expect("000000001700ffaa550001000000020001" &  # packet header
-           "fe000280038003800880020008000800"   &  # wire type info
-           "0568656c6c6ffffff3f2f100ffffffffffffffffff000000abcd56f53f7fffffffff0002000000000080",
-           hexstr(buf3))
-
-  proc runInternalTests*() =
-    echo "Running asyncmysql internal tests"
-
-    test_param_pack()
-    when declared(openssl.EvpSHA1) and declared(EvpDigestCtxCreate):
-      test_hashes()
-
-  when isMainModule:
-    runInternalTests()
