@@ -515,7 +515,7 @@ proc finishEstablishingConnection(conn: Connection,
       of "caching_sha2_password":
         authResponse = scramble_caching_sha2(greet.scramble, password)
 
-  await conn.writeHandshakeResponse(username, authResponse, database, "")
+  await conn.writeHandshakeResponse(username, authResponse, database, greet.authentication_plugin)
 
   # await confirmation from the server
   let pkt = await conn.receivePacket()
