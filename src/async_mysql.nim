@@ -517,7 +517,7 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
   loadBuffer(parser, pkt.cstring, pkt.len)
   let finished = parseHandshake(parser, handshakePacket)
   assert finished == true
-  result.thread_id = handshakePacket.threadId
+  result.thread_id = handshakePacket.threadId.uint32
   # let greet = result.parseInitialGreeting(pkt)
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
