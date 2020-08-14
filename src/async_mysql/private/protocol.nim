@@ -207,6 +207,10 @@ type
     warning_count*    : Natural
     info*             : string
     # session_state_changes: seq[ ... ]
+  ResponseAuthSwitch {.final.} = object 
+    status: uint8 # const ResponseCode_AuthSwitchRequest
+    pluginName: string
+    pluginData: string
 
   # Server response packet: ERR (which can be thrown as an exception)
   ResponseERR = object of CatchableError
@@ -244,6 +248,13 @@ proc parseErrorPacket(pkt: string): ref ResponseERR =
   else:
     pos = 3
   result.msg = pkt[pos .. high(pkt)]
+
+proc parseAuthSwitchPacket(conn: Connection, pkt: string): ref ResponseAuthSwitch =
+  new(result)
+  var pos: int = 1
+  result.status = ResponseCode_ExtraAuthData
+  result.pluginName = scanNulStringX(pkt, pos)
+  result.pluginData = scanLenStr(pkt, pos)
 
 proc parseOKPacket(conn: Connection, pkt: string): ResponseOK =
   result.eof = false

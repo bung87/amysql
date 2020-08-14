@@ -475,7 +475,7 @@ proc finishEstablishingConnection(conn: Connection,
       of "mysql_native_password":
         authResponse = scramble_native_password(handshakePacket.scrambleBuff, password)
       of "caching_sha2_password":
-        authResponse = scramble_caching_sha2(handshakePacket.scrambleBuff1, password)
+        authResponse = scramble_caching_sha2(handshakePacket.scrambleBuff, password)
 
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
 
@@ -487,12 +487,17 @@ proc finishEstablishingConnection(conn: Connection,
     raise parseErrorPacket(pkt)
   elif isAuthSwitchRequestPacket(pkt):
     debugEcho "isAuthSwitchRequestPacket"
-    var scrambled = scramble_caching_sha2( handshakePacket.scrambleBuff1 ,password)
-    await conn.sendPacket(scrambled)
-    let pkt = await conn.receivePacket()
-    if isERRPacket(pkt):
-      raise parseErrorPacket(pkt)
-    return
+    let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
+    if Cap.pluginAuth in conn.server_caps  and responseAuthSwitch.pluginName.len > 0:
+      case responseAuthSwitch.pluginName
+        of "caching_sha2_password":
+          let salt = responseAuthSwitch.pluginData
+          var scrambled = scramble_caching_sha2(salt, password)
+          await conn.sendPacket(scrambled)
+          let pkt = await conn.receivePacket()
+          if isERRPacket(pkt):
+            raise parseErrorPacket(pkt)
+          return
   elif isExtraAuthDataPacket(pkt):
     debugEcho "isExtraAuthDataPacket"
     raise newException(ProtocolError, "not implemented")
