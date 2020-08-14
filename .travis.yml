@@ -1,6 +1,9 @@
 language: c
 
-cache: ccache
+cache: 
+  ccache: true
+  directories:
+    - $HOME/Library/Caches/Homebrew
 # env: 
 #   jobs:
 #     - CHANNEL=stable
