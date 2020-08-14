@@ -582,10 +582,10 @@ proc performPreparedQuery(conn: Connection, pstmt: PreparedStatement, st: Future
         rows.add(parseBinaryRow(result.columns, pkt))
     result.rows = rows
 
-proc preparedQuery*(conn: Connection, pstmt: PreparedStatement, params: varargs[ParameterBinding, asParam]): Future[ResultSet[ResultValue]] =
+proc preparedQuery*(conn: Connection, pstmt: PreparedStatement, params: varargs[ParameterBinding, asParam]): Future[ResultSet[ResultValue]] {.async.} =
   var pkt = formatBoundParams(pstmt, params)
   var sent = conn.sendPacket(pkt, reset_seq_no=true)
-  return performPreparedQuery(conn, pstmt, sent)
+  return await performPreparedQuery(conn, pstmt, sent)
 
 proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.async.} =
   var buf: string = newStringOfCap(4 + 1 + len(database))

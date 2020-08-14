@@ -26,6 +26,7 @@ template assertEq(T: typedesc, got: untyped, expect: untyped, msg: string = "inc
 
 proc numberTests(conn: Connection): Future[void] {.async.} =
   echo "Setting up table for numeric tests..."
+  discard await conn.selectDatabase(database_name)
   discard await conn.textQuery("drop table if exists num_tests")
   discard await conn.textQuery("create table num_tests (s text, u8 tinyint unsigned, s8 tinyint, u int unsigned, i int, b bigint)")
 
