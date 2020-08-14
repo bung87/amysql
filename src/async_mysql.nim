@@ -472,8 +472,8 @@ proc `xor`(a: Sha1Digest, b: Sha1Digest): string =
     add(result, chr(c))
 
 proc `xor`(a: MDigest[256], b: MDigest[256]): string =
-  result = newStringOfCap(256)
-  for i in 0..<256:
+  result = newStringOfCap(32)
+  for i in 0..<32:
     let c = ord(a.data[i]) xor ord(b.data[i])
     add(result, chr(c))
 
