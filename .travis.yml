@@ -66,11 +66,14 @@ before_script:
     if [ -z "$TRAVIS_MARIADB_VERSION" ] 
     then
       sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
+      sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'password';"
     else
       sudo mysql -u root  -e "create user 'test_user'@'localhost' identified VIA mysql_native_password USING PASSWORD('123456');"
+      sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('123456');"
     fi
 
   - sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
+  - sudo mysql -u root  -e "grant all on *.* to 'sha2user'@'localhost';"
   # - mysql -h 127.0.0.1 -u root -e "create user 'mysql2'@'127.0.0.1' identified by '123456';"
   # - mysql -h 127.0.0.1 -u root -e "grant all on *.* to 'mysql2'@'127.0.0.1';"
 
