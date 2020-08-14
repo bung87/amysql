@@ -53,7 +53,6 @@ proc hash323(s: string): tuple[a: uint32, b: uint32] =
   result.b = (nr2 and 0x7FFFFFFF)
 
 proc scramble323*(seed: string, password: string): string =
-  assert password.len == 0
   if password.len == 0:
     return ""
   var pw = hash323(seed)
