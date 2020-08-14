@@ -9,3 +9,4 @@ srcDir        = "src"
 
 
 # Dependencies
+requires "nimcrypto"

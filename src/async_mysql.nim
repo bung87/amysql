@@ -14,7 +14,7 @@ include async_mysql/private/protocol
 import asyncnet, asyncdispatch,std/sha1,macros
 import strutils#, unsigned
 import net  # needed for the SslContext type
-
+import nimcrypto
 
 type
   # This represents a value returned from the server when using
@@ -463,32 +463,58 @@ when defined(ssl):
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
 
-proc `xor`(a: string, b: string): string =
-  assert a.len == b.len
-  result = newStringOfCap(a.len)
-  for i in 0..<a.len:
+const Sha1DigestSize = 20
+
+proc `xor`(a: Sha1Digest, b: Sha1Digest): string =
+  result = newStringOfCap(Sha1DigestSize)
+  for i in 0..<Sha1DigestSize:
     let c = ord(a[i]) xor ord(b[i])
     add(result, chr(c))
 
-proc sha1(seed: string): string =
-  const len = 20
-  result = newString(len)
-  let s = secureHash(seed)
-  let da = Sha1Digest(s)
-  for i in 0..<len:
-    result[i] = chr(da[i])
+proc `xor`(a: MDigest[256], b: MDigest[256]): string =
+  result = newStringOfCap(256)
+  for i in 0..<256:
+    let c = ord(a.data[i]) xor ord(b.data[i])
+    add(result, chr(c))
 
-proc token(scrambleBuff: string, password: string): string =
-  let stage1 = sha1(password)
-  let stage2 = sha1(stage1)
-  let stage3 = sha1(scrambleBuff & stage2)
-  result = stage3 xor stage1
+proc toString(h: sha1.SecureHash | Sha1Digest): string =
+  ## convert sha1.SecureHash,Sha1Digest to limited length string(Sha1DigestSize:20)
+  var bytes = cast[array[0 .. Sha1DigestSize-1, uint8]](h)
+  result = newString(Sha1DigestSize)
+  copyMem(result[0].addr, bytes[0].addr, bytes.len)
+
+proc scramble_native_password(scrambleBuff: string, password: string): string =
+  let stage1 = sha1.secureHash(password)
+  let stage2 = sha1.secureHash( stage1.toString )
+  var ss = newSha1State()
+  ss.update(scrambleBuff[0..<Sha1DigestSize])
+  ss.update(stage2.toString)
+  let stage3 = ss.finalize
+  result = stage3 xor stage1.Sha1Digest
+
+proc scramble_caching_sha2(scrambleBuff: string, password: string): string =
+  let p1 = sha256.digest(password)
+  let p2 = sha256.digest($p1)
+  let p3 = sha256.digest($p2 & scrambleBuff)
+  result = p1 xor p3
 
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
                                   greet: greetingVars): Future[void] {.async.} =
   # password authentication
-  var authResponse = token(greet.scramble, password)
+  # https://dev.mysql.com/doc/internals/en/determining-authentication-method.html
+  # In MySQL 5.7, the default authentication plugin is mysql_native_password.
+  # As of MySQL 8.0, the default authentication plugin is changed to caching_sha2_password. 
+  # https://dev.mysql.com/doc/refman/5.7/en/authentication-plugins.html
+  # https://dev.mysql.com/doc/refman/8.0/en/authentication-plugins.html
+  var authResponse = ""
+  if password.len > 0:
+    case greet.authentication_plugin
+      of "mysql_native_password":
+        authResponse = scramble_native_password(greet.scramble, password)
+      of "caching_sha2_password":
+        authResponse = scramble_caching_sha2(greet.scramble, password)
+
   await conn.writeHandshakeResponse(username, authResponse, database, "")
 
   # await confirmation from the server
