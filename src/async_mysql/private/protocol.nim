@@ -11,7 +11,8 @@ const
   ResponseCode_OK  : uint8 = 0
   ResponseCode_EOF : uint8 = 254   # Deprecated in mysql 5.7.5
   ResponseCode_ERR : uint8 = 255
-
+  ResponseCode_AuthSwitchRequest: uint8 = 254 # 0xFE
+  ResponseCode_ExtraAuthData: uint8 = 1 # 0x01
   NullColumn       = char(0xFB)
 
   HandshakeV10 : uint8 = 0x0A  # Initial handshake packet since MySQL 3.21
@@ -187,7 +188,7 @@ type
   greetingVars {.final.} = object
     scramble: string
     authentication_plugin: string
-
+    auth_plugin_data_part_1: string
 
   # Server response packets: OK and EOF
   ResponseOK = object {.final.}
@@ -216,6 +217,14 @@ proc isEOFPacket(pkt: string): bool =
 proc isERRPacket(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_ERR))
 
 proc isOKPacket(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_OK))
+
+proc isAuthSwitchRequestPacket(pkt: string): bool = 
+  ## http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
+  pkt[0] == char(ResponseCode_AuthSwitchRequest)
+
+proc isExtraAuthDataPacket(pkt: string): bool = 
+  ## https://dev.mysql.com/doc/internals/en/successful-authentication.html
+  pkt[0] == char(ResponseCode_ExtraAuthData)
 
 proc parseErrorPacket(pkt: string): ref ResponseERR =
   new(result)
@@ -250,11 +259,14 @@ proc parseEOFPacket(pkt: string): ResponseOK =
 proc parseInitialGreeting(conn: Connection, greeting: string): greetingVars =
   let protocolVersion = uint8(greeting[0])
   if protocolVersion != HandshakeV10:
+    # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::HandshakeV10
     raise newException(ProtocolError, "Unexpected protocol version: 0x" & toHex(int(protocolVersion), 2))
   var pos = 1
   conn.server_version = scanNulString(greeting, pos)
   conn.thread_id = scanU32(greeting, pos)
   pos += 4
+  result.auth_plugin_data_part_1 = scanNulString(greeting, pos) # auth-plugin-data-part-1
+  pos += 9 # with filter
   result.scramble = greeting[pos .. pos+7]
   let cflags_l = scanU16(greeting, pos + 8 + 1)
   conn.server_caps = cast[set[Cap]](cflags_l)

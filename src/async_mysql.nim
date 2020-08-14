@@ -498,6 +498,12 @@ proc scramble_caching_sha2(scrambleBuff: string, password: string): string =
   let p3 = sha256.digest($p2 & scrambleBuff)
   result = p1 xor p3
 
+# def _roundtrip(conn, send_data):
+#     conn.write_packet(send_data)
+#     pkt = conn._read_packet()
+#     pkt.check_error()
+#     return pkt
+
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
                                   greet: greetingVars): Future[void] {.async.} =
@@ -507,13 +513,14 @@ proc finishEstablishingConnection(conn: Connection,
   # As of MySQL 8.0, the default authentication plugin is changed to caching_sha2_password. 
   # https://dev.mysql.com/doc/refman/5.7/en/authentication-plugins.html
   # https://dev.mysql.com/doc/refman/8.0/en/authentication-plugins.html
+  debugEcho greetingVars
   var authResponse = ""
   if password.len > 0:
     case greet.authentication_plugin
       of "mysql_native_password":
         authResponse = scramble_native_password(greet.scramble, password)
       of "caching_sha2_password":
-        authResponse = scramble_caching_sha2(greet.scramble, password)
+        authResponse = scramble_caching_sha2(greet.auth_plugin_data_part_1, password)
 
   await conn.writeHandshakeResponse(username, authResponse, database, greet.authentication_plugin)
 
@@ -523,6 +530,18 @@ proc finishEstablishingConnection(conn: Connection,
     return
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
+  elif isAuthSwitchRequestPacket(pkt):
+    debugEcho "isAuthSwitchRequestPacket"
+    let salt = await conn.receivePacket()
+    var scrambled = scramble_caching_sha2( salt ,password)
+    await conn.sendPacket(scrambled)
+    let pkt = await conn.receivePacket()
+    if isERRPacket(pkt):
+      raise parseErrorPacket(pkt)
+    return
+  elif isExtraAuthDataPacket(pkt):
+    debugEcho "isExtraAuthDataPacket"
+    raise newException(ProtocolError, "not implemented")
   else:
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 
