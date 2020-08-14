@@ -72,8 +72,8 @@ type
     client_caps: set[Cap]
 
   Status {.pure.} = enum
-    inTransaction = 0  # a transaction is active
-    autoCommit = 1 # auto-commit is enabled
+    inTransaction = 1  # a transaction is active
+    autoCommit = 2 # auto-commit is enabled
     moreResultsExist = 3
     noGoodIndexUsed = 4
     noIndexUsed = 5
@@ -90,20 +90,27 @@ type
   # These correspond to the CMD_FOO definitions in mysql.
   # Commands marked "internal to the server", and commands
   # only used by the replication protocol, are commented out
+  # https://dev.mysql.com/worklog/task/?id=8754
+  # Following COM_XXX commands can be deprecated as there are alternative sql 
+  # statements associated with them.
+  # COM_FIELD_LIST (show columns sql statement)
+  # COM_REFRESH (flush sql statement)
+  # COM_PROCESS_INFO(show processlist sql statement)
+  # COM_PROCESS_KILL (kill connection/query sql statement)
   Command {.pure.} = enum
     # sleep = 0
-    quiT = 1
+    quit = 1
     initDb = 2
     query = 3
-    fieldList = 4
-    createDb = 5
-    dropDb = 6
-    refresh = 7
+    fieldList = 4     # Deprecated, show fields sql statement
+    createDb = 5      # Deprecated, create table sql statement
+    dropDb = 6        # Deprecated, drop table sql statement
+    refresh = 7       # Deprecated, flush sql statement
     shutdown = 8
     statistics = 9
-    processInfo = 10
+    processInfo = 10  # Deprecated, show processlist sql statement
     # connect = 11
-    processKill = 12
+    processKill = 12  # Deprecated, kill connection/query sql statement
     debug = 13
     ping = 14
     # time = 15
@@ -130,6 +137,7 @@ type
 
     # daemon = 29
     resetConnection = 31
+    
 
   FieldFlag* {.pure.} = enum
     notNull = 0 # Field can't be NULL
@@ -191,7 +199,7 @@ type
     auth_plugin_data_part_1: string
 
   # Server response packets: OK and EOF
-  ResponseOK = object {.final.}
+  ResponseOK {.final.} = object 
     eof               : bool  # True if EOF packet, false if OK packet
     affected_rows*    : Natural
     last_insert_id*   : Natural
