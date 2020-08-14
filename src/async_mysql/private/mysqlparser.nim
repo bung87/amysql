@@ -4,11 +4,11 @@
 #    See the file "LICENSE", included in this distribution, for
 #    details about the copyright.
 
-import strutils, std/sha1
+import strutils
 import math # used by scramble323
 include ./protocol
 include ./status
-
+import ./auth
 
 proc toProtocolHex*(x: Natural, len: Positive): string =
   ## Converts ``x`` to a string in the format of mysql Client/Server Protocol.
@@ -126,7 +126,7 @@ string[NUL]    auth-plugin name
   ProgressState = enum # Progress state for parsing.
     prgOk, prgNext, prgEmpty
 
-  PacketState = enum # Parsing state of the ``PacketParser``.
+  PacketState* = enum # Parsing state of the ``PacketParser``.
     packInit, 
     packHeader, 
     packFinish, 
@@ -159,7 +159,7 @@ string[NUL]    auth-plugin name
     protocolVersion*: int      # 1
     serverVersion*: string     # NullTerminatedString
     threadId*: int             # 4
-    scrambleBuff1: string      # 8
+    scrambleBuff1*: string      # 8 # auth_plugin_data_part_1
     capabilities*: int         # (4)
     capabilities1: int         # 2
     charset*: int              # 1
@@ -350,7 +350,7 @@ proc initRowList*(): RowList =
   result.value = @[]
   result.counter = -1
 
-proc initPacketParser( ):PacketParser = 
+proc initPacketParser( state = packInit ):PacketParser = 
   result.buf = nil
   result.bufLen = 0
   result.bufPos = 0
@@ -363,18 +363,18 @@ proc initPacketParser( ):PacketParser =
   result.storedWord = ""
   result.storedWant = 0
   result.storedState = packInit
-  result.state = packInit
+  result.state = state
   result.wantEncodedState = lenFlagVal
   result.isEntire = true 
 
-proc initPacketParser*(kind: PacketParserKind): PacketParser = 
+proc initPacketParser*(kind: PacketParserKind, state = packInit): PacketParser = 
   ## Creates a new packet parser for parsing a handshake connection.
-  result = initPacketParser()
+  result = initPacketParser(state)
   result.kind = kind
 
-proc initPacketParser*(command: Command): PacketParser = 
+proc initPacketParser*(command: Command, state = packInit): PacketParser = 
   ## Creates a new packet parser for receiving a result packet.
-  result = initPacketParser()
+  result = initPacketParser(state)
   result.kind = ppkCommandResult
   result.command = command
   
@@ -393,7 +393,7 @@ proc offset*(parser: PacketParser): int =
 proc buffered*(p: PacketParser): bool =
   result = p.bufPos < p.bufLen
 
-proc mount*(p: var PacketParser, buf: pointer, size: int) = 
+proc loadBuffer*(p: var PacketParser, buf: pointer, size: int) = 
   p.buf = buf
   p.bufLen = size
   p.bufPos = 0
@@ -401,8 +401,8 @@ proc mount*(p: var PacketParser, buf: pointer, size: int) =
     p.bufRealLen = if p.remainingPayloadLen <= size: p.remainingPayloadLen
                    else: size
 
-proc mount*(p: var PacketParser, buf: string) =
-  mount(p, buf.cstring, buf.len)
+proc loadBuffer*(p: var PacketParser, buf: string) =
+  loadBuffer(p, buf.cstring, buf.len)
 
 proc move(p: var PacketParser) = 
   assert p.bufRealLen == 0
@@ -1235,37 +1235,6 @@ type
     database*: string          # NullTerminatedString
     charset*: int              # [1]
 
-proc parseHex(c: char): int =
-  case c
-  of '0'..'9':
-    result = ord(c.toUpperAscii) - ord('0') 
-  of 'a'..'f':
-    result = ord(c.toUpperAscii) - ord('A') + 10
-  of 'A'..'F':
-    result = ord(c.toUpperAscii) - ord('A') + 10
-  else:
-    raise newException(ValueError, "unexpected hex char " & c)
-
-proc `xor`(a: string, b: string): string =
-  assert a.len == b.len
-  result = newStringOfCap(a.len)
-  for i in 0..<a.len:
-    let c = ord(a[i]) xor ord(b[i])
-    add(result, chr(c))
-
-proc sha1(seed: string): string =
-  const len = 20
-  result = newString(len)
-  let s = secureHash(seed)
-  let da = Sha1Digest(s)
-  for i in 0..<len:
-    result[i] = chr(da[i])
-
-proc token(scrambleBuff: string, password: string): string =
-  let stage1 = sha1(password)
-  let stage2 = sha1(stage1)
-  let stage3 = sha1(scrambleBuff & stage2)
-  result = stage3 xor stage1
 
 proc hash323(s: string): tuple[a: uint32, b: uint32] =
   var nr = 0x50305735'u32
@@ -1321,7 +1290,7 @@ proc formatClientAuth*(packet: ClientAuthenticationPacket, password: string): st
     add(result, packet.user)
     add(result, '\0')
     add(result, toProtocolHex(20, 1))
-    add(result, token(packet.scrambleBuff, password))
+    add(result, scramble_native_password(packet.scrambleBuff, password))
     add(result, packet.database)
     add(result, '\0')
   else:
@@ -1376,7 +1345,7 @@ proc formatComChangeUser*(packet: ChangeUserPacket, password: string): string =
   add(result, packet.user)
   add(result, '\0')
   add(result, toProtocolHex(20, 1))
-  add(result, token(packet.scrambleBuff, password))
+  add(result, scramble_native_password(packet.scrambleBuff, password))
   add(result, packet.database)
   add(result, '\0')
   add(result, toProtocolHex(packet.charset, 2))

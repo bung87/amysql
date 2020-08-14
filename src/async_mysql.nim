@@ -11,10 +11,12 @@
 ##
 
 include async_mysql/private/protocol
-import asyncnet, asyncdispatch,std/sha1,macros
+import async_mysql/private/mysqlparser
+import async_mysql/private/auth
+import asyncnet, asyncdispatch, macros
 import strutils#, unsigned
 import net  # needed for the SslContext type
-import nimcrypto
+
 
 type
   # This represents a value returned from the server when using
@@ -74,7 +76,7 @@ type
 
 type
 
-  ColumnDefinition* = object {.final.}
+  ColumnDefinition* {.final.} = object 
     catalog*     : string
     schema*      : string
     table*       : string
@@ -88,7 +90,7 @@ type
     flags*       : set[FieldFlag]
     decimals*    : int
 
-  ResultSet*[T] = object {.final.}
+  ResultSet*[T] {.final.} = object 
     status*     : ResponseOK
     columns*    : seq[ColumnDefinition]
     rows*       : seq[seq[T]]
@@ -100,14 +102,7 @@ type
     columns: seq[ColumnDefinition]
     warnings: Natural
 
-proc add(s: var string, a: seq[char]) =
-  for ch in a:
-    s.add(ch)
 
-
-
-## ######################################################################
-##
 ## Parameter and result packers/unpackers
 
 proc addTypeUnlessNULL(p: ParameterBinding, pkt: var string) =
@@ -463,66 +458,26 @@ when defined(ssl):
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
 
-const Sha1DigestSize = 20
-
-proc `xor`(a: Sha1Digest, b: Sha1Digest): string =
-  result = newStringOfCap(Sha1DigestSize)
-  for i in 0..<Sha1DigestSize:
-    let c = ord(a[i]) xor ord(b[i])
-    add(result, chr(c))
-
-proc `xor`(a: MDigest[256], b: MDigest[256]): string =
-  result = newStringOfCap(32)
-  for i in 0..<32:
-    let c = ord(a.data[i]) xor ord(b.data[i])
-    add(result, chr(c))
-
-proc toString(h: sha1.SecureHash | Sha1Digest): string =
-  ## convert sha1.SecureHash,Sha1Digest to limited length string(Sha1DigestSize:20)
-  var bytes = cast[array[0 .. Sha1DigestSize-1, uint8]](h)
-  result = newString(Sha1DigestSize)
-  copyMem(result[0].addr, bytes[0].addr, bytes.len)
-
-proc scramble_native_password(scrambleBuff: string, password: string): string =
-  let stage1 = sha1.secureHash(password)
-  let stage2 = sha1.secureHash( stage1.toString )
-  var ss = newSha1State()
-  ss.update(scrambleBuff[0..<Sha1DigestSize])
-  ss.update(stage2.toString)
-  let stage3 = ss.finalize
-  result = stage3 xor stage1.Sha1Digest
-
-proc scramble_caching_sha2(scrambleBuff: string, password: string): string =
-  let p1 = sha256.digest(password)
-  let p2 = sha256.digest($p1)
-  let p3 = sha256.digest($p2 & scrambleBuff)
-  result = p1 xor p3
-
-# def _roundtrip(conn, send_data):
-#     conn.write_packet(send_data)
-#     pkt = conn._read_packet()
-#     pkt.check_error()
-#     return pkt
 
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
-                                  greet: greetingVars): Future[void] {.async.} =
+                                  handshakePacket: HandshakePacket): Future[void] {.async.} =
   # password authentication
   # https://dev.mysql.com/doc/internals/en/determining-authentication-method.html
   # In MySQL 5.7, the default authentication plugin is mysql_native_password.
   # As of MySQL 8.0, the default authentication plugin is changed to caching_sha2_password. 
   # https://dev.mysql.com/doc/refman/5.7/en/authentication-plugins.html
   # https://dev.mysql.com/doc/refman/8.0/en/authentication-plugins.html
-  debugEcho greetingVars
+  debugEcho $handshakePacket
   var authResponse = ""
   if password.len > 0:
-    case greet.authentication_plugin
+    case handshakePacket.plugin
       of "mysql_native_password":
-        authResponse = scramble_native_password(greet.scramble, password)
+        authResponse = scramble_native_password(handshakePacket.scrambleBuff, password)
       of "caching_sha2_password":
-        authResponse = scramble_caching_sha2(greet.auth_plugin_data_part_1, password)
+        authResponse = scramble_caching_sha2(handshakePacket.scrambleBuff1, password)
 
-  await conn.writeHandshakeResponse(username, authResponse, database, greet.authentication_plugin)
+  await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
 
   # await confirmation from the server
   let pkt = await conn.receivePacket()
@@ -532,8 +487,7 @@ proc finishEstablishingConnection(conn: Connection,
     raise parseErrorPacket(pkt)
   elif isAuthSwitchRequestPacket(pkt):
     debugEcho "isAuthSwitchRequestPacket"
-    let salt = await conn.receivePacket()
-    var scrambled = scramble_caching_sha2( salt ,password)
+    var scrambled = scramble_caching_sha2( handshakePacket.scrambleBuff1 ,password)
     await conn.sendPacket(scrambled)
     let pkt = await conn.receivePacket()
     if isERRPacket(pkt):
@@ -550,7 +504,7 @@ when declared(SslContext) and declared(startTls):
     result = Connection(socket: sock)
     let pkt = await result.receivePacket()
     let greet = result.parseInitialGreeting(pkt)
-
+    
     # Negotiate encryption
     await result.startTls(ssl)
     await result.finishEstablishingConnection(username, password, database, greet)
@@ -558,8 +512,13 @@ when declared(SslContext) and declared(startTls):
 proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = ""): Future[Connection] {.async.} =
   result = Connection(socket: sock)
   let pkt = await result.receivePacket()
-  let greet = result.parseInitialGreeting(pkt)
-  await result.finishEstablishingConnection(username, password, database, greet)
+  var handshakePacket: HandshakePacket
+  var parser = initPacketParser(PacketParserKind.ppkHandshake, PacketState.packHandshake)
+  loadBuffer(parser, pkt.cstring, pkt.len)
+  let finished = parseHandshake(parser, handshakePacket)
+  assert finished == true
+  # let greet = result.parseInitialGreeting(pkt)
+  await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
 proc textQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.async.} =
   await conn.sendQuery(query)
