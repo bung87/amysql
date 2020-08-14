@@ -1,5 +1,5 @@
 import unittest
-
+import os
 import async_mysql, asyncdispatch, asyncnet
 from nativesockets import AF_INET, SOCK_STREAM
 import unittest
@@ -22,5 +22,6 @@ proc doTCPConnect(user_name, pass_word:string): Future[Connection] {.async.} =
 
 suite "test connection auth methods":
   test "caching_sha2":
-    let conn = waitFor(doTCPConnect("sha2user","123456"))
-    waitFor conn.close()
+    if getEnv("USE_SHA2") == "true": 
+      let conn = waitFor(doTCPConnect("sha2user","123456"))
+      waitFor conn.close()

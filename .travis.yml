@@ -12,7 +12,7 @@ matrix:
       name: linux with mysql
       compiler: gcc
       services:
-        mysql
+        mysql # mysql  Ver 14.14 Distrib 5.7.30, for Linux (x86_64) using  EditLine wrapper
 
     - os: linux
       name: linux with mariadb
@@ -24,10 +24,11 @@ matrix:
     - os: osx
       name: osx with mysql
       compiler: clang
+      env: USE_SHA2=true
       before_install:
         - brew install ccache
         - export PATH="/usr/local/opt/ccache/libexec:$PATH"
-        - brew install mysql
+        - brew install mysql # mysql-8.0.21
         - mysql.server start
     - os: osx
       name: osx with mariadb
@@ -67,13 +68,17 @@ before_script:
     then
       sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
       sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'password';"
+      if [ "$USE_SHA2" == "true" ]
+      then
+        sudo mysql -u root  -e "grant all on *.* to 'sha2user'@'localhost';"
+      fi
     else
       sudo mysql -u root  -e "create user 'test_user'@'localhost' identified VIA mysql_native_password USING PASSWORD('123456');"
-      sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('123456');"
+      # mariadb not well support https://mariadb.com/kb/en/authentication-plugin-sha-256/#client-authentication-plugins
+      # sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('123456');"
     fi
 
   - sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
-  - sudo mysql -u root  -e "grant all on *.* to 'sha2user'@'localhost';"
   # - mysql -h 127.0.0.1 -u root -e "create user 'mysql2'@'127.0.0.1' identified by '123456';"
   # - mysql -h 127.0.0.1 -u root -e "grant all on *.* to 'mysql2'@'127.0.0.1';"
 
