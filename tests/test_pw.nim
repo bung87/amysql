@@ -1,7 +1,7 @@
 import unittest
 include async_mysql
 
-proc mysql_native_password(s: string,p: string): string = hexstr(token(s,p))
+proc mysql_native_password(s: string,p: string): string = hexstr(scramble_native_password(s,p))
 
 suite "test password encryption":
   test "mysql_native_password":
