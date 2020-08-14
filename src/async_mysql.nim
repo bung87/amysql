@@ -493,11 +493,16 @@ proc finishEstablishingConnection(conn: Connection,
         of "caching_sha2_password":
           let salt = responseAuthSwitch.pluginData
           var scrambled = scramble_caching_sha2(salt, password)
-          await conn.sendPacket(scrambled)
+          await conn.sendPacket(scrambled,reset_seq_no=true)
           let pkt = await conn.receivePacket()
           if isERRPacket(pkt):
             raise parseErrorPacket(pkt)
           return
+    else:
+      # send legacy handshake
+      var data = scramble323(responseAuthSwitch.pluginData, password)
+      await conn.sendPacket(data,reset_seq_no=true)
+      discard await conn.receivePacket()
   elif isExtraAuthDataPacket(pkt):
     debugEcho "isExtraAuthDataPacket"
     raise newException(ProtocolError, "not implemented")

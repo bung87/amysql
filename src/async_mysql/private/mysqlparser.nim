@@ -5,7 +5,7 @@
 #    details about the copyright.
 
 import strutils
-import math # used by scramble323
+
 include ./protocol
 include ./status
 import ./auth
@@ -1235,45 +1235,6 @@ type
     database*: string          # NullTerminatedString
     charset*: int              # [1]
 
-
-proc hash323(s: string): tuple[a: uint32, b: uint32] =
-  var nr = 0x50305735'u32
-  var add = 7'u32
-  var nr2 = 0x12345671'u32
-  var tmp: uint32
-  for c in s:
-    case c
-    of '\x09', '\x20':
-      continue
-    else:
-      tmp = uint32(0xFF and ord(c))
-      nr = nr xor ((((nr and 63) + add) * tmp) + (nr shl 8))
-      nr2 = nr2 + ((nr2 shl 8) xor nr)
-      add = add + tmp
-  result.a = nr and 0x7FFFFFFF
-  result.b = (nr2 and 0x7FFFFFFF)
-
-proc scramble323(seed: string, password: string): string =
-  assert password.len == 0
-  if password.len == 0:
-    return ""
-  var pw = hash323(seed)
-  var msg = hash323(password)
-  const max = 0x3FFFFFFF'u32
-  var seed1 = (pw.a xor msg.a) mod max
-  var seed2 = (pw.b xor msg.b) mod max
-  var b: uint32
-  result = newString(seed.len)
-  for i in 0..<seed.len:
-    seed1 = ((seed1 * 3) + seed2) mod max
-    seed2 = (seed1 + seed2 + 33) mod max
-    b = floor((seed1.int / max.int * 31) + 64).uint32
-    result[i] = chr(b)
-  seed1 = ((seed1 * 3) + seed2) mod max
-  seed2 = (seed1 + seed2 + 33) mod max
-  b = floor(seed1.int / max.int * 31).uint32
-  for i in 0..<seed.len:
-    result[i] = chr(ord(result[i]) xor b.int)
 
 proc formatClientAuth*(packet: ClientAuthenticationPacket, password: string): string = 
   ## Converts ``packet`` to a string.
