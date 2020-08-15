@@ -494,9 +494,9 @@ proc finishEstablishingConnection(conn: Connection,
         else:
           buf.add authData
       await conn.sendPacket(buf)
-      discard await conn.receivePacket()
-      # if isERRPacket(pkt):
-      #   raise parseErrorPacket(pkt)
+      let pkt = await conn.receivePacket()
+      if isERRPacket(pkt):
+        raise parseErrorPacket(pkt)
       # if isExtraAuthDataPacket(pkt):
       #   debugEcho "isExtraAuthDataPacket"
       #   raise newException(ProtocolError, "not implemented")
