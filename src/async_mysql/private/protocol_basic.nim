@@ -84,7 +84,9 @@ proc scanNulString(buf: string, pos: var int): string =
     result.add(buf[pos])
     inc(pos)
   inc(pos)
+
 proc scanNulStringX(buf: string, pos: var int): string =
+  # scan null string limited to buf high
   result = ""
   while pos <= high(buf) and buf[pos] != char(0):
     result.add(buf[pos])

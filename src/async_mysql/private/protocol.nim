@@ -251,8 +251,8 @@ proc parseAuthSwitchPacket(conn: Connection, pkt: string): ref ResponseAuthSwitc
   new(result)
   var pos: int = 1
   result.status = ResponseCode_ExtraAuthData
-  result.pluginName = scanNulStringX(pkt, pos)
-  result.pluginData = scanLenStr(pkt, pos)
+  result.pluginName = scanNulString(pkt, pos)
+  result.pluginData = scanNulStringX(pkt, pos)
 
 proc parseOKPacket(conn: Connection, pkt: string): ResponseOK =
   result.eof = false
