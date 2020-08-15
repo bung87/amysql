@@ -469,7 +469,7 @@ proc finishEstablishingConnection(conn: Connection,
   # https://dev.mysql.com/doc/refman/5.7/en/authentication-plugins.html
   # https://dev.mysql.com/doc/refman/8.0/en/authentication-plugins.html
   debugEcho $handshakePacket
-  var authResponse = plugin_auth(handshakePacket.scrambleBuff, password)
+  var authResponse = plugin_auth(handshakePacket.plugin, handshakePacket.scrambleBuff, password)
 
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
 
