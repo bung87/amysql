@@ -60,8 +60,8 @@ matrix:
     # Ignore failures when building against the devel Nim branch
     # Also ignore OSX, due to very long build queue
     - os: osx
-      env: CHANNEL=devel USE_SHA2=true
-      name: osx with mysql
+    - env: CHANNEL=devel USE_SHA2=true
+    # -  name: osx with mysql
   fast_finish: true
 
 before_script:
