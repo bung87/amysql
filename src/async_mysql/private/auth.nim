@@ -20,11 +20,15 @@ proc toString(h: sha1.SecureHash | Sha1Digest): string =
   result = newString(Sha1DigestSize)
   copyMem(result[0].addr, bytes[0].addr, bytes.len)
 
+proc safeSlice(s: string, size: int): string = 
+  result = newString(size)
+  copyMem(result[0].addr, s[0].unsafeAddr, size)
+
 proc scramble_native_password*(scrambleBuff: string, password: string): string =
   let stage1 = sha1.secureHash(password)
   let stage2 = sha1.secureHash( stage1.toString )
   var ss = newSha1State()
-  ss.update(scrambleBuff[0..<Sha1DigestSize])
+  ss.update(scrambleBuff.safeSlice Sha1DigestSize)
   ss.update(stage2.toString)
   let stage3 = ss.finalize
   result = stage3 xor stage1.Sha1Digest

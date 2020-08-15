@@ -484,7 +484,8 @@ proc finishEstablishingConnection(conn: Connection,
     debugEcho "isAuthSwitchRequestPacket"
     let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
     if Cap.pluginAuth in conn.server_caps  and responseAuthSwitch.pluginName.len > 0:
-      debugEcho "plugin auth handshake"
+      debugEcho "plugin auth handshake:" & responseAuthSwitch.pluginName
+      debugEcho "pluginData:" & responseAuthSwitch.pluginData
       let authData = plugin_auth(responseAuthSwitch.pluginName,responseAuthSwitch.pluginData, password)
       var buf: string = newStringOfCap(128)
       buf.setLen(4)
