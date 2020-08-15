@@ -459,6 +459,54 @@ when defined(ssl):
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
 
+proc roundtrip(conn:Connection, data: string): Future[string] {.async.} =
+  var buf: string = newStringOfCap(32)
+  buf.setLen(4)
+  buf.add data
+  await conn.sendPacket(buf)
+  let pkt = await conn.receivePacket()
+  if isERRPacket(pkt):
+    raise parseErrorPacket(pkt)
+  return pkt
+
+proc caching_sha2_password_auth(conn:Connection, pkt, scrambleBuff, password: string): Future[string] {.async.} =
+  # pkt 
+  # 1 status 0x01
+  # 2 auth_method_data (string.EOF) -- extra auth-data beyond the initial challenge
+  if password.len == 0:
+    return await conn.roundtrip("")
+  var pkt = pkt
+  if pkt.isAuthSwitchRequestPacket():
+    let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
+    let authData = scramble_caching_sha2(responseAuthSwitch.pluginData, password)
+    pkt = await conn.roundtrip(authData)
+  if not pkt.isExtraAuthDataPacket:
+    raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & pkt)
+  
+  # magic numbers:
+  # 2 - request public key
+  # 3 - fast auth succeeded
+  # 4 - need full auth
+  # var pos: int = 1
+  let n = int(pkt[1])
+  if n == 3:
+    pkt = await conn.receivePacket()
+    if isERRPacket(pkt):
+      raise parseErrorPacket(pkt)
+    return pkt
+  if n != 4:
+    raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & $n)
+  # full path
+  debugEcho "full path"
+  # if conn.secure # Sending plain password via secure connection 
+  # if not conn.server_public_key:
+  #   pkt = await roundtrip(conn, "2") 
+  #   if not isExtraAuthDataPacket(pkt):
+  #     raise newException(ProtocolError,"caching sha2: Unknown packet for public key: "  & pkt)
+  #   conn.server_public_key = pkt[1..pkt.high]
+  # let data = sha2_rsa_encrypt(password, scrambleBuff, conn.server_public_key)
+  # pkt = await roundtrip(conn, data)
+  # return pkt
 
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
@@ -487,7 +535,7 @@ proc finishEstablishingConnection(conn: Connection,
       debugEcho "plugin auth handshake:" & responseAuthSwitch.pluginName
       debugEcho "pluginData:" & responseAuthSwitch.pluginData
       let authData = plugin_auth(responseAuthSwitch.pluginName,responseAuthSwitch.pluginData, password)
-      var buf: string = newStringOfCap(128)
+      var buf: string = newStringOfCap(32)
       buf.setLen(4)
       case responseAuthSwitch.pluginName
         of "mysql_old_password", "mysql_clear_password":
@@ -498,20 +546,26 @@ proc finishEstablishingConnection(conn: Connection,
       let pkt = await conn.receivePacket()
       if isERRPacket(pkt):
         raise parseErrorPacket(pkt)
-      # if isExtraAuthDataPacket(pkt):
-      #   debugEcho "isExtraAuthDataPacket"
-      #   raise newException(ProtocolError, "not implemented")
+      
       return
     else:
       debugEcho "legacy handshake"
       # send legacy handshake
-      var buf: string = newStringOfCap(128)
+      var buf: string = newStringOfCap(32)
       buf.setLen(4)
       var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
       putNulString(buf,data)
       await conn.sendPacket(buf)
       discard await conn.receivePacket()
-  
+  elif isExtraAuthDataPacket(pkt):
+    debugEcho "isExtraAuthDataPacket"
+    # https://dev.mysql.com/doc/internals/en/successful-authentication.html
+    if handshakePacket.plugin == "caching_sha2_password":
+        discard await caching_sha2_password_auth(conn, pkt, password, handshakePacket.scrambleBuff)
+    # elif handshakePacket.plugin == "sha256_password":
+    #     discard await = sha256_password_auth(conn, auth_packet, password)
+    else:
+        raise newException(ProtocolError,"Received extra packet for auth method " & handshakePacket.plugin )
   else:
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 
