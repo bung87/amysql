@@ -469,13 +469,7 @@ proc finishEstablishingConnection(conn: Connection,
   # https://dev.mysql.com/doc/refman/5.7/en/authentication-plugins.html
   # https://dev.mysql.com/doc/refman/8.0/en/authentication-plugins.html
   debugEcho $handshakePacket
-  var authResponse = ""
-  if password.len > 0:
-    case handshakePacket.plugin
-      of "mysql_native_password":
-        authResponse = scramble_native_password(handshakePacket.scrambleBuff, password)
-      of "caching_sha2_password":
-        authResponse = scramble_caching_sha2(handshakePacket.scrambleBuff, password)
+  var authResponse = plugin_auth(handshakePacket.scrambleBuff, password)
 
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
 
@@ -490,28 +484,32 @@ proc finishEstablishingConnection(conn: Connection,
     let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
     if Cap.pluginAuth in conn.server_caps  and responseAuthSwitch.pluginName.len > 0:
       debugEcho "plugin auth handshake"
+      let authData = plugin_auth(responseAuthSwitch.pluginName,responseAuthSwitch.pluginData, password)
+      var buf: string = newStringOfCap(128)
+      buf.setLen(4)
       case responseAuthSwitch.pluginName
-        of "caching_sha2_password":
-          let salt = responseAuthSwitch.pluginData
-          var scrambled = scramble_caching_sha2(salt, password)
-          var buf:string
-          putNulString(buf,scrambled)
-          await conn.sendPacket(buf)
-          discard await conn.receivePacket(drop_ok = true)
-          # if isERRPacket(pkt):
-          #   raise parseErrorPacket(pkt)
-          return
+        of "mysql_old_password", "mysql_clear_password":
+          putNulString(buf,authData)
+        else:
+          buf.add authData
+      await conn.sendPacket(buf)
+      discard await conn.receivePacket(drop_ok = true)
+      # if isERRPacket(pkt):
+      #   raise parseErrorPacket(pkt)
+      # if isExtraAuthDataPacket(pkt):
+      #   debugEcho "isExtraAuthDataPacket"
+      #   raise newException(ProtocolError, "not implemented")
+      return
     else:
       debugEcho "legacy handshake"
       # send legacy handshake
-      var data = scramble323(responseAuthSwitch.pluginData, password)
-      var buf:string
+      var buf: string = newStringOfCap(128)
+      buf.setLen(4)
+      var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
       putNulString(buf,data)
       await conn.sendPacket(buf)
       discard await conn.receivePacket(drop_ok = true)
-  elif isExtraAuthDataPacket(pkt):
-    debugEcho "isExtraAuthDataPacket"
-    raise newException(ProtocolError, "not implemented")
+  
   else:
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 

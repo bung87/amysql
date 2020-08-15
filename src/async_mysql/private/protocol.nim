@@ -306,9 +306,10 @@ proc parseInitialGreeting(conn: Connection, greeting: string): greetingVars =
     if Cap.pluginAuth in conn.server_caps:
       result.authentication_plugin = scanNulStringX(greeting, pos)
 
-# Caller must have left the first four bytes of the buffer available for
-# us to write the packet header.
+
 proc sendPacket(conn: Connection, buf: var string, reset_seq_no = false): Future[void] =
+  # Caller must have left the first four bytes of the buffer available for
+  # us to write the packet header.
   let bodylen = len(buf) - 4
   buf[0] = char( (bodylen and 0xFF) )
   buf[1] = char( ((bodylen shr 8) and 0xFF) )

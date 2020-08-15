@@ -72,3 +72,18 @@ proc scramble323*(seed: string, password: string): string =
   b = floor(seed1.int / max.int * 31).uint32
   for i in 0..<seed.len:
     result[i] = chr(ord(result[i]) xor b.int)
+
+proc plugin_auth*(plugin_name, scramble, password: string): string =
+  # TODO sha256_password , client_ed25519, dialog
+  if password.len > 0:
+    case plugin_name
+    of "mysql_native_password":
+        result = scramble_native_password(scramble, password)
+    of "caching_sha2_password":
+      result = scramble_caching_sha2(scramble, password)
+    of "mysql_old_password":
+      result = scramble323(scramble, password)
+    of "mysql_clear_password":
+      result = password
+  else:
+    result = scramble_native_password(scramble, password)
