@@ -28,6 +28,7 @@ type
   # and the CLIENT_FOO_BAR definitions in mysql. We rely on
   # Nim's set representation being compatible with the
   # C bit-masking convention.
+  # https://dev.mysql.com/doc/dev/mysql-server/8.0.18/group__group__cs__capabilities__flags.html
   Cap {.pure.} = enum
     longPassword = 0 # new more secure passwords
     foundRows = 1 # Found instead of affected rows
@@ -54,6 +55,9 @@ type
     canHandleExpiredPasswords = 22  # Don't close the connection for a connection with expired password.
     sessionTrack = 23
     deprecateEof = 24  # Client no longer needs EOF packet
+    optionalResultsetMetaData = 25 
+    zstdCompressionAlgorithm = 26
+    capabilityExtension = 29
     sslVerifyServerCert = 30
     rememberOptions = 31
 
@@ -192,12 +196,6 @@ type
     forUpdate            = 2
     scrollable           = 3
 
-type
-  greetingVars {.final.} = object
-    scramble: string
-    authentication_plugin: string
-    auth_plugin_data_part_1: string
-
   # Server response packets: OK and EOF
   ResponseOK {.final.} = object 
     eof               : bool  # True if EOF packet, false if OK packet
@@ -274,38 +272,6 @@ proc parseEOFPacket(pkt: string): ResponseOK =
   result.eof = true
   result.warning_count = scanU16(pkt, 1)
   result.status_flags = cast[set[Status]]( scanU16(pkt, 3) )
-
-proc parseInitialGreeting(conn: Connection, greeting: string): greetingVars =
-  let protocolVersion = uint8(greeting[0])
-  if protocolVersion != HandshakeV10:
-    # https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::HandshakeV10
-    raise newException(ProtocolError, "Unexpected protocol version: 0x" & toHex(int(protocolVersion), 2))
-  var pos = 1
-  conn.server_version = scanNulString(greeting, pos)
-  conn.thread_id = scanU32(greeting, pos)
-  pos += 4
-  # result.auth_plugin_data_part_1 = scanNulString(greeting, pos) # auth-plugin-data-part-1
-  # pos += 9 # with filter
-  result.scramble = greeting[pos .. pos+7]
-  let cflags_l = scanU16(greeting, pos + 8 + 1)
-  conn.server_caps = cast[set[Cap]](cflags_l)
-  pos += 11
-
-  if not (Cap.protocol41 in conn.server_caps):
-    raise newException(ProtocolError, "Old (pre-4.1) server protocol")
-
-  if len(greeting) >= (pos+5):
-    let cflags_h = scanU16(greeting, pos+3)
-    conn.server_caps = cast[set[Cap]]( uint32(cflags_l) + (uint32(cflags_h) shl 16) )
-
-    let moreScram = ( if Cap.protocol41 in conn.server_caps: int(greeting[pos+5]) else: 0 )
-    if moreScram > 8:
-      result.scramble.add(greeting[pos + 16 .. pos + 16 + moreScram - 8 - 2])
-    pos = pos + 16 + ( if moreScram < 20: 12 else: moreScram - 8 )
-
-    if Cap.pluginAuth in conn.server_caps:
-      result.authentication_plugin = scanNulStringX(greeting, pos)
-
 
 proc sendPacket(conn: Connection, buf: var string, reset_seq_no = false): Future[void] =
   # Caller must have left the first four bytes of the buffer available for

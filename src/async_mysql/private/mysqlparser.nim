@@ -155,6 +155,7 @@ string[NUL]    auth-plugin name
 
   HandshakePacket* = object       
     ## Packet from mysql server when connecting to the server that requires authentication.
+    ## see https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
     sequenceId*: int           # 1
     protocolVersion*: int      # 1
     serverVersion*: string     # NullTerminatedString

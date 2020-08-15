@@ -209,7 +209,7 @@ proc asParam*(i: uint64): ParameterBinding =
 
 proc asParam*(b: bool): ParameterBinding = ParameterBinding(typ: paramInt, intVal: if b: 1 else: 0)
 
-proc isNil*(v: ResultValue): bool {.inline.} = v.typ == rvtNull
+proc isNull*(v: ResultValue): bool {.inline.} = v.typ == rvtNull
 
 proc `$`*(v: ResultValue): string =
   case v.typ
@@ -343,6 +343,7 @@ proc closeStatement*(conn: Connection, stmt: PreparedStatement): Future[void] =
   var buf: string
   stmt.prepStmtBuf(buf, Command.statementClose)
   return conn.sendPacket(buf, reset_seq_no=true)
+
 proc resetStatement*(conn: Connection, stmt: PreparedStatement): Future[void] =
   var buf: string
   stmt.prepStmtBuf(buf, Command.statementReset)
@@ -513,26 +514,29 @@ proc finishEstablishingConnection(conn: Connection,
   else:
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 
+proc connect(conn:var Connection): Future[HandshakePacket] {.async.} =
+  let pkt = await conn.receivePacket()
+  var parser = initPacketParser(PacketParserKind.ppkHandshake)
+  loadBuffer(parser, pkt.cstring, pkt.len)
+  let finished = parseHandshake(parser, result)
+  assert finished == true
+  conn.thread_id = result.threadId.uint32
+  conn.server_version = result.serverVersion
+  conn.server_caps = cast[set[Cap]](result.capabilities)
+
 when declared(SslContext) and declared(startTls):
   proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", ssl: SslContext): Future[Connection] {.async.} =
     result = Connection(socket: sock)
-    let pkt = await result.receivePacket()
-    let greet = result.parseInitialGreeting(pkt)
+    let handshakePacket = await connect(result)
     
     # Negotiate encryption
     await result.startTls(ssl)
-    await result.finishEstablishingConnection(username, password, database, greet)
+    await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
 proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = ""): Future[Connection] {.async.} =
   result = Connection(socket: sock)
-  let pkt = await result.receivePacket()
-  var handshakePacket: HandshakePacket
-  var parser = initPacketParser(PacketParserKind.ppkHandshake)
-  loadBuffer(parser, pkt.cstring, pkt.len)
-  let finished = parseHandshake(parser, handshakePacket)
-  assert finished == true
-  result.thread_id = handshakePacket.threadId.uint32
-  # let greet = result.parseInitialGreeting(pkt)
+  let handshakePacket = await connect(result)
+
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
 proc textQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.async.} =
@@ -618,7 +622,7 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
 proc close*(conn: Connection): Future[void] {.async.} =
   var buf: string = newStringOfCap(5)
   buf.setLen(4)
-  buf.add( char(Command.quiT) )
+  buf.add( char(Command.quit) )
   await conn.sendPacket(buf, reset_seq_no=true)
   let pkt = await conn.receivePacket(drop_ok=true)
   conn.socket.close()
