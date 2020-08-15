@@ -489,20 +489,26 @@ proc finishEstablishingConnection(conn: Connection,
     debugEcho "isAuthSwitchRequestPacket"
     let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
     if Cap.pluginAuth in conn.server_caps  and responseAuthSwitch.pluginName.len > 0:
+      debugEcho "plugin auth handshake"
       case responseAuthSwitch.pluginName
         of "caching_sha2_password":
           let salt = responseAuthSwitch.pluginData
           var scrambled = scramble_caching_sha2(salt, password)
-          await conn.sendPacket(scrambled,reset_seq_no=true)
-          let pkt = await conn.receivePacket()
-          if isERRPacket(pkt):
-            raise parseErrorPacket(pkt)
+          var buf:string
+          putNulString(buf,scrambled)
+          await conn.sendPacket(buf)
+          discard await conn.receivePacket(drop_ok = true)
+          # if isERRPacket(pkt):
+          #   raise parseErrorPacket(pkt)
           return
     else:
+      debugEcho "legacy handshake"
       # send legacy handshake
       var data = scramble323(responseAuthSwitch.pluginData, password)
-      await conn.sendPacket(data,reset_seq_no=true)
-      discard await conn.receivePacket()
+      var buf:string
+      putNulString(buf,data)
+      await conn.sendPacket(buf)
+      discard await conn.receivePacket(drop_ok = true)
   elif isExtraAuthDataPacket(pkt):
     debugEcho "isExtraAuthDataPacket"
     raise newException(ProtocolError, "not implemented")
@@ -523,7 +529,7 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
   result = Connection(socket: sock)
   let pkt = await result.receivePacket()
   var handshakePacket: HandshakePacket
-  var parser = initPacketParser(PacketParserKind.ppkHandshake, PacketState.packHandshake)
+  var parser = initPacketParser(PacketParserKind.ppkHandshake)
   loadBuffer(parser, pkt.cstring, pkt.len)
   let finished = parseHandshake(parser, handshakePacket)
   assert finished == true

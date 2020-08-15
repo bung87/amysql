@@ -10,6 +10,18 @@ cache:
 #     - CHANNEL=devel
 matrix:
   include:
+    # - name: linux with mysql8
+    #   env: DB=MYSQL8 USE_SHA2=true
+    #   dist: xenial
+    #   services:
+    #     - docker
+    #   before_install:
+    #     - docker pull mysql:8.0
+    #     - docker run -d -p 127.0.0.1:3306:3306 --mount source=$(pwd)/.travis/docker-entrypoint-initdb,target=/docker-entrypoint-initdb.d --name  mysqld -e MYSQL_DATABASE=gotest -e MYSQL_USER=gotest -e MYSQL_PASSWORD=secret -e MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    #       mysql:8.0 --innodb_log_file_size=256MB --innodb_buffer_pool_size=512MB --max_allowed_packet=16MB --local-infile=1
+    #     - cp .travis/docker.cnf ~/.my.cnf
+    #     - .travis/wait_mysql.sh
+
     # Build and test against the master (stable) and devel branches of Nim
     - os: linux
       name: linux with mysql
@@ -53,6 +65,7 @@ matrix:
 
 before_script:
 
+  # env(DB) = MYSQL8
   # - |
   #   if [ -z "$TRAVIS_MARIADB_VERSION" ] 
   #   then
@@ -65,8 +78,12 @@ before_script:
   #     sudo systemctl start mysql;
   #   fi
 
-  - sudo mysql -u root -e "create database if not exists test;"
   - |
+    if [ "DB" == "MYSQL8" ]
+    then
+      exit 0
+    fi
+    sudo mysql -u root -e "create database if not exists test;"
     if [ -z "$TRAVIS_MARIADB_VERSION" ] 
     then
       sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
@@ -81,10 +98,7 @@ before_script:
       # mariadb not well support https://mariadb.com/kb/en/authentication-plugin-sha-256/#client-authentication-plugins
       # sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('123456');"
     fi
-
-  - sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
-  # - mysql -h 127.0.0.1 -u root -e "create user 'mysql2'@'127.0.0.1' identified by '123456';"
-  # - mysql -h 127.0.0.1 -u root -e "grant all on *.* to 'mysql2'@'127.0.0.1';"
+    sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
 
 
 install:
@@ -97,6 +111,6 @@ install:
   - nimble install -d -y
 
 script:
-  - nimble test -d:test --hint:off
+  - nimble test -d:test
   
   

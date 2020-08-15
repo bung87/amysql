@@ -1,0 +1,78 @@
+name: test
+
+on: [push]
+
+jobs:
+  skip:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Skip job"
+
+  before:
+    runs-on: ubuntu-latest
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - run: echo "not contains '[skip ci]'"
+
+  test:
+    # services:
+    #   mysql:
+    #     image: mysql:8.0
+    #     # image: mysql:latest
+    #     env:
+    #       MYSQL_ALLOW_EMPTY_PASSWORD: true
+    #       MYSQL_ROOT_USER: root
+    #       MYSQL_ROOT_PASSWORD: root
+    #     ports:
+    #       - 3306/tcp
+    #     options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    runs-on: ${{ matrix.os }}
+    needs: before
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          # - windows-latest
+          # - macOS-latest
+        version:
+          # - 1.0.0
+          - stable
+          # - devel
+        # exclude:
+        #   - os: macOS-latest
+        #     version: devel
+    steps:
+      - uses: actions/checkout@master
+      - uses: jiro4989/setup-nim-action@v1
+        with:
+          nim-version: ${{ matrix.version }}
+      - name: Shutdown Ubuntu MySQL (SUDO)
+        run: sudo service mysql stop # Shutdown the Default MySQL, "sudo" is necessary, please not remove it
+      - uses: bung87/mysql-action@master
+        with:
+          mysql version: '8.0'
+          mysql root password: 'root'
+          # mysql user: 'developer'
+          # mysql password: 'developer'
+      # - name: Start the MySQL service
+      #   # See https://github.blog/changelog/2020-02-21-github-actions-breaking-change-ubuntu-virtual-environments-will-no-longer-start-the-mysql-service-automatically/
+      #   run: sudo /etc/init.d/mysql start
+
+      - name: Initialize database
+        run: |
+          docker exec some_mysql mysql -V
+          docker exec some_mysql ps axu
+          docker exec some_mysql mysqladmin -h 127.0.0.1 -P 3306 -u root -proot version
+          docker exec some_mysql mysql -h 127.0.0.1 -P 3306 --protocol=tcp -u root -proot -e "create database if not exists test;"
+          docker exec some_mysql mysql -h 127.0.0.1 -P 3306 --protocol=tcp -u root -proot -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
+          docker exec some_mysql mysql -h 127.0.0.1 -P 3306 --protocol=tcp -u root -proot -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'password';"
+          docker exec some_mysql mysql -h 127.0.0.1 -P 3306 --protocol=tcp -u root -proot -e "grant all on *.* to 'sha2user'@'localhost';"
+          docker exec some_mysql mysql -h 127.0.0.1 -P 3306 --protocol=tcp -u root -proot -e "grant all on *.* to 'test_user'@'localhost';"
+      - name: Print Nim version
+        run: nim -v
+      - name: Print Nimble version
+        run: nimble -v
+      - name: Run build test
+        run: nimble install -Y nimjson
+      - name: Run command
+        run: nimble test -d:test
