@@ -499,6 +499,7 @@ proc caching_sha2_password_auth(conn:Connection, pkt, scrambleBuff, password: st
   # full path
   debugEcho "full path"
   # if conn.secure # Sending plain password via secure connection 
+  return await conn.roundtrip(password)
   # if not conn.server_public_key:
   #   pkt = await roundtrip(conn, "2") 
   #   if not isExtraAuthDataPacket(pkt):
