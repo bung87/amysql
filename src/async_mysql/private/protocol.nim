@@ -388,6 +388,7 @@ when false:
     return socket.send(p, len(data))
 else:
   proc receivePacket(conn:Connection, drop_ok: bool = false): Future[string] {.async.} =
+    # drop_ok used when close
     let hdr = await conn.socket.recv(4)
     if len(hdr) == 0:
       if drop_ok:

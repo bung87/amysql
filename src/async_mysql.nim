@@ -494,7 +494,7 @@ proc finishEstablishingConnection(conn: Connection,
         else:
           buf.add authData
       await conn.sendPacket(buf)
-      discard await conn.receivePacket(drop_ok = true)
+      discard await conn.receivePacket()
       # if isERRPacket(pkt):
       #   raise parseErrorPacket(pkt)
       # if isExtraAuthDataPacket(pkt):
@@ -509,7 +509,7 @@ proc finishEstablishingConnection(conn: Connection,
       var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
       putNulString(buf,data)
       await conn.sendPacket(buf)
-      discard await conn.receivePacket(drop_ok = true)
+      discard await conn.receivePacket()
   
   else:
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
