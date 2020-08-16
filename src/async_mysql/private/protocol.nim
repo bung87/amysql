@@ -209,6 +209,9 @@ type
     status: uint8 # const ResponseCode_AuthSwitchRequest
     pluginName: string
     pluginData: string
+  ResponseAuthMore {.final.} = object
+    status: uint8 # const 0x01
+    pluginData: string
 
   # Server response packet: ERR (which can be thrown as an exception)
   ResponseERR = object of CatchableError
@@ -252,6 +255,12 @@ proc parseAuthSwitchPacket(conn: Connection, pkt: string): ref ResponseAuthSwitc
   var pos: int = 1
   result.status = ResponseCode_ExtraAuthData
   result.pluginName = scanNulString(pkt, pos)
+  result.pluginData = scanNulStringX(pkt, pos)
+
+proc parseResponseAuthMorePacket(conn: Connection,pkt: string): ref ResponseAuthMore =
+  new(result)
+  var pos: int = 1
+  result.status = ResponseCode_ExtraAuthData
   result.pluginData = scanNulStringX(pkt, pos)
 
 proc parseOKPacket(conn: Connection, pkt: string): ResponseOK =

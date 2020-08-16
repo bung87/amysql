@@ -497,9 +497,10 @@ proc caching_sha2_password_auth(conn:Connection, pkt, scrambleBuff, password: st
   if n != 4:
     raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & $n)
   # full path
-  debugEcho "full path"
-  # if conn.secure # Sending plain password via secure connection 
-  return await conn.roundtrip(password)
+  debugEcho "full path magic number:" & $n
+  # raise newException(CatchableError, "Unimplemented")
+  # if conn.secure # Sending plain password via secure connection (Localhost via UNIX socket or ssl)
+  return await conn.roundtrip(password & char(0))
   # if not conn.server_public_key:
   #   pkt = await roundtrip(conn, "2") 
   #   if not isExtraAuthDataPacket(pkt):

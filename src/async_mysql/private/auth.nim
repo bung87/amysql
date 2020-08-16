@@ -1,18 +1,18 @@
 import std/sha1, nimcrypto
 import math # used by scramble323
+import openssl
+
 const Sha1DigestSize = 20
 
 proc `xor`(a: Sha1Digest, b: Sha1Digest): string =
-  result = newStringOfCap(Sha1DigestSize)
+  result = newString(Sha1DigestSize)
   for i in 0..<Sha1DigestSize:
-    let c = ord(a[i]) xor ord(b[i])
-    add(result, chr(c))
+    result[i] = chr(ord(a[i]) xor ord(b[i]))
 
 proc `xor`(a: MDigest[256], b: MDigest[256]): string =
-  result = newStringOfCap(32)
+  result = newString(32)
   for i in 0..<32:
-    let c = ord(a.data[i]) xor ord(b.data[i])
-    add(result, chr(c))
+    result[i] = chr(ord(a.data[i]) xor ord(b.data[i]))
 
 proc toString(h: sha1.SecureHash | Sha1Digest): string =
   ## convert sha1.SecureHash,Sha1Digest to limited length string(Sha1DigestSize:20)
@@ -76,7 +76,7 @@ proc scramble323*(seed: string, password: string): string =
   b = floor(seed1.int / max.int * 31).uint32
   for i in 0..<seed.len:
     result[i] = chr(ord(result[i]) xor b.int)
-
+  
 proc plugin_auth*(plugin_name, scramble, password: string): string =
   # TODO sha256_password , client_ed25519, dialog
   if password.len > 0:
