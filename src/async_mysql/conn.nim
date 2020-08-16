@@ -1,8 +1,9 @@
 import asyncnet
 import ./private/cap
+
 type
   Connection* = ref ConnectionObj
-  ConnectionObj = object of RootObj
+  ConnectionObj* = object of RootObj
     socket*: AsyncSocket               # Bytestream connection
     packet_number*: uint8              # Next expected seq number (mod-256)
 

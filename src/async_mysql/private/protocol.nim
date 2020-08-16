@@ -4,6 +4,7 @@ export protocol_basic
 import ./cap
 import asyncnet,asyncdispatch
 import ../conn
+
 # These are protocol constants; see
 #  https://dev.mysql.com/doc/internals/en/overview.html
 
@@ -279,7 +280,7 @@ proc sendPacket*(conn: Connection, buf: var string, reset_seq_no = false): Futur
   buf[3] = char( conn.packet_number )
   inc(conn.packet_number)
   # hexdump(buf, stdmsg)
-  return conn.socket.send(buf)
+  conn.socket.send(buf)
 
 proc writeHandshakeResponse*(conn: Connection,
                             username: string,
@@ -333,7 +334,7 @@ proc writeHandshakeResponse*(conn: Connection,
 
   return conn.sendPacket(buf)
 
-proc sendQuery*(conn: Connection, query: string): Future[void] =
+proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEffect,RootEffect].} =
   var buf: string = newStringOfCap(4 + 1 + len(query))
   buf.setLen(4)
   buf.add( char(Command.query) )
@@ -354,7 +355,7 @@ proc processHeader(c: Connection, hdr: array[4, char]): nat24 =
 
 when false:
   # Prototype synchronous code
-  proc readExactly(s: Socket, buf: var openarray[char]) =
+  proc readExactly(s: Socket, buf: var openarray[char]) {.tags:[ReadIOEffect].} =
     var amount_read: int = 0
     while amount_read < len(buf):
       let r = s.recv(addr(buf[amount_read]), len(buf) - amount_read)
@@ -364,7 +365,7 @@ when false:
         raise newException(ProtocolError, "Connection closed")
       amount_read += r
 
-  proc receivePacket*(conn: Connection): string =
+  proc receivePacket*(conn: Connection): string {.tags:[ReadIOEffect].}=
     var b: array[4, char]
     readExactly(conn.socket, b)
     let packet_length = processHeader(conn, b)
@@ -375,13 +376,13 @@ when false:
     for i in 0 .. high(pkt):
       result[i] = pkt[i]
 
-  proc send*(socket: Socket, data: openarray[char]): int =
+  proc send*(socket: Socket, data: openarray[char]): int {.tags:[WriteIOEffect].} =
     # This is horribly ugly, but it seems to be the only way to get
     # something from a seq into a socket
     let p = cast[ptr array[0 .. 1, char]](data)
     return socket.send(p, len(data))
 else:
-  proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async.} =
+  proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
     # drop_ok used when close
     let hdr = await conn.socket.recv(4)
     if len(hdr) == 0:
@@ -402,7 +403,7 @@ else:
       raise newException(ProtocolError, "TODO finish this part")
 
 
-proc roundtrip*(conn:Connection, data: string): Future[string] {.async.} =
+proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
   buf.setLen(4)
   buf.add data
