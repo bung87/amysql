@@ -103,4 +103,5 @@ proc runTests(): Future[void] {.async.} =
   await conn.numberTests()
   await conn.close()
 
-waitFor(runTests())
+test "sql":
+  waitFor(runTests())
