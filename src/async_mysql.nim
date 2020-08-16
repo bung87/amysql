@@ -608,7 +608,6 @@ proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.
     var p = 0
     let column_count = scanLenInt(pkt, p)
     result.columns = await conn.receiveMetadata(column_count)
-    # var rows: seq[Row] = @[]
     while true:
       let pkt = await conn.receivePacket()
       if isEOFPacket(pkt):
@@ -621,7 +620,6 @@ proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.
         raise parseErrorPacket(pkt)
       else:
         result.rows.add(parseTextRow(pkt))
-    # result.rows = rows
   return
 
 proc performPreparedQuery(conn: Connection, pstmt: PreparedStatement, st: Future[void]): Future[ResultSet[ResultValue]] {.
@@ -640,8 +638,6 @@ proc performPreparedQuery(conn: Connection, pstmt: PreparedStatement, st: Future
     var p = 0
     let column_count = scanLenInt(initialPacket, p)
     result.columns = await conn.receiveMetadata(column_count)
-    var rows: seq[seq[ResultValue]]
-    newSeq(rows, 0)
     while true:
       let pkt = await conn.receivePacket()
       # hexdump(pkt, stdmsg)
@@ -651,8 +647,7 @@ proc performPreparedQuery(conn: Connection, pstmt: PreparedStatement, st: Future
       elif isERRPacket(pkt):
         raise parseErrorPacket(pkt)
       else:
-        rows.add(parseBinaryRow(result.columns, pkt))
-    result.rows = rows
+        result.rows.add(parseBinaryRow(result.columns, pkt))
 
 proc query*(conn: Connection, pstmt: PreparedStatement, params: varargs[ParameterBinding, asParam]): Future[ResultSet[ResultValue]] {.
             #[tags: [ReadDbEffect, WriteDbEffect]]#.} =
