@@ -669,12 +669,12 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   else:
     raise newException(ProtocolError, "unexpected response to COM_INIT_DB")
 
-proc open*(connection, user, password, database: string): Future[Connection] {.async.} =
+proc open*(connection, user, password: string, database = ""): Future[Connection] {.async.} =
   let
     colonPos = connection.find(':')
     host = if colonPos < 0: connection
            else: substr(connection, 0, colonPos-1)
-    port: int32 = if colonPos < 0: 0'i32
+    port: int32 = if colonPos < 0: 3306'i32
                   else: substr(connection, colonPos+1).parseInt.int32
   let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
   await connect(sock, host, Port(port))

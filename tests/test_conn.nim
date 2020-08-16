@@ -1,5 +1,4 @@
-import async_mysql, asyncdispatch, asyncnet, os
-from nativesockets import AF_INET, SOCK_STREAM
+import async_mysql, asyncdispatch
 import unittest
 import net
 
@@ -11,15 +10,6 @@ const pass_word = "123456"
 const ssl: bool = false
 const verbose: bool = false
 
-proc doTCPConnect(dbn: string = ""): Future[Connection] {.async.} =
-  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
-  await connect(sock, host_name, Port(port))
-  if ssl:
-    when defined(ssl):
-      let ctx = newContext(verifyMode = CVerifyPeer)
-      return await establishConnection(sock, user_name, database=dbn, password = pass_word, ssl=ctx)
-  else:
-    return await establishConnection(sock, user_name, database=dbn, password = pass_word)
 
 proc getCurrentDatabase(conn: Connection): Future[string] {.async.} =
   let rslt = await conn.rawQuery("select database()")
@@ -29,12 +19,12 @@ proc getCurrentDatabase(conn: Connection): Future[string] {.async.} =
 
 proc connTest(): Future[Connection] {.async.} =
   echo "Connecting (with initial db: ", database_name, ")"
-  let conn1 = await doTCPConnect(dbn = database_name)
+  let conn1 = await open(host_name,user_name,pass_word,database_name)
   echo "Checking current database is correct"
   let conn1db1 = await getCurrentDatabase(conn1)
   check conn1db1 == database_name
 
-  let conn2 = await doTCPConnect()
+  let conn2 = await open(host_name,user_name,pass_word)
   let conn2db1 = await getCurrentDatabase(conn2)
   check conn2db1.len == 0
   discard await conn2.selectDatabase(database_name)

@@ -1,5 +1,4 @@
-import async_mysql, asyncdispatch, asyncnet, os
-from nativesockets import AF_INET, SOCK_STREAM
+import async_mysql, asyncdispatch, os
 import unittest
 import net
 
@@ -10,16 +9,6 @@ const user_name = "test_user"
 const pass_word = "123456"
 const ssl: bool = false
 const verbose: bool = false
-
-proc doTCPConnect(dbn: string = ""): Future[Connection] {.async.} =
-  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
-  await connect(sock, host_name, Port(port))
-  if ssl:
-    when defined(ssl):
-      let ctx = newContext(verifyMode = CVerifyPeer)
-      return await establishConnection(sock, user_name, database=dbn, password = pass_word, ssl=ctx)
-  else:
-    return await establishConnection(sock, user_name, database=dbn, password = pass_word)
 
 template assertEq(T: typedesc, got: untyped, expect: untyped, msg: string = "incorrect value") =
   check got == expect
@@ -99,7 +88,7 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   discard await conn.rawQuery("drop table `num_tests`")
 
 proc runTests(): Future[void] {.async.} =
-  let conn = await doTCPConnect(dbn = database_name)
+  let conn = await open(host_name,user_name,pass_word,database_name)
   await conn.numberTests()
   await conn.close()
 
