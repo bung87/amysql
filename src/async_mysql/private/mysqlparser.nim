@@ -5,6 +5,7 @@
 #    details about the copyright.
 
 import ./protocol
+import ./cap
 include ./status
 import ./auth
 

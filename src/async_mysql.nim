@@ -11,7 +11,9 @@
 ##
 
 import async_mysql/private/protocol
-export protocol
+import async_mysql/private/cap
+import async_mysql/conn
+export conn
 import async_mysql/private/mysqlparser
 import async_mysql/private/auth
 import asyncdispatch, macros
