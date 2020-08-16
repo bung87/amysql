@@ -17,7 +17,7 @@ const
   HandshakeV10 : uint8 = 0x0A  # Initial handshake packet since MySQL 3.21
 
   Charset_swedish_ci : uint8 = 0x08
-  Charset_utf8_ci    : uint8 = 0x21
+  Charset_utf8_ci*    : uint8 = 0x21
   Charset_binary     : uint8 = 0x3f
 
 
