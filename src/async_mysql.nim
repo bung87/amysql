@@ -515,7 +515,7 @@ proc finishEstablishingConnection(conn: Connection,
   var authResponse = plugin_auth(handshakePacket.plugin, handshakePacket.scrambleBuff, password)
 
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
-  debugEcho repr handshakePacket
+  debugEcho $handshakePacket[]
   # await confirmation from the server
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
