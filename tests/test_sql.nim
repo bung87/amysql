@@ -27,8 +27,8 @@ template assertEq(T: typedesc, got: untyped, expect: untyped, msg: string = "inc
 proc numberTests(conn: Connection): Future[void] {.async.} =
   echo "Setting up table for numeric tests..."
   discard await conn.selectDatabase(database_name)
-  discard await conn.textQuery("drop table if exists num_tests")
-  discard await conn.textQuery("create table num_tests (s text, u8 tinyint unsigned, s8 tinyint, u int unsigned, i int, b bigint)")
+  discard await conn.rawQuery("drop table if exists num_tests")
+  discard await conn.rawQuery("create table num_tests (s text, u8 tinyint unsigned, s8 tinyint, u int unsigned, i int, b bigint)")
 
   echo "Testing numeric parameters"
   # Insert values using the binary protocol
@@ -40,7 +40,7 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   await conn.closeStatement(insrow)
 
   # Read them back using the text protocol
-  let r1 = await conn.textQuery("select s, u8, s8, u, i, b from num_tests order by u8 asc")
+  let r1 = await conn.rawQuery("select s, u8, s8, u, i, b from num_tests order by u8 asc")
   assertEq(int, r1.columns.len(), 6, "column count")
   assertEq(int, r1.rows.len(), 4, "row count")
   assertEq(string, r1.columns[0].name, "s")
@@ -96,7 +96,7 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   assertEq(int64,  r2.rows[3][4], 0'i64)
 
   await conn.closeStatement(rdtab)
-  discard await conn.textQuery("drop table `num_tests`")
+  discard await conn.rawQuery("drop table `num_tests`")
 
 proc runTests(): Future[void] {.async.} =
   let conn = await doTCPConnect(dbn = database_name)

@@ -4,9 +4,7 @@
 #    See the file "LICENSE", included in this distribution, for
 #    details about the copyright.
 
-import strutils
-
-include ./protocol
+import ./protocol
 include ./status
 import ./auth
 
@@ -97,8 +95,8 @@ string[NUL]    auth-plugin name
 ]#
   PacketParserKind* = enum ## Kinds of ``PacketParser``.
     ppkHandshake, ppkCommandResult 
-
-  PacketParser* = object ## Parser that is used to parse a Mysql Client/Server Protocol packet.
+  PacketParser* = ref PacketParserObj
+  PacketParserObj = object ## Parser that is used to parse a Mysql Client/Server Protocol packet.
     buf: pointer
     bufLen: int
     bufPos: int
@@ -136,42 +134,6 @@ string[NUL]    auth-plugin name
     packResultError,
     packResultSetFields, 
     packResultSetRows
-
-  HandshakeState = enum # Parse state for handshaking.
-    hssProtocolVersion, 
-    hssServerVersion, 
-    hssThreadId, 
-    hssScrambleBuff1,   
-    hssFiller0,       
-    hssCapabilities1, 
-    hssCharSet,         
-    hssStatus,        
-    hssCapabilities2, 
-    hssFiller1,         
-    hssFiller2,       
-    hssScrambleBuff2, 
-    hssFiller3,         
-    hssPlugin
-
-  HandshakePacket* = object       
-    ## Packet from mysql server when connecting to the server that requires authentication.
-    ## see https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
-    sequenceId*: int           # 1
-    protocolVersion*: int      # 1
-    serverVersion*: string     # NullTerminatedString
-    threadId*: int             # 4
-    scrambleBuff1*: string      # 8 # auth_plugin_data_part_1
-    capabilities*: int         # (4)
-    capabilities1: int         # 2
-    charset*: int              # 1
-    serverStatus*: int         # 2
-    capabilities2: int         # [2]
-    scrambleLen*: int          # [1]
-    scrambleBuff2: string      # [12]
-    scrambleBuff*: string      # 8 + [12]
-    plugin*: string            # NullTerminatedString 
-    protocol41*: bool
-    state: HandshakeState
 
   EofState = enum
     eofHeader, 
@@ -282,23 +244,28 @@ string[NUL]    auth-plugin name
     value*: seq[string]
     counter: int
 
-proc initHandshakePacket(): HandshakePacket =
-  result.sequenceId = 0
-  result.protocolVersion = 0
-  result.serverVersion = ""
-  result.threadId = 0
-  result.scrambleBuff1 = ""
-  result.capabilities = 0
-  result.capabilities1 = 0
-  result.charset = 0
-  result.serverStatus = 0
-  result.capabilities2 = 0
-  result.scrambleLen = 0
-  result.scrambleBuff2 = ""
-  result.scrambleBuff = ""
-  result.plugin = ""
-  result.protocol41 = true
-  result.state = hssProtocolVersion
+
+proc initHandshakePacket(pkt:HandshakePacket) =
+  pkt.sequenceId = 0
+  pkt.protocolVersion = 0
+  pkt.serverVersion = ""
+  pkt.threadId = 0
+  pkt.scrambleBuff1 = ""
+  pkt.capabilities = 0
+  pkt.capabilities1 = 0
+  pkt.charset = 0
+  pkt.serverStatus = 0
+  pkt.capabilities2 = 0
+  pkt.scrambleLen = 0
+  pkt.scrambleBuff2 = ""
+  pkt.scrambleBuff = ""
+  pkt.plugin = ""
+  pkt.protocol41 = true
+  pkt.state = hssProtocolVersion
+
+proc newHandshakePacket(): HandshakePacket =
+  new result
+  initHandshakePacket(result)
 
 proc initEofPacket(): EofPacket =
   result.warningCount = 0
@@ -351,7 +318,8 @@ proc initRowList*(): RowList =
   result.value = @[]
   result.counter = -1
 
-proc initPacketParser( state = packInit ):PacketParser = 
+proc newPacketParser( state = packInit ):PacketParser = 
+  new result
   result.buf = nil
   result.bufLen = 0
   result.bufPos = 0
@@ -368,14 +336,14 @@ proc initPacketParser( state = packInit ):PacketParser =
   result.wantEncodedState = lenFlagVal
   result.isEntire = true 
 
-proc initPacketParser*(kind: PacketParserKind, state = packInit): PacketParser = 
+proc newPacketParser*(kind: PacketParserKind, state = packInit): PacketParser = 
   ## Creates a new packet parser for parsing a handshake connection.
-  result = initPacketParser(state)
+  result = newPacketParser(state)
   result.kind = kind
 
-proc initPacketParser*(command: Command, state = packInit): PacketParser = 
+proc newPacketParser*(command: Command, state = packInit): PacketParser = 
   ## Creates a new packet parser for receiving a result packet.
-  result = initPacketParser(state)
+  result = newPacketParser(state)
   result.kind = ppkCommandResult
   result.command = command
   
@@ -394,7 +362,7 @@ proc offset*(parser: PacketParser): int =
 proc buffered*(p: PacketParser): bool =
   result = p.bufPos < p.bufLen
 
-proc loadBuffer*(p: var PacketParser, buf: pointer, size: int) = 
+proc loadBuffer*(p: PacketParser, buf: pointer, size: int) = 
   p.buf = buf
   p.bufLen = size
   p.bufPos = 0
@@ -402,10 +370,10 @@ proc loadBuffer*(p: var PacketParser, buf: pointer, size: int) =
     p.bufRealLen = if p.remainingPayloadLen <= size: p.remainingPayloadLen
                    else: size
 
-proc loadBuffer*(p: var PacketParser, buf: string) =
+proc loadBuffer*(p: PacketParser, buf: string) =
   loadBuffer(p, buf.cstring, buf.len)
 
-proc move(p: var PacketParser) = 
+proc move(p: PacketParser) = 
   assert p.bufRealLen == 0
   assert p.remainingPayloadLen == 0
   p.storedState = p.state
@@ -416,7 +384,7 @@ proc move(p: var PacketParser) =
   p.word = ""
   p.isEntire = true 
 
-proc parseHeader(p: var PacketParser): ProgressState =
+proc parseHeader(p: PacketParser): ProgressState =
   result = prgOk
   let w = p.want
   joinFixedStr(p.word, p.want, offsetChar(p.buf, p.bufPos), p.bufLen - p.bufPos)
@@ -437,7 +405,7 @@ proc parseHeader(p: var PacketParser): ProgressState =
   p.word = p.storedWord
   p.storedState = packInit
 
-proc checkIfMove(p: var PacketParser): ProgressState =
+proc checkIfMove(p: PacketParser): ProgressState =
   assert p.bufRealLen == 0
   if p.bufLen > p.bufPos:
     assert p.remainingPayloadLen == 0
@@ -450,7 +418,7 @@ proc checkIfMove(p: var PacketParser): ProgressState =
       move(p)
       return prgEmpty
 
-proc parseFixed(p: var PacketParser, field: var int): ProgressState =
+proc parseFixed(p: PacketParser, field: var int): ProgressState =
   result = prgOk
   if p.want == 0:
     field = 0
@@ -468,7 +436,7 @@ proc parseFixed(p: var PacketParser, field: var int): ProgressState =
   field = toProtocolInt(p.word)
   setLen(p.word, 0)
 
-proc parseFixed(p: var PacketParser, buf: pointer, size: int): (ProgressState, bool) =
+proc parseFixed(p: PacketParser, buf: pointer, size: int): (ProgressState, bool) =
   if p.want == 0:
     return (prgOk, false)
   if p.bufRealLen == 0:
@@ -485,7 +453,7 @@ proc parseFixed(p: var PacketParser, buf: pointer, size: int): (ProgressState, b
     else:
       return (prgOk, true)
 
-proc parseFixed(p: var PacketParser, field: var string): ProgressState =
+proc parseFixed(p: PacketParser, field: var string): ProgressState =
   result = prgOk
   if p.want == 0:
     return
@@ -500,7 +468,7 @@ proc parseFixed(p: var PacketParser, field: var string): ProgressState =
   if p.want > 0:
     return checkIfMove(p)
 
-proc parseNul(p: var PacketParser, field: var string): ProgressState =
+proc parseNul(p: PacketParser, field: var string): ProgressState =
   result = prgOk
   if p.bufRealLen == 0:
     return checkIfMove(p)
@@ -511,7 +479,7 @@ proc parseNul(p: var PacketParser, field: var string): ProgressState =
   if not finished:
     return checkIfMove(p)
 
-proc parseFiller(p: var PacketParser): ProgressState =
+proc parseFiller(p: PacketParser): ProgressState =
   result = prgOk
   if p.want > p.bufRealLen:
     inc(p.bufPos, p.bufRealLen)
@@ -526,7 +494,7 @@ proc parseFiller(p: var PacketParser): ProgressState =
     dec(p.remainingPayloadLen, n)
     dec(p.want, n)
 
-proc parseLenEncoded(p: var PacketParser, field: var int): ProgressState =
+proc parseLenEncoded(p: PacketParser, field: var int): ProgressState =
   while true:
     case p.wantEncodedState
     of lenFlagVal:
@@ -552,7 +520,7 @@ proc parseLenEncoded(p: var PacketParser, field: var int): ProgressState =
     else:
       raise newException(ValueError, "unexpected state " & $p.wantEncodedState)
 
-proc parseLenEncoded(p: var PacketParser, field: var string): ProgressState =
+proc parseLenEncoded(p: PacketParser, field: var string): ProgressState =
   while true:
     case p.wantEncodedState
     of lenFlagVal:
@@ -605,7 +573,7 @@ template checkIfOk(state: ProgressState): untyped =
   of prgEmpty:
     return prgEmpty
 
-proc parseHandshakeProgress(p: var PacketParser, packet: var HandshakePacket): ProgressState = 
+proc parseHandshakeProgress(p: PacketParser, packet: HandshakePacket): ProgressState = 
   while true:
     case packet.state
     of hssProtocolVersion:
@@ -680,13 +648,13 @@ proc parseHandshakeProgress(p: var PacketParser, packet: var HandshakePacket): P
       packet.sequenceId = p.sequenceId
       return prgOk
 
-proc parseHandshake*(p: var PacketParser, packet: var HandshakePacket): bool = 
+proc parseHandshake*(p: PacketParser, packet: HandshakePacket): bool = 
   ## Parses the buffer data in ``buf``. ``size`` is the length of ``buf``.
   ## If parsing is complete, ``p``.``finished`` will be ``true``.
   while true:
     case p.state
     of packInit:
-      packet = initHandshakePacket()
+      initHandshakePacket(packet)
       p.state = packHandshake
       p.want = 1
       move(p)
@@ -700,7 +668,7 @@ proc parseHandshake*(p: var PacketParser, packet: var HandshakePacket): bool =
     else:
       raise newException(ValueError, "unexpected state " & $p.state)
 
-proc parseResultHeader*(p: var PacketParser, packet: var ResultPacket): bool = 
+proc parseResultHeader*(p: PacketParser, packet: var ResultPacket): bool = 
   ## Parses the buffer data in ``buf``. ``size`` is the length of ``buf``.
   ## If parsing is complete, ``p``.``finished`` will be ``true``.
   while true:
@@ -735,7 +703,7 @@ proc parseResultHeader*(p: var PacketParser, packet: var ResultPacket): bool =
     else:
       raise newException(ValueError, "unexpected state " & $p.state)
 
-proc parseOkProgress(p: var PacketParser, packet: var ResultPacket, capabilities: int): ProgressState =
+proc parseOkProgress(p: PacketParser, packet: var ResultPacket, capabilities: int): ProgressState =
   template checkHowStatusInfo: untyped =
     # if (capabilities and CLIENT_SESSION_TRACK) > 0 and p.remainingPayloadLen > 0:
     #   packet.okState = okStatusInfo
@@ -791,7 +759,7 @@ proc parseOkProgress(p: var PacketParser, packet: var ResultPacket, capabilities
     #   packet.sequenceId = p.sequenceId
     #   return prgOk
 
-proc parseOk*(p: var PacketParser, packet: var ResultPacket, capabilities: int): bool =
+proc parseOk*(p: PacketParser, packet: var ResultPacket, capabilities: int): bool =
   while true:
     case p.state
     of packHeader:
@@ -804,7 +772,7 @@ proc parseOk*(p: var PacketParser, packet: var ResultPacket, capabilities: int):
     else:
       raise newException(ValueError, "unexpected state " & $p.state)  
 
-proc parseErrorProgress(p: var PacketParser, packet: var ResultPacket, capabilities: int): ProgressState =
+proc parseErrorProgress(p: PacketParser, packet: var ResultPacket, capabilities: int): ProgressState =
   while true:
     case packet.errState
     of errErrorCode:
@@ -828,7 +796,7 @@ proc parseErrorProgress(p: var PacketParser, packet: var ResultPacket, capabilit
       packet.sequenceId = p.sequenceId
       return prgOk
 
-proc parseError*(p: var PacketParser, packet: var ResultPacket, capabilities: int): bool =
+proc parseError*(p: PacketParser, packet: var ResultPacket, capabilities: int): bool =
   while true:
     case p.state
     of packHeader:
@@ -841,7 +809,7 @@ proc parseError*(p: var PacketParser, packet: var ResultPacket, capabilities: in
     else:
       raise newException(ValueError, "unexpected state " & $p.state)  
 
-proc parseEofProgress(p: var PacketParser, packet: var EofPacket, capabilities: int): ProgressState =
+proc parseEofProgress(p: PacketParser, packet: var EofPacket, capabilities: int): ProgressState =
   while true:
     case packet.state
     of eofHeader:
@@ -860,7 +828,7 @@ proc parseEofProgress(p: var PacketParser, packet: var EofPacket, capabilities: 
       assert p.remainingPayloadLen == 0
       return prgOk
 
-proc parseFieldProgress(p: var PacketParser, packet: var FieldPacket, capabilities: int): ProgressState =
+proc parseFieldProgress(p: PacketParser, packet: var FieldPacket, capabilities: int): ProgressState =
   while true:
     case packet.state
     of fieldCatalog:
@@ -956,7 +924,7 @@ proc parseFieldProgress(p: var PacketParser, packet: var FieldPacket, capabiliti
       assert p.remainingPayloadLen == 0
       return prgOk
 
-proc parseFields*(p: var PacketParser, packet: var ResultPacket, capabilities: int): bool =
+proc parseFields*(p: PacketParser, packet: var ResultPacket, capabilities: int): bool =
   template checkIfOk(state: ProgressState): untyped =
     case state
     of prgOk:
@@ -1027,7 +995,7 @@ proc allocPasingField*(packet: var ResultPacket, buf: pointer, size: int) =
 proc lenPasingField*(packet: ResultPacket): int =
   result = packet.fieldLen
 
-proc parseRows*(p: var PacketParser, packet: var ResultPacket, capabilities: int): 
+proc parseRows*(p: PacketParser, packet: var ResultPacket, capabilities: int): 
                tuple[offset: int, state: RowsState] =
   template checkIfOk(state: ProgressState): untyped =
     case state
@@ -1132,7 +1100,7 @@ proc parseRows*(p: var PacketParser, packet: var ResultPacket, capabilities: int
     else:
       raise newException(ValueError, "unexpected state " & $p.state)
 
-proc parseRows*(p: var PacketParser, packet: var ResultPacket, capabilities: int, 
+proc parseRows*(p: PacketParser, packet: var ResultPacket, capabilities: int, 
                 rows: var RowList): bool =
   template checkIfOk(state: ProgressState): untyped =
     case state

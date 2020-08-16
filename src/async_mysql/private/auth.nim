@@ -1,6 +1,6 @@
 import std/sha1, nimcrypto
 import math # used by scramble323
-import openssl
+# import openssl
 
 const Sha1DigestSize = 20
 

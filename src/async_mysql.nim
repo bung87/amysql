@@ -10,15 +10,18 @@
 ## Copyright (c) 2015 William Lewis
 ##
 
-include async_mysql/private/protocol
+import async_mysql/private/protocol
+export protocol
 import async_mysql/private/mysqlparser
 import async_mysql/private/auth
-import asyncnet, asyncdispatch, macros
-import strutils#, unsigned
+import asyncdispatch, macros
 import net  # needed for the SslContext type
-
+import db_common
+import strutils
+import asyncnet
 
 type
+  Row* = seq[string] 
   # This represents a value returned from the server when using
   # the prepared statement / binary protocol. For convenience's sake
   # we combine multiple wire types into the nearest Nim type.
@@ -75,7 +78,6 @@ type
         uintVal: uint64
 
 type
-
   ColumnDefinition* {.final.} = object 
     catalog*     : string
     schema*      : string
@@ -101,7 +103,6 @@ type
     parameters: seq[ColumnDefinition]
     columns: seq[ColumnDefinition]
     warnings: Natural
-
 
 ## Parameter and result packers/unpackers
 
@@ -459,15 +460,6 @@ when defined(ssl):
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
 
-proc roundtrip(conn:Connection, data: string): Future[string] {.async.} =
-  var buf: string = newStringOfCap(32)
-  buf.setLen(4)
-  buf.add data
-  await conn.sendPacket(buf)
-  let pkt = await conn.receivePacket()
-  if isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
-  return pkt
 
 proc caching_sha2_password_auth(conn:Connection, pkt, scrambleBuff, password: string): Future[string] {.async.} =
   # pkt 
@@ -519,11 +511,11 @@ proc finishEstablishingConnection(conn: Connection,
   # As of MySQL 8.0, the default authentication plugin is changed to caching_sha2_password. 
   # https://dev.mysql.com/doc/refman/5.7/en/authentication-plugins.html
   # https://dev.mysql.com/doc/refman/8.0/en/authentication-plugins.html
-  debugEcho $handshakePacket
+  # debugEcho handshakePacket
   var authResponse = plugin_auth(handshakePacket.plugin, handshakePacket.scrambleBuff, password)
 
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
-
+  debugEcho repr handshakePacket
   # await confirmation from the server
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -573,7 +565,7 @@ proc finishEstablishingConnection(conn: Connection,
 
 proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
   let pkt = await conn.receivePacket()
-  var parser = initPacketParser(PacketParserKind.ppkHandshake)
+  var parser = newPacketParser(PacketParserKind.ppkHandshake)
   loadBuffer(parser, pkt.cstring, pkt.len)
   let finished = parseHandshake(parser, result)
   assert finished == true
@@ -596,7 +588,7 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
 
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc textQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.async.} =
+proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.async.} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -676,11 +668,43 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   else:
     raise newException(ProtocolError, "unexpected response to COM_INIT_DB")
 
+proc open*(connection, user, password, database: string): Future[Connection] {.async.} =
+  let
+    colonPos = connection.find(':')
+    host = if colonPos < 0: connection
+           else: substr(connection, 0, colonPos-1)
+    port: int32 = if colonPos < 0: 0'i32
+                  else: substr(connection, colonPos+1).parseInt.int32
+  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
+  await connect(sock, host, Port(port))
+  return await establishConnection(sock, user, database=database, password = password)
+
 proc close*(conn: Connection): Future[void] {.async.} =
   var buf: string = newStringOfCap(5)
   buf.setLen(4)
   buf.add( char(Command.quit) )
   await conn.sendPacket(buf, reset_seq_no=true)
-  let pkt = await conn.receivePacket(drop_ok=true)
+  discard await conn.receivePacket(drop_ok=true)
   conn.socket.close()
 
+proc dbQuote*(s: string): string =
+  ## DB quotes the string.
+  result = "'"
+  for c in items(s):
+    if c == '\'': add(result, "''")
+    else: add(result, c)
+  add(result, '\'')
+
+proc dbFormat(formatstr: SqlQuery, args: varargs[string]): string =
+  result = ""
+  var a = 0
+  for c in items(string(formatstr)):
+    if c == '?':
+      add(result, dbQuote(args[a]))
+      inc(a)
+    else:
+      add(result, c)
+
+proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.async.} =
+  var q = dbFormat(query, args)
+  result = await conn.rawQuery(q)

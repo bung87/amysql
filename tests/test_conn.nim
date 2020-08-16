@@ -22,7 +22,7 @@ proc doTCPConnect(dbn: string = ""): Future[Connection] {.async.} =
     return await establishConnection(sock, user_name, database=dbn, password = pass_word)
 
 proc getCurrentDatabase(conn: Connection): Future[string] {.async.} =
-  let rslt = await conn.textQuery("select database()")
+  let rslt = await conn.rawQuery("select database()")
   doAssert(len(rslt.columns) == 1, "wrong number of result columns")
   doAssert(len(rslt.rows) == 1, "wrong number of result rows")
   return rslt.rows[0][0]
@@ -44,7 +44,7 @@ proc connTest(): Future[Connection] {.async.} =
   if conn2db2 != database_name:
     echo "FAIL (db should be: ", database_name, " is: ", conn2db2, ")"
   echo "Checking TIDs (", conn1.thread_id, ", ", conn2.thread_id, ")"
-  let rslt = await conn1.textQuery("show processlist");
+  let rslt = await conn1.rawQuery("show processlist");
   var saw_conn1 = false
   var saw_conn2 = false
   for row in rslt.rows:

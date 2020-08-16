@@ -1,19 +1,18 @@
 
-include protocol_basic
-
+import protocol_basic
+export protocol_basic
 import asyncnet,asyncdispatch
-
 
 # These are protocol constants; see
 #  https://dev.mysql.com/doc/internals/en/overview.html
 
 const
-  ResponseCode_OK  : uint8 = 0
-  ResponseCode_EOF : uint8 = 254   # Deprecated in mysql 5.7.5
-  ResponseCode_ERR : uint8 = 255
-  ResponseCode_AuthSwitchRequest: uint8 = 254 # 0xFE
-  ResponseCode_ExtraAuthData: uint8 = 1 # 0x01
-  NullColumn       = char(0xFB)
+  ResponseCode_OK*  : uint8 = 0
+  ResponseCode_EOF* : uint8 = 254   # Deprecated in mysql 5.7.5
+  ResponseCode_ERR* : uint8 = 255
+  ResponseCode_AuthSwitchRequest*: uint8 = 254 # 0xFE
+  ResponseCode_ExtraAuthData*: uint8 = 1 # 0x01
+  NullColumn*       = char(0xFB)
 
   HandshakeV10 : uint8 = 0x0A  # Initial handshake packet since MySQL 3.21
 
@@ -29,7 +28,7 @@ type
   # Nim's set representation being compatible with the
   # C bit-masking convention.
   # https://dev.mysql.com/doc/dev/mysql-server/8.0.18/group__group__cs__capabilities__flags.html
-  Cap {.pure.} = enum
+  Cap* {.pure.} = enum
     longPassword = 0 # new more secure passwords
     foundRows = 1 # Found instead of affected rows
     longFlag = 2 # Get all column flags
@@ -64,18 +63,18 @@ type
   nat24 = range[0 .. 16777215]
   Connection* = ref ConnectionObj
   ConnectionObj = object of RootObj
-    socket: AsyncSocket               # Bytestream connection
+    socket*: AsyncSocket               # Bytestream connection
     packet_number: uint8              # Next expected seq number (mod-256)
 
     # Information from the connection setup
     server_version*: string
     thread_id*: uint32
-    server_caps: set[Cap]
+    server_caps*: set[Cap]
 
     # Other connection parameters
-    client_caps: set[Cap]
+    client_caps*: set[Cap]
 
-  Status {.pure.} = enum
+  Status* {.pure.} = enum
     inTransaction = 1  # a transaction is active
     autoCommit = 2 # auto-commit is enabled
     moreResultsExist = 3
@@ -101,7 +100,7 @@ type
   # COM_REFRESH (flush sql statement)
   # COM_PROCESS_INFO(show processlist sql statement)
   # COM_PROCESS_KILL (kill connection/query sql statement)
-  Command {.pure.} = enum
+  Command* {.pure.} = enum
     # sleep = 0
     quit = 1
     initDb = 2
@@ -197,7 +196,7 @@ type
     scrollable           = 3
 
   # Server response packets: OK and EOF
-  ResponseOK {.final.} = object 
+  ResponseOK* {.final.} = object 
     eof               : bool  # True if EOF packet, false if OK packet
     affected_rows*    : Natural
     last_insert_id*   : Natural
@@ -205,41 +204,76 @@ type
     warning_count*    : Natural
     info*             : string
     # session_state_changes: seq[ ... ]
-  ResponseAuthSwitch {.final.} = object 
+  ResponseAuthSwitch* {.final.} = object 
     status: uint8 # const ResponseCode_AuthSwitchRequest
-    pluginName: string
-    pluginData: string
-  ResponseAuthMore {.final.} = object
+    pluginName*: string
+    pluginData*: string
+  ResponseAuthMore* {.final.} = object
     status: uint8 # const 0x01
-    pluginData: string
+    pluginData*: string
 
   # Server response packet: ERR (which can be thrown as an exception)
-  ResponseERR = object of CatchableError
+  ResponseERR* = object of CatchableError
     error_code: uint16
     sqlstate: string
+  HandshakeState* = enum # Parse state for handshaking.
+    hssProtocolVersion, 
+    hssServerVersion, 
+    hssThreadId, 
+    hssScrambleBuff1,   
+    hssFiller0,       
+    hssCapabilities1, 
+    hssCharSet,         
+    hssStatus,        
+    hssCapabilities2, 
+    hssFiller1,         
+    hssFiller2,       
+    hssScrambleBuff2, 
+    hssFiller3,         
+    hssPlugin
+  HandshakePacket* = ref HandshakePacketObj
+  HandshakePacketObj = object       
+    ## Packet from mysql server when connecting to the server that requires authentication.
+    ## see https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
+    sequenceId*: int           # 1
+    protocolVersion*: int      # 1
+    serverVersion*: string     # NullTerminatedString
+    threadId*: int             # 4
+    scrambleBuff1*: string      # 8 # auth_plugin_data_part_1
+    capabilities*: int         # (4)
+    capabilities1*: int         # 2
+    charset*: int              # 1
+    serverStatus*: int         # 2
+    capabilities2*: int         # [2]
+    scrambleLen*: int          # [1]
+    scrambleBuff2*: string      # [12]
+    scrambleBuff*: string      # 8 + [12]
+    plugin*: string            # NullTerminatedString 
+    protocol41*: bool
+    state*: HandshakeState
 # EOF is signaled by a packet that starts with 0xFE, which is
 # also a valid length-encoded-integer. In order to distinguish
 # between the two cases, we check the length of the packet: EOFs
 # are always short, and an 0xFE in a result row would be followed
 # by at least 65538 bytes of data.
-proc isEOFPacket(pkt: string): bool =
+proc isEOFPacket*(pkt: string): bool =
   result = (len(pkt) >= 1) and (pkt[0] == char(ResponseCode_EOF)) and (len(pkt) < 9)
 
 # Error packets are simpler to detect, because 0xFF is not (yet?)
 # valid as the start of a length-encoded-integer.
-proc isERRPacket(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_ERR))
+proc isERRPacket*(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_ERR))
 
-proc isOKPacket(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_OK))
+proc isOKPacket*(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_OK))
 
-proc isAuthSwitchRequestPacket(pkt: string): bool = 
+proc isAuthSwitchRequestPacket*(pkt: string): bool = 
   ## http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
   pkt[0] == char(ResponseCode_AuthSwitchRequest)
 
-proc isExtraAuthDataPacket(pkt: string): bool = 
+proc isExtraAuthDataPacket*(pkt: string): bool = 
   ## https://dev.mysql.com/doc/internals/en/successful-authentication.html
   pkt[0] == char(ResponseCode_ExtraAuthData)
 
-proc parseErrorPacket(pkt: string): ref ResponseERR =
+proc parseErrorPacket*(pkt: string): ref ResponseERR =
   new(result)
   result.error_code = scanU16(pkt, 1)
   var pos: int
@@ -250,20 +284,20 @@ proc parseErrorPacket(pkt: string): ref ResponseERR =
     pos = 3
   result.msg = pkt[pos .. high(pkt)]
 
-proc parseAuthSwitchPacket(conn: Connection, pkt: string): ref ResponseAuthSwitch =
+proc parseAuthSwitchPacket*(conn: Connection, pkt: string): ref ResponseAuthSwitch =
   new(result)
   var pos: int = 1
   result.status = ResponseCode_ExtraAuthData
   result.pluginName = scanNulString(pkt, pos)
   result.pluginData = scanNulStringX(pkt, pos)
 
-proc parseResponseAuthMorePacket(conn: Connection,pkt: string): ref ResponseAuthMore =
+proc parseResponseAuthMorePacket*(conn: Connection,pkt: string): ref ResponseAuthMore =
   new(result)
   var pos: int = 1
   result.status = ResponseCode_ExtraAuthData
   result.pluginData = scanNulStringX(pkt, pos)
 
-proc parseOKPacket(conn: Connection, pkt: string): ResponseOK =
+proc parseOKPacket*(conn: Connection, pkt: string): ResponseOK =
   result.eof = false
   var pos: int = 1
   result.affected_rows = scanLenInt(pkt, pos)
@@ -277,12 +311,12 @@ proc parseOKPacket(conn: Connection, pkt: string): ResponseOK =
   else:
     result.info = scanNulStringX(pkt, pos)
 
-proc parseEOFPacket(pkt: string): ResponseOK =
+proc parseEOFPacket*(pkt: string): ResponseOK =
   result.eof = true
   result.warning_count = scanU16(pkt, 1)
   result.status_flags = cast[set[Status]]( scanU16(pkt, 3) )
 
-proc sendPacket(conn: Connection, buf: var string, reset_seq_no = false): Future[void] =
+proc sendPacket*(conn: Connection, buf: var string, reset_seq_no = false): Future[void] =
   # Caller must have left the first four bytes of the buffer available for
   # us to write the packet header.
   let bodylen = len(buf) - 4
@@ -296,7 +330,7 @@ proc sendPacket(conn: Connection, buf: var string, reset_seq_no = false): Future
   # hexdump(buf, stdmsg)
   return conn.socket.send(buf)
 
-proc writeHandshakeResponse(conn: Connection,
+proc writeHandshakeResponse*(conn: Connection,
                             username: string,
                             auth_response: string,
                             database: string,
@@ -348,7 +382,7 @@ proc writeHandshakeResponse(conn: Connection,
 
   return conn.sendPacket(buf)
 
-proc sendQuery(conn: Connection, query: string): Future[void] =
+proc sendQuery*(conn: Connection, query: string): Future[void] =
   var buf: string = newStringOfCap(4 + 1 + len(query))
   buf.setLen(4)
   buf.add( char(Command.query) )
@@ -379,7 +413,7 @@ when false:
         raise newException(ProtocolError, "Connection closed")
       amount_read += r
 
-  proc receivePacket(conn: Connection): string =
+  proc receivePacket*(conn: Connection): string =
     var b: array[4, char]
     readExactly(conn.socket, b)
     let packet_length = processHeader(conn, b)
@@ -390,13 +424,13 @@ when false:
     for i in 0 .. high(pkt):
       result[i] = pkt[i]
 
-  proc send(socket: Socket, data: openarray[char]): int =
+  proc send*(socket: Socket, data: openarray[char]): int =
     # This is horribly ugly, but it seems to be the only way to get
     # something from a seq into a socket
     let p = cast[ptr array[0 .. 1, char]](data)
     return socket.send(p, len(data))
 else:
-  proc receivePacket(conn:Connection, drop_ok: bool = false): Future[string] {.async.} =
+  proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async.} =
     # drop_ok used when close
     let hdr = await conn.socket.recv(4)
     if len(hdr) == 0:
@@ -415,3 +449,14 @@ else:
       raise newException(ProtocolError, "Connection closed unexpectedly")
     if len(result) != packet_length:
       raise newException(ProtocolError, "TODO finish this part")
+
+
+proc roundtrip*(conn:Connection, data: string): Future[string] {.async.} =
+  var buf: string = newStringOfCap(32)
+  buf.setLen(4)
+  buf.add data
+  await conn.sendPacket(buf)
+  let pkt = await conn.receivePacket()
+  if isERRPacket(pkt):
+    raise parseErrorPacket(pkt)
+  return pkt
