@@ -456,7 +456,7 @@ when defined(ssl):
       buf.add( char(0) )
     await conn.sendPacket(buf)
     # The server will respond with the SSL SERVER_HELLO packet.
-    wrapSocket(ssl, conn.socket)#, handshake=handshakeAsClient)
+    wrapConnectedSocket(ssl, conn.socket, handshake=SslHandshakeType.handshakeAsClient)
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
 
