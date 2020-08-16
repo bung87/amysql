@@ -591,7 +591,8 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
 
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.async.} =
+proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.
+               async, tags: [ReadDbEffect, WriteDbEffect].} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -606,8 +607,7 @@ proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.asy
     var p = 0
     let column_count = scanLenInt(pkt, p)
     result.columns = await conn.receiveMetadata(column_count)
-    var rows: seq[seq[string]]
-    newSeq(rows, 0)
+    # var rows: seq[Row] = @[]
     while true:
       let pkt = await conn.receivePacket()
       if isEOFPacket(pkt):
@@ -619,8 +619,8 @@ proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.asy
       elif isERRPacket(pkt):
         raise parseErrorPacket(pkt)
       else:
-        rows.add(parseTextRow(pkt))
-    result.rows = rows
+        result.rows.add(parseTextRow(pkt))
+    # result.rows = rows
   return
 
 proc performPreparedQuery(conn: Connection, pstmt: PreparedStatement, st: Future[void]): Future[ResultSet[ResultValue]] {.async.} =
@@ -657,7 +657,7 @@ proc preparedQuery*(conn: Connection, pstmt: PreparedStatement, params: varargs[
   var sent = conn.sendPacket(pkt, reset_seq_no=true)
   return performPreparedQuery(conn, pstmt, sent)
 
-proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.async.} =
+proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.async, tags: [ReadDbEffect].} =
   var buf: string = newStringOfCap(4 + 1 + len(database))
   buf.setLen(4)
   buf.add( char(Command.initDb) )
@@ -671,7 +671,7 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   else:
     raise newException(ProtocolError, "unexpected response to COM_INIT_DB")
 
-proc open*(connection, user, password: string, database = ""): Future[Connection] {.async.} =
+proc open*(connection, user, password: string, database = ""): Future[Connection] {.async, tags: [DbEffect].} =
   let
     colonPos = connection.find(':')
     host = if colonPos < 0: connection
@@ -682,7 +682,7 @@ proc open*(connection, user, password: string, database = ""): Future[Connection
   await connect(sock, host, Port(port))
   return await establishConnection(sock, user, database=database, password = password)
 
-proc close*(conn: Connection): Future[void] {.async.} =
+proc close*(conn: Connection): Future[void] {.async, tags: [DbEffect].} =
   var buf: string = newStringOfCap(5)
   buf.setLen(4)
   buf.add( char(Command.quit) )
@@ -708,6 +708,81 @@ proc dbFormat(formatstr: SqlQuery, args: varargs[string]): string =
     else:
       add(result, c)
 
-proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.async.} =
+proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
+            async, tags: [ReadDbEffect].} =
   var q = dbFormat(query, args)
   result = await conn.rawQuery(q)
+
+
+proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
+               async, tags: [ReadDbEffect].} =
+  ## tries to execute the query and returns true if successful, false otherwise.
+  result = true
+  try:
+    discard await conn.query(query, args)
+  except:
+    result = false
+  return result
+
+proc getRow*(conn: Connection, query: SqlQuery,
+             args: varargs[string, `$`]): Future[Row] {.async, tags: [ReadDbEffect].} =
+  ## Retrieves a single row. If the query doesn't return any rows, this proc
+  ## will return a Row with empty strings for each column.
+  let resultSet = await conn.query(query, args)
+  if resultSet.rows.len == 0:
+    let cols = resultSet.columns.len
+    result = newSeq[string](cols)
+  else:
+    result = resultSet.rows[0]
+
+proc getAllRows*(conn: Connection, query: SqlQuery,
+                 args: varargs[string, `$`]): Future[seq[Row]] {.async, tags: [ReadDbEffect].} =
+  ## executes the query and returns the whole result dataset.
+  let resultSet = await conn.query(query, args)
+  result = resultSet.rows
+
+proc rows*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[Row] {.async, tags: [ReadDbEffect].} =
+  for r in getAllRows(db, query, args): yield r
+
+proc getValue*(conn: Connection, query: SqlQuery,
+               args: varargs[string, `$`]): Future[string] {.async, tags: [ReadDbEffect].} =
+  ## executes the query and returns the first column of the first row of the
+  ## result dataset. Returns "" if the dataset contains no rows or the database
+  ## value is NULL.
+  let row = await getRow(db, query, args)
+  result = row[0]
+
+proc tryInsertId*(conn: Connection, query: SqlQuery,
+                  args: varargs[string, `$`]): Future[int64] {.async, raises: [], tags: [WriteDbEffect].} =
+  ## executes the query (typically "INSERT") and returns the
+  ## generated ID for the row or -1 in case of an error.
+  var resultSet:ResultSet[string]
+  try:
+    resultSet = await conn.query(query, args)
+  except:
+    result = -1'i64
+    return result
+  result = resultSet.status.last_insert_id.int64
+
+proc insertId*(conn: Connection, query: SqlQuery,
+               args: varargs[string, `$`]): Future[int64] {.async, tags: [WriteDbEffect].} =
+  ## executes the query (typically "INSERT") and returns the
+  ## generated ID for the row.
+  let resultSet = await conn.query(query, args)
+
+proc tryInsert*(conn: Connection, query: SqlQuery, pkName: string,
+                args: varargs[string, `$`]): Future[int64] {.async,raises: [], tags: [WriteDbEffect].} =
+  ## same as tryInsertID
+  tryInsertID(db, query, args)
+
+proc insert*(conn: Connection, query: SqlQuery, pkName: string,
+             args: varargs[string, `$`]): Future[int64]
+            {.async, tags: [WriteDbEffect].} =
+  ## same as insertId
+  let resultSet = await conn.query(query, args)
+  result = resultSet.status.last_insert_id.int64
+
+proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async, raises: [], tags: [DbEffect].} =
+  ## sets the encoding of a database connection, returns true for
+  ## success, false for failure.
+  result = await conn.tryQuery(sql"SET NAMES ?",encoding)
