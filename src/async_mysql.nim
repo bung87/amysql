@@ -564,6 +564,7 @@ proc finishEstablishingConnection(conn: Connection,
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 
 proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
+  new result
   let pkt = await conn.receivePacket()
   var parser = newPacketParser(PacketParserKind.ppkHandshake)
   loadBuffer(parser, pkt.cstring, pkt.len)
