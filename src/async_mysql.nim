@@ -903,14 +903,22 @@ proc open*(uriStr: string): Future[Connection] {.async.} =
   return await establishConnection(sock, uri.username, uri.password, uri.path )
 
 proc open*(connection, user, password, database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
-  let
-    colonPos = connection.find(':')
-    host = if colonPos < 0: connection
-           else: substr(connection, 0, colonPos-1)
-    port: int32 = if colonPos < 0: 3306'i32
-                  else: substr(connection, colonPos+1).parseInt.int32
-  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
-  await connect(sock, host, Port(port))
+  var isPath = false
+  var sock:AsyncSocket
+  when defined(posix):
+    isPath = connection[0] == '/'
+  if isPath:
+    sock = newAsyncSocket(AF_UNIX, SOCK_STREAM)
+    await connectUnix(sock,connection)
+  else:
+    let
+      colonPos = connection.find(':')
+      host = if colonPos < 0: connection
+            else: substr(connection, 0, colonPos-1)
+      port: int32 = if colonPos < 0: 3306'i32
+                    else: substr(connection, colonPos+1).parseInt.int32
+    let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
+    await connect(sock, host, Port(port))
   return await establishConnection(sock, user, password, database)
 
 proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
