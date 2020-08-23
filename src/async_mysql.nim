@@ -43,7 +43,8 @@ type
     rvtDateTime,
     rvtTimestamp,
     rvtString,
-    rvtBlob
+    rvtBlob,
+    rvtGeometry
   Date* = object of DateTime
   ResultValue* = object
     case typ: ResultValueType
@@ -64,7 +65,7 @@ type
       of rvtTime:
         # .type TIME
         # HH:MM:SS
-        timeVal: DateTime
+        durVal: Duration
       of rvtDate, rvtDateTime,rvtTimestamp:
         # https://dev.mysql.com/doc/internals/en/date-and-time-data-type-representation.html
         # .type DATETIME
@@ -72,6 +73,8 @@ type
         # variable length encoded unsigned64 value for each field
         # YYYY-MM-DD  YYYY-MM-DD HH:MM:SS [.fraction]
         datetimeVal: DateTime
+      of rvtGeometry:
+        discard
 
   ParamBindingType = enum
     paramNull,
@@ -107,7 +110,7 @@ type
       of paramDate, paramDateTime,paramTimestamp:
         datetimeVal: DateTime
       of paramTime:
-        timeVal: DateTime
+        durVal: Duration
 type
   ColumnDefinition* {.final.} = object 
     catalog*     : string
@@ -230,6 +233,7 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string) =
     pkt.add(char(0x01))
   of paramTime:
     pkt.add ( fieldTypeTime.char)
+    pkt.add(char(0))
 
 proc addValueUnlessNULL(p: SqlParam, pkt: var string) =
   ## https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
@@ -266,7 +270,7 @@ proc addValueUnlessNULL(p: SqlParam, pkt: var string) =
   of paramDate:
     putDate(pkt, p.datetimeVal)
   of paramTime:
-    putTime(pkt, p.datetimeVal)
+    putTime(pkt, p.durVal)
   of paramDateTime:
     putDateTime(pkt, p.datetimeVal)
   of paramTimestamp:
@@ -309,6 +313,8 @@ proc asParam*(f: float64): SqlParam = SqlParam(typ: paramDouble, doubleVal: f)
 proc asParam*(d: DateTime): SqlParam = SqlParam(typ: paramDateTime, datetimeVal: d)
 proc asParam*(d: Date): SqlParam = SqlParam(typ: paramDate, datetimeVal: d)
 proc asParam*(d: Time): SqlParam = SqlParam(typ: paramTimestamp, datetimeVal: d.utc)
+proc asParam*(d: Duration): SqlParam = SqlParam(typ: paramTime, durVal: d)
+
 
 proc asParam*(b: bool): SqlParam = SqlParam(typ: paramInt, intVal: if b: 1 else: 0)
 
@@ -336,6 +342,11 @@ proc `$`*(v: ResultValue): string =
     return v.datetimeVal.format("yyyy-MM-dd")
   of rvtTimestamp:
     $v.datetimeVal.toTime.toUnix
+  of rvtTime:
+    let dp = toParts(v.durVal)
+    let hours = dp[Days] * 24 + dp[Hours]
+    let prefix = if v.durVal < DurationZero: "-" else: ""
+    return prefix & "$1:$2:$3" % [ $hours, $dp[Minutes], $dp[Seconds]]
   else:
     return "(unrepresentable!)"
 
@@ -399,6 +410,13 @@ converter asTime*(v: ResultValue): Time =
     v.datetimeVal.toTime
   else:
     raise newException(ValueError, "value is " & $(v.typ) & ", not Time")
+
+converter asDuration*(v: ResultValue): Duration =
+  case v.typ
+  of rvtTime:
+    v.durVal
+  else:
+    raise newException(ValueError, "value is " & $(v.typ) & ", not Duration")
 
 converter asBool*(v: ResultValue): bool =
   case v.typ
@@ -598,7 +616,7 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         result[ix] = ResultValue(typ: rvtDouble, doubleVal: v)
       of fieldTypeDateTime:
         result[ix] = scanDateTime(pkt, pos, rvtDateTime)
-        echo "fieldTypeDateTime length:" & $columns[ix].length
+        debugEcho "fieldTypeDateTime length:" & $columns[ix].length
       of fieldTypeDate:
         let year = int(pkt[pos+1]) + int(pkt[pos+2]) * 256
         inc(pos,2)
@@ -607,11 +625,33 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         inc(pos,2)
         let dt = initDate(day,month.Month,year.int)
         result[ix] = ResultValue(typ: rvtDate, datetimeVal: dt)
-        echo "fieldTypeDate length:" & $columns[ix].length
+        debugEcho "fieldTypeDate length:" & $columns[ix].length
       of fieldTypeTimestamp:
         result[ix] = scanDateTime(pkt, pos, rvtTimestamp)
       of fieldTypeTime:
-        raise newException(Exception, "Not implemented, TODO")
+        let dataLen = int(pkt[pos])
+        var isNegative = int(pkt[pos + 1])
+        inc(pos,2)
+        var days:int32
+        scan32(pkt,pos,days.addr)
+        inc(pos,4)
+        var hours = int(pkt[pos])
+        var minutes = int(pkt[pos + 1])
+        var seconds = int(pkt[pos + 2])
+        inc(pos,3)
+        var microseconds:int32 
+        if dataLen == 8 :
+          microseconds = 0 
+        else: 
+          scan32(pkt,pos,microseconds.addr)
+          inc(pos,4)
+        if isNegative != 0:
+          days = -days
+          hours = -hours
+          minutes = -minutes
+          seconds = -seconds
+          microseconds = -microseconds
+        result[ix] = ResultValue(typ: rvtTime, durVal: initDuration(days=days,hours=hours,minutes=minutes,seconds=seconds,microseconds=microseconds))
       of fieldTypeTinyBlob, fieldTypeMediumBlob, fieldTypeLongBlob, fieldTypeBlob, fieldTypeBit:
         result[ix] = ResultValue(typ: rvtBlob, strVal: scanLenStr(pkt, pos))
       of fieldTypeVarchar, fieldTypeVarString, fieldTypeString, fieldTypeDecimal, fieldTypeNewDecimal:

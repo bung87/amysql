@@ -54,7 +54,7 @@ proc put16(buf: var string, p: pointer) {.inline.} =
   copyMem(str[0].addr, arr[0].addr, 2)
   buf.add str
 
-proc scan32(buf: string, pos: int , p: pointer) {.inline.} =
+proc scan32*(buf: string, pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
     swapEndian32(p, buf[pos].addr)
   else:
@@ -189,8 +189,19 @@ proc putLenStr*(buf: var string, val: string) =
   putLenInt(buf, val.len)
   buf.add(val)
 
-proc putTime*(buf: var string, val: DateTime):int {.discardable.}  =
-  discard
+proc putTime*(buf: var string, val: Duration):int {.discardable.}  =
+  let dp = toParts(val)
+  echo dp
+  var micro = dp[Microseconds].int32
+  buf.putU8(if micro == 0: 8 else: 12) # length
+  buf.putU8(if val < DurationZero: 1 else: 0 ) 
+  var days = dp[Days].int32
+  buf.put32 days.addr
+  buf.putU8 dp[Hours]
+  buf.putU8 dp[Minutes]
+  buf.putU8 dp[Seconds]
+  if micro != 0:
+    buf.put32 micro.addr
   
 proc putDate*(buf: var string, val: DateTime):int {.discardable.}  =
   result = 4
