@@ -63,7 +63,7 @@ proc runTests(): Future[void] {.async.} =
   await conn.close()
 
 test "connnection with unix socket":
-  when defined(posix):
+  when defined(posix) and host_name.len > 0:
     waitFor(runTests())
   else:
     discard
