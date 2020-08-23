@@ -6,7 +6,7 @@ suite "test_param_pack":
   test "Testing parameter packing":
   
     let dummy_param = ColumnDefinition()
-    var sth: PreparedStatement
+    var sth: SqlPrepared
     new(sth)
     sth.statement_id = ['\0', '\xFF', '\xAA', '\x55' ]
     sth.parameters = @[dummy_param, dummy_param, dummy_param, dummy_param, dummy_param, dummy_param, dummy_param, dummy_param]

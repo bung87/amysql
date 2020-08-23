@@ -1,4 +1,7 @@
 import strutils
+import endians
+import protobuf,streams
+import times
 
 type
   # ProtocolError indicates we got something we don't understand. We might
@@ -9,43 +12,112 @@ const
   LenEnc_16        = 0xFC
   LenEnc_24        = 0xFD
   LenEnc_64        = 0xFE
-## ######################################################################
-##
-## Basic datatype packers/unpackers
 
+## Basic datatype packers/unpackers
+## little endian
 # Integers
 
-proc scanU32*(buf: string, pos: int): uint32 =
-  result = uint32(buf[pos]) + `shl`(uint32(buf[pos+1]), 8'u32) + (uint32(buf[pos+2]) shl 16'u32) + (uint32(buf[pos+3]) shl 24'u32)
+const protoSpec = """
+syntax = "proto3";
 
-proc putU32*(buf: var string, val: uint32) =
-  buf.add( char( val and 0xff ) )
-  buf.add( char( (val shr 8)  and 0xff ) )
-  buf.add( char( (val shr 16) and 0xff ) )
-  buf.add( char( (val shr 24) and 0xff ) )
+message FloatLen {
+  uint32 length = 1;
+  uint32 fractional_digits = 2;
+}
+"""
 
-proc scanU16*(buf: string, pos: int): uint16 =
-  result = uint16(buf[pos]) + (uint16(buf[pos+1]) shl 8'u16)
+parseProto(protoSpec)
 
-proc putU16*(buf: var string, val: uint16) =
-  buf.add( char( val and 0xFF ) )
-  buf.add( char( (val shr 8) and 0xFF ) )
+exportMessage FloatLen
+
+proc putFloatLen*(buf: var string, val: float32|float64) {.inline.} =
+  let s = $val
+  let l = len(s)
+  let f = max(l - 1 - s.find("."),0)
+  var x = new FloatLen
+  x.length = l.uint32
+  x.fractional_digits = f.uint32
+  var stream = newStringStream()
+  stream.write x
+  buf.add stream.readAll
+
+proc scan16(buf: string, pos: int , p: pointer) {.inline.} =
+  when system.cpuEndian == bigEndian:
+    swapEndian16(p, buf[pos].addr)
+  else:
+    copyMem(p, buf[pos].unSafeAddr, 2)
+
+proc put16(buf: var string, p: pointer) {.inline.} =
+  var arr:array[0..1, char]
+  littleEndian16(addr arr, p)
+  var str = newString(2)
+  copyMem(str[0].addr, arr[0].addr, 2)
+  buf.add str
+
+proc scan32(buf: string, pos: int , p: pointer) {.inline.} =
+  when system.cpuEndian == bigEndian:
+    swapEndian32(p, buf[pos].addr)
+  else:
+    copyMem(p, buf[pos].unSafeAddr, 4)
+
+proc put32(buf: var string, p: pointer) {.inline.} =
+  var arr:array[0..3, char]
+  littleEndian32(addr arr, p)
+  var str = newString(4)
+  copyMem(str[0].addr, arr[0].addr, 4)
+  buf.add str
+
+proc scan64(buf: string, pos: int , p: pointer) {.inline.} =
+  when system.cpuEndian == bigEndian:
+    swapEndian64(p, buf[pos].addr)
+  else:
+    copyMem(p, buf[pos].unSafeAddr, 8)
+
+proc put64(buf: var string, p: pointer) {.inline.} =
+  var arr:array[0..7, char]
+  littleEndian64(addr arr, p)
+  var str = newString(8)
+  copyMem(str[0].addr, arr[0].addr, 8)
+  buf.add str
 
 proc putU8*(buf: var string, val: uint8) {.inline.} =
   buf.add( char(val) )
 
 proc putU8*(buf: var string, val: range[0..255]) {.inline.} =
   buf.add( char(val) )
+  
+proc scanU16*(buf: string, pos: int): uint16 =
+  scan16(buf, pos, result.addr)
+
+proc putU16*(buf: var string, val: uint16) =
+  put16(buf, val.unSafeAddr)
+
+proc scanU32*(buf: string, pos: int): uint32 =
+  scan32(buf, pos, addr result)
+
+proc putU32*(buf: var string, val: uint32) =
+  put32(buf, val.unSafeAddr)
+
+proc putFloat*(buf: var string, val:float32) =
+  put32(buf, val.unSafeAddr)
+
+proc putDouble*(buf: var string, val: float64) =
+  put64(buf, val.unSafeAddr)
+
+proc scanFloat*(buf: string, pos: int): float32 =
+  scan32(buf, pos, addr result)
+
+proc scanDouble*(buf: string, pos: int): float64 =
+  scan64(buf, pos, addr result)
 
 proc scanU64*(buf: string, pos: int): uint64 =
-  let l32 = scanU32(buf, pos)
-  let h32 = scanU32(buf, pos+4)
-  return uint64(l32) + ( (uint64(h32) shl 32 ) )
+  scan64(buf, pos, addr result)
 
 proc putS64*(buf: var string, val: int64) =
-  let compl: uint64 = cast[uint64](val)
-  buf.putU32(uint32(compl and 0xFFFFFFFF'u64))
-  buf.putU32(uint32(compl shr 32))
+  put64(buf, val.unSafeAddr)
+
+proc putU64*(buf: var string, val: uint64) =
+  put64(buf, val.unSafeAddr)
 
 proc scanLenInt*(buf: string, pos: var int): int =
   let b1 = uint8(buf[pos])
@@ -62,22 +134,29 @@ proc scanLenInt*(buf: string, pos: var int): int =
     return
   return -1
 
-proc putLenInt*(buf: var string, val: int) =
+
+proc putLenInt*(buf: var string, val: int|uint|int32|uint32):int {.discardable.} =
+  # https://dev.mysql.com/doc/dev/mysql-server/8.0.19/page_protocol_basic_dt_integers.html
+  # for string and raw data
   if val < 0:
     raise newException(ProtocolError, "trying to send a negative lenenc-int")
   elif val < 251:
     buf.add( char(val) )
+    return 1
   elif val < 65536:
     buf.add( char(LenEnc_16) )
     buf.add( char( val and 0xFF ) )
     buf.add( char( (val shr 8) and 0xFF ) )
-  elif val <= 0xFFFFFF:
+    return 3
+  elif val <= 0xFFFFFF: # 16777215
     buf.add( char(LenEnc_24) )
     buf.add( char( val and 0xFF ) )
     buf.add( char( (val shr 8) and 0xFF ) )
     buf.add( char( (val shr 16) and 0xFF ) )
+    return 4
   else:
     raise newException(ProtocolError, "lenenc-int too long for me!")
+
 
 # Strings
 proc scanNulString*(buf: string, pos: var int): string =
@@ -110,6 +189,40 @@ proc putLenStr*(buf: var string, val: string) =
   putLenInt(buf, val.len)
   buf.add(val)
 
+proc putTime*(buf: var string, val: DateTime):int {.discardable.}  =
+  discard
+  
+proc putDate*(buf: var string, val: DateTime):int {.discardable.}  =
+  result = 4
+  buf.putU8 result.uint8
+  var uyear = val.year.uint16
+  buf.put16 uyear.addr
+  buf.putU8 val.month.ord.uint8
+  buf.putU8 val.monthday.uint8
+
+proc putDateTime*(buf: var string, val: DateTime):int {.discardable.} =
+  let hasTime = val.second != 0 or val.minute != 0 or val.hour != 0
+  if val.nanosecond != 0:
+    result = 11
+  elif hasTime:
+    result = 7
+  else:
+    result = 4
+  buf.putU8 result.uint8
+  var uyear = val.year.uint16
+  buf.put16 uyear.addr
+  buf.putU8 val.month.ord.uint8
+  buf.putU8 val.monthday.uint8
+  
+  if result > 4:
+    buf.putU8 val.hour.uint8
+    buf.putU8 val.minute.uint8
+    buf.putU8 val.second.uint8
+    if result > 7:
+      var micro = val.nanosecond div 1000
+      var umico = micro.int32
+      buf.put32 umico.addr
+
 proc hexdump*(buf: openarray[char], fp: File) =
   var pos = low(buf)
   while pos <= high(buf):
@@ -128,7 +241,14 @@ proc hexdump*(buf: openarray[char], fp: File) =
     fp.write("|\n")
 
 when isMainModule or defined(test):
- 
+  proc hexstr(s: string): string =
+    const HexChars = "0123456789abcdef"
+    result = newString(s.len * 2)
+    for pos, c in s:
+      var n = ord(c)
+      result[pos * 2 + 1] = HexChars[n and 0xF]
+      n = n shr 4
+      result[pos * 2] = HexChars[n]
   var buf: string = ""
   putLenInt(buf, 0)
   putLenInt(buf, 1)

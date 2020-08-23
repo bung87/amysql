@@ -21,12 +21,12 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
 
   echo "Testing numeric parameters"
   # Insert values using the binary protocol
-  let insrow = await conn.prepareStatement("insert into `num_tests` (s, u8, s8, u, i, b) values (?, ?, ?, ?, ?, ?)")
+  let insrow = await conn.prepare("insert into `num_tests` (s, u8, s8, u, i, b) values (?, ?, ?, ?, ?, ?)")
   discard await conn.query(insrow, "one", 1, 1, 1, 1, 1)
   discard await conn.query(insrow, "max", 255, 127, 4294967295, 2147483647, 9223372036854775807'u64)
   discard await conn.query(insrow, "min", 0, -128, 0, -2147483648, (-9223372036854775807'i64 - 1))
   discard await conn.query(insrow, "foo", 128, -127, 256, -32767, -32768)
-  await conn.closeStatement(insrow)
+  await conn.finalize(insrow)
 
   # Read them back using the text protocol
   let r1 = await conn.rawQuery("select s, u8, s8, u, i, b from num_tests order by u8 asc")
@@ -46,7 +46,7 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
 
   # Now read them back using the binary protocol
   echo "Testing numeric results"
-  let rdtab = await conn.prepareStatement("select b, i, u, s, u8, s8 from num_tests order by i desc")
+  let rdtab = await conn.prepare("select b, i, u, s, u8, s8 from num_tests order by i desc")
   let r2 = await conn.query(rdtab)
   assertEq(int, r2.columns.len(), 6, "column count")
   assertEq(int, r2.rows.len(), 4, "row count")
@@ -84,7 +84,7 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   assertEq(int,    r2.rows[3][4], 0)
   assertEq(int64,  r2.rows[3][4], 0'i64)
 
-  await conn.closeStatement(rdtab)
+  await conn.finalize(rdtab)
   discard await conn.rawQuery("drop table `num_tests`")
 
 proc runTests(): Future[void] {.async.} =

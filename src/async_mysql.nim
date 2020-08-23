@@ -16,11 +16,14 @@ import async_mysql/conn
 export conn
 import async_mysql/private/mysqlparser
 import async_mysql/private/auth
-import asyncdispatch, macros
+import asyncdispatch
+import macros except floatVal
 import net  # needed for the SslContext type
 import db_common #except DbEffect,ReadDbEffect,WriteDbEffect
 import strutils
 import asyncnet
+import uri
+import times
 
 
 type
@@ -33,13 +36,15 @@ type
     rvtInteger,
     rvtLong,
     rvtULong,
-    rvtFloat32,
-    rvtFloat64,
+    rvtFloat, # float32
+    rvtDouble,
     rvtDate,
     rvtTime,
     rvtDateTime,
+    rvtTimestamp,
     rvtString,
     rvtBlob
+  Date* = object of DateTime
   ResultValue* = object
     case typ: ResultValueType
       of rvtInteger:
@@ -52,10 +57,21 @@ type
         strVal: string
       of rvtNull:
         discard
-      of rvtFloat32, rvtFloat64:
-        discard # TODO
-      of rvtDate, rvtTime, rvtDateTime:
-        discard # TODO
+      of rvtFloat:
+        floatVal: float32
+      of rvtDouble:
+        doubleVal: float64
+      of rvtTime:
+        # .type TIME
+        # HH:MM:SS
+        timeVal: DateTime
+      of rvtDate, rvtDateTime,rvtTimestamp:
+        # https://dev.mysql.com/doc/internals/en/date-and-time-data-type-representation.html
+        # .type DATETIME
+        # .flags is_timestamp
+        # variable length encoded unsigned64 value for each field
+        # YYYY-MM-DD  YYYY-MM-DD HH:MM:SS [.fraction]
+        datetimeVal: DateTime
 
   ParamBindingType = enum
     paramNull,
@@ -63,9 +79,14 @@ type
     paramBlob,
     paramInt,
     paramUInt,
-    # paramFloat, paramDouble,
+    paramFloat, 
+    paramDouble,
+    paramDate,
+    paramTime,
+    paramDateTime,
+    paramTimestamp
     # paramLazyString, paramLazyBlob,
-  ParameterBinding* = object
+  SqlParam* = object
     ## This represents a value we're sending to the server as a parameter.
     ## Since parameters' types are always sent along with their values,
     ## we choose the wire type of integers based on the particular value
@@ -79,7 +100,14 @@ type
         intVal: int64
       of paramUInt:
         uintVal: uint64
-
+      of paramFloat:
+        floatVal: float32
+      of paramDouble:
+        doubleVal: float64
+      of paramDate, paramDateTime,paramTimestamp:
+        datetimeVal: DateTime
+      of paramTime:
+        timeVal: DateTime
 type
   ColumnDefinition* {.final.} = object 
     catalog*     : string
@@ -100,8 +128,8 @@ type
     columns*    : seq[ColumnDefinition]
     rows*       : seq[seq[T]]
 
-  PreparedStatement* = ref PreparedStatementObj
-  PreparedStatementObj = object
+  SqlPrepared* = ref SqlPreparedObj
+  SqlPreparedObj = object
     statement_id: array[4, char]
     parameters: seq[ColumnDefinition]
     columns: seq[ColumnDefinition]
@@ -109,7 +137,38 @@ type
 
 ## Parameter and result packers/unpackers
 
-proc addTypeUnlessNULL(p: ParameterBinding, pkt: var string) =
+proc approximatePackedSize(p: SqlParam): int {.inline.} =
+  case p.typ
+  of paramNull:
+    return 0
+  of paramString, paramBlob:
+    return 5 + len(p.strVal)
+  of paramInt, paramUInt:
+    return 4
+  of paramFloat:
+    return 4
+  of paramDouble:
+    return 8
+  of paramDate:
+    return 3
+  of paramTime:
+    return 3
+  of paramDateTime:
+    # case t.IsZero():
+    # return 1
+    if p.datetimeVal.nanosecond != 0:
+      return 11 + 1
+    elif p.datetimeVal.second != 0 or p.datetimeVal.minute != 0 or p.datetimeVal.hour != 0:
+      return 7 + 1
+    else:
+      return 4 + 1
+  of paramTimestamp:
+    return 4
+
+proc addTypeUnlessNULL(p: SqlParam, pkt: var string) =
+  ## see https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
+  ## Param type table
+  ## Param flags
   case p.typ
   of paramNull:
     return
@@ -144,8 +203,37 @@ proc addTypeUnlessNULL(p: ParameterBinding, pkt: var string) =
     else:
       pkt.add(char(fieldTypeLongLong))
     pkt.add(char(0x80))
+  of paramFloat:
+    # .type .length	.frac_dig	.flags
+    pkt.add(fieldTypeFloat.char)
+    putFloatLen(pkt,p.floatVal)
+    if p.floatVal >= 0:
+      pkt.add(char(0x01))
+    else:
+      pkt.add(char(0))
+  of paramDouble:
+    # .type .length	.frac_dig	.flags
+    pkt.add(fieldTypeDouble.char)
+    putFloatLen(pkt,p.doubleVal)
+    if p.doubleVal >= 0:
+      pkt.add(char(0x01))
+    else:
+      pkt.add(char(0))
+  of paramDate:
+    pkt.add ( fieldTypeDate.char)
+    pkt.add(char(0))
+  of paramDateTime:
+    pkt.add ( fieldTypeDateTime.char)
+    pkt.add(char(0)) # unsigned flag or isTimestamp flag
+  of paramTimestamp:
+    pkt.add ( fieldTypeTimestamp.char)
+    pkt.add(char(0x01))
+  of paramTime:
+    pkt.add ( fieldTypeTime.char)
 
-proc addValueUnlessNULL(p: ParameterBinding, pkt: var string) =
+proc addValueUnlessNULL(p: SqlParam, pkt: var string) =
+  ## https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
+  ## Param type table
   case p.typ
   of paramNull:
     return
@@ -171,47 +259,58 @@ proc addValueUnlessNULL(p: ParameterBinding, pkt: var string) =
     putU32(pkt, uint32(p.uintVal and 0xFFFFFFFF'u64))
     if p.uintVal >= 0xFFFFFFFF'u64:
       putU32(pkt, uint32(p.uintVal shr 32))
+  of paramFloat:
+    putFloat(pkt, p.floatVal)
+  of paramDouble:
+    putDouble(pkt, p.doubleVal)
+  of paramDate:
+    putDate(pkt, p.datetimeVal)
+  of paramTime:
+    putTime(pkt, p.datetimeVal)
+  of paramDateTime:
+    putDateTime(pkt, p.datetimeVal)
+  of paramTimestamp:
+    putDateTime(pkt, p.datetimeVal)
 
-proc approximatePackedSize(p: ParameterBinding): int {.inline.} =
-  case p.typ
-  of paramNull:
-    return 0
-  of paramString, paramBlob:
-    return 5 + len(p.strVal)
-  of paramInt, paramUInt:
-    return 4
 
-proc asParam*(s: string): ParameterBinding =
-  ParameterBinding(typ: paramString,strVal:s)
+proc asParam*(s: string): SqlParam =
+  SqlParam(typ: paramString,strVal:s)
 
 macro asParam*(s: untyped): untyped =
   doAssert s.kind == nnkNilLit
   nnkObjConstr.newTree(
-      newIdentNode("ParameterBinding"),
+      newIdentNode("SqlParam"),
       nnkExprColonExpr.newTree(
         newIdentNode("typ"),
         newIdentNode("paramNull")
       )
     )
 
-proc asParam*(i: int): ParameterBinding = ParameterBinding(typ: paramInt, intVal: i)
+proc asParam*(i: int): SqlParam = SqlParam(typ: paramInt, intVal: i)
 
-proc asParam*(i: uint): ParameterBinding =
+proc asParam*(i: uint): SqlParam =
   if i > uint(high(int)):
-    ParameterBinding(typ: paramUInt, uintVal: uint64(i))
+    SqlParam(typ: paramUInt, uintVal: uint64(i))
   else:
-    ParameterBinding(typ: paramInt, intVal: int64(i))
+    SqlParam(typ: paramInt, intVal: int64(i))
 
-proc asParam*(i: int64): ParameterBinding =
-  ParameterBinding(typ: paramInt, intVal: i)
+proc asParam*(i: int64): SqlParam =
+  SqlParam(typ: paramInt, intVal: i)
 
-proc asParam*(i: uint64): ParameterBinding =
+proc asParam*(i: uint64): SqlParam =
   if i > uint64(high(int)):
-    ParameterBinding(typ: paramUInt, uintVal: i)
+    SqlParam(typ: paramUInt, uintVal: i)
   else:
-    ParameterBinding(typ: paramInt, intVal: int64(i))
+    SqlParam(typ: paramInt, intVal: int64(i))
 
-proc asParam*(b: bool): ParameterBinding = ParameterBinding(typ: paramInt, intVal: if b: 1 else: 0)
+proc asParam*(f: float32): SqlParam = SqlParam(typ: paramFloat, floatVal: f)
+proc asParam*(f: float64): SqlParam = SqlParam(typ: paramDouble, doubleVal: f)
+
+proc asParam*(d: DateTime): SqlParam = SqlParam(typ: paramDateTime, datetimeVal: d)
+proc asParam*(d: Date): SqlParam = SqlParam(typ: paramDate, datetimeVal: d)
+proc asParam*(d: Time): SqlParam = SqlParam(typ: paramTimestamp, datetimeVal: d.utc)
+
+proc asParam*(b: bool): SqlParam = SqlParam(typ: paramInt, intVal: if b: 1 else: 0)
 
 proc isNull*(v: ResultValue): bool {.inline.} = v.typ == rvtNull
 
@@ -227,6 +326,16 @@ proc `$`*(v: ResultValue): string =
     return $(v.longVal)
   of rvtULong:
     return $(v.uLongVal)
+  of rvtFloat:
+    return $v.floatVal
+  of rvtDouble:
+    return $v.doubleVal
+  of rvtDateTime:
+    return v.datetimeVal.format("yyyy-MM-dd hh:mm:ss")
+  of rvtDate:
+    return v.datetimeVal.format("yyyy-MM-dd")
+  of rvtTimestamp:
+    $v.datetimeVal.toTime.toUnix
   else:
     return "(unrepresentable!)"
 
@@ -240,6 +349,12 @@ proc toNumber[T](v: ResultValue): T {.inline.} =
     return T(v.longVal)
   of rvtULong:
     return T(v.uLongVal)
+  of rvtFloat:
+    return T(v.floatVal)
+  of rvtDouble:
+    return T(v.doubleVal)
+  of rvtTimestamp:
+    return T(v.datetimeVal.toTime.toUnix)
   of rvtNull:
     raise newException(ValueError, "NULL value")
   else:
@@ -252,6 +367,9 @@ converter asInt64*(v: ResultValue): int64 = return toNumber[int64](v)
 converter asUint64*(v: ResultValue): uint64 = return toNumber[uint64](v)
 {. pop .}
 
+converter asFloat*(v: ResultValue): float32 = return toNumber[float32](v)
+converter asDouble*(v: ResultValue): float64 = return toNumber[float64](v)
+
 converter asString*(v: ResultValue): string =
   case v.typ
   of rvtNull:
@@ -260,6 +378,27 @@ converter asString*(v: ResultValue): string =
     return v.strVal
   else:
     raise newException(ValueError, "value is " & $(v.typ) & ", not string")
+
+converter asDateTime*(v: ResultValue): DateTime =
+  case v.typ
+  of rvtNull:
+    return DateTime()
+  of rvtDateTime:
+    return v.datetimeVal
+  of rvtDate:
+    return v.datetimeVal
+  else:
+    raise newException(ValueError, "value is " & $(v.typ) & ", not DateTime")
+
+converter asDate*(v: ResultValue): Date =
+  cast[Date](v.datetimeVal)
+
+converter asTime*(v: ResultValue): Time =
+  case v.typ
+  of rvtTimestamp:
+    v.datetimeVal.toTime
+  else:
+    raise newException(ValueError, "value is " & $(v.typ) & ", not Time")
 
 converter asBool*(v: ResultValue): bool =
   case v.typ
@@ -273,6 +412,12 @@ converter asBool*(v: ResultValue): bool =
     raise newException(ValueError, "NULL value")
   else:
     raise newException(ValueError, "cannot convert " & $(v.typ) & " to boolean")
+
+
+
+proc initDate*(monthday: MonthdayRange, month: Month, year: int, zone: Timezone = local()): Date =
+  var dt = initDateTime(monthday,month,year,0,0,0,zone)
+  copyMem(result.addr,dt.addr,sizeof(Date))
 
 proc parseTextRow(pkt: string): seq[string] =
   var pos = 0
@@ -312,7 +457,7 @@ proc receiveMetadata(conn: Connection, count: Positive): Future[seq[ColumnDefini
   if uint8(endPacket[0]) != ResponseCode_EOF:
     raise newException(ProtocolError, "Expected EOF after column defs, got something else")
 
-proc prepareStatement*(conn: Connection, query: string): Future[PreparedStatement] {.async.} =
+proc prepare*(conn: Connection, query: string): Future[SqlPrepared] {.async.} =
   var buf: string = newStringOfCap(4 + 1 + len(query))
   buf.setLen(4)
   buf.add( char(Command.statementPrepare) )
@@ -337,36 +482,36 @@ proc prepareStatement*(conn: Connection, query: string): Future[PreparedStatemen
   if num_columns > 0'u16:
     result.columns = await conn.receiveMetadata(int(num_columns))
 
-proc prepStmtBuf(stmt: PreparedStatement, buf: var string, cmd: Command, cap: int = 9) =
+proc prepare(pstmt: SqlPrepared, buf: var string, cmd: Command, cap: int = 9) =
   buf = newStringOfCap(cap)
   buf.setLen(9)
   buf[4] = char(cmd)
-  for b in 0..3: buf[b+5] = stmt.statement_id[b]
+  for b in 0..3: buf[b+5] = pstmt.statement_id[b]
 
-proc closeStatement*(conn: Connection, stmt: PreparedStatement): Future[void] =
+proc finalize*(conn: Connection, pstmt: SqlPrepared): Future[void] =
   var buf: string
-  stmt.prepStmtBuf(buf, Command.statementClose)
+  pstmt.prepare(buf, Command.statementClose)
   return conn.sendPacket(buf, reset_seq_no=true)
 
-proc resetStatement*(conn: Connection, stmt: PreparedStatement): Future[void] =
+proc reset*(conn: Connection, pstmt: SqlPrepared): Future[void] =
   var buf: string
-  stmt.prepStmtBuf(buf, Command.statementReset)
+  pstmt.prepare(buf, Command.statementReset)
   return conn.sendPacket(buf, reset_seq_no=true)
 
-proc formatBoundParams(stmt: PreparedStatement, params: openarray[ParameterBinding]): string =
-  if len(params) != len(stmt.parameters):
-    raise newException(ValueError, "Wrong number of parameters supplied to prepared statement (got " & $len(params) & ", statement expects " & $len(stmt.parameters) & ")")
+proc formatBoundParams(pstmt: SqlPrepared, params: openarray[SqlParam]): string =
+  if len(params) != len(pstmt.parameters):
+    raise newException(ValueError, "Wrong number of parameters supplied to prepared statement (got " & $len(params) & ", statement expects " & $len(pstmt.parameters) & ")")
   var approx = 14 + ( (params.len + 7) div 8 ) + (params.len * 2)
   for p in params:
     approx += p.approximatePackedSize()
-  stmt.prepStmtBuf(result, Command.statementExecute, cap = approx)
+  pstmt.prepare(result, Command.statementExecute, cap = approx)
   result.putU8(uint8(CursorType.noCursor))
   result.putU32(1) # "iteration-count" always 1
-  if stmt.parameters.len == 0:
+  if pstmt.parameters.len == 0:
     return
   # Compute the null bitmap
   var ch = 0
-  for p in 0 .. high(stmt.parameters):
+  for p in 0 .. high(pstmt.parameters):
     let bit = p mod 8
     if bit == 0 and p > 0:
       result.add(char(ch))
@@ -379,6 +524,20 @@ proc formatBoundParams(stmt: PreparedStatement, params: openarray[ParameterBindi
     p.addTypeUnlessNULL(result)
   for p in params:
     p.addValueUnlessNULL(result)
+
+proc scanDateTime*(buf: string, pos: var int, typ: static[ResultValueType],zone: Timezone = utc()): ResultValue = 
+  let year = int(buf[pos+1]) + int(buf[pos+2]) * 256
+  inc(pos,2)
+  let month = int(buf[pos + 1])
+  let day = int(buf[pos + 2])
+  inc(pos,2)
+  var hour,minute,second:int
+  hour = int(buf[pos + 1])
+  minute = int(buf[pos + 2])
+  second = int(buf[pos + 3])
+  inc(pos,3)
+  let dt = initDateTime(day,month.Month,year.int,hour,minute,second,zone)
+  ResultValue(typ: typ, datetimeVal: dt)
 
 proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValue] =
   let column_count = columns.len
@@ -429,7 +588,29 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
           result[ix] = ResultValue(typ: rvtULong, uLongVal: v)
         else:
           result[ix] = ResultValue(typ: rvtLong, longVal: cast[int64](v))
-      of fieldTypeFloat, fieldTypeDouble, fieldTypeTime, fieldTypeDate, fieldTypeDateTime, fieldTypeTimestamp:
+      of fieldTypeFloat:
+        let v = scanFloat(pkt,pos)
+        inc(pos, 4)
+        result[ix] = ResultValue(typ: rvtFloat, floatVal: v)
+      of fieldTypeDouble:
+        let v = scanDouble(pkt,pos)
+        inc(pos, 8)
+        result[ix] = ResultValue(typ: rvtDouble, doubleVal: v)
+      of fieldTypeDateTime:
+        result[ix] = scanDateTime(pkt, pos, rvtDateTime)
+        echo "fieldTypeDateTime length:" & $columns[ix].length
+      of fieldTypeDate:
+        let year = int(pkt[pos+1]) + int(pkt[pos+2]) * 256
+        inc(pos,2)
+        let month = int(pkt[pos + 1])
+        let day = int(pkt[pos + 2])
+        inc(pos,2)
+        let dt = initDate(day,month.Month,year.int)
+        result[ix] = ResultValue(typ: rvtDate, datetimeVal: dt)
+        echo "fieldTypeDate length:" & $columns[ix].length
+      of fieldTypeTimestamp:
+        result[ix] = scanDateTime(pkt, pos, rvtTimestamp)
+      of fieldTypeTime:
         raise newException(Exception, "Not implemented, TODO")
       of fieldTypeTinyBlob, fieldTypeMediumBlob, fieldTypeLongBlob, fieldTypeBlob, fieldTypeBit:
         result[ix] = ResultValue(typ: rvtBlob, strVal: scanLenStr(pkt, pos))
@@ -438,8 +619,8 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
       of fieldTypeEnum, fieldTypeSet, fieldTypeGeometry:
         raise newException(ProtocolError, "Unexpected field type " & $(typ) & " in resultset")
 
-proc execStatement(conn: Connection, stmt: PreparedStatement, params: openarray[ParameterBinding]): Future[void] =
-  var pkt = formatBoundParams(stmt, params)
+proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): Future[void] =
+  var pkt = formatBoundParams(pstmt, params)
   return conn.sendPacket(pkt, reset_seq_no=true)
 
 when defined(ssl):
@@ -592,7 +773,7 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
 
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.
+proc rawQuery*(conn: Connection, query: string, onlyFirst = false): Future[ResultSet[string]] {.
                async, tags: [ReadDbEffect, WriteDbEffect,RootEffect].} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
@@ -620,9 +801,11 @@ proc rawQuery*(conn: Connection, query: string): Future[ResultSet[string]] {.
         raise parseErrorPacket(pkt)
       else:
         result.rows.add(parseTextRow(pkt))
+        if onlyFirst:
+          break
   return
 
-proc performPreparedQuery(conn: Connection, pstmt: PreparedStatement, st: Future[void]): Future[ResultSet[ResultValue]] {.
+proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst = false): Future[ResultSet[ResultValue]] {.
                           async, tags:[RootEffect].} =
   await st
   let initialPacket = await conn.receivePacket()
@@ -648,14 +831,16 @@ proc performPreparedQuery(conn: Connection, pstmt: PreparedStatement, st: Future
         raise parseErrorPacket(pkt)
       else:
         result.rows.add(parseBinaryRow(result.columns, pkt))
+        if onlyFirst:
+          break
 
-proc query*(conn: Connection, pstmt: PreparedStatement, params: varargs[ParameterBinding, asParam]): Future[ResultSet[ResultValue]] {.
+proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
             #[tags: [ReadDbEffect, WriteDbEffect]]#.} =
   var pkt = formatBoundParams(pstmt, params)
   var sent = conn.sendPacket(pkt, reset_seq_no=true)
   return performPreparedQuery(conn, pstmt, sent)
 
-proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.async, #[tags: [DbEffect]]#.} =
+proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.async.} =
   var buf: string = newStringOfCap(4 + 1 + len(database))
   buf.setLen(4)
   buf.add( char(Command.initDb) )
@@ -669,7 +854,15 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   else:
     raise newException(ProtocolError, "unexpected response to COM_INIT_DB")
 
-proc open*(connection, user, password: string, database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
+proc open*(uriStr: string): Future[Connection] {.async.} =
+  # TODO uri.query 
+  let uri = parseUri(uriStr)
+  let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
+  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
+  await connect(sock, uri.hostname, Port(port))
+  return await establishConnection(sock, uri.username, uri.password, uri.path )
+
+proc open*(connection, user, password, database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
   let
     colonPos = connection.find(':')
     host = if colonPos < 0: connection
@@ -678,7 +871,7 @@ proc open*(connection, user, password: string, database = ""): Future[Connection
                   else: substr(connection, colonPos+1).parseInt.int32
   let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
   await connect(sock, host, Port(port))
-  return await establishConnection(sock, user, database=database, password = password)
+  return await establishConnection(sock, user, password, database)
 
 proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
   var buf: string = newStringOfCap(5)
@@ -706,10 +899,10 @@ proc dbFormat(formatstr: SqlQuery, args: varargs[string]): string =
     else:
       add(result, c)
 
-proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
+proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst = false): Future[ResultSet[string]] {.
             async, #[tags: [ReadDbEffect]]#.} =
   var q = dbFormat(query, args)
-  result = await conn.rawQuery(q)
+  result = await conn.rawQuery(q, onlyFirst)
 
 
 proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
@@ -726,7 +919,7 @@ proc getRow*(conn: Connection, query: SqlQuery,
              args: varargs[string, `$`]): Future[Row] {.async, #[tags: [ReadDbEffect]]#.} =
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
-  let resultSet = await conn.query(query, args)
+  let resultSet = await conn.query(query, args, onlyFirst = true)
   if resultSet.rows.len == 0:
     let cols = resultSet.columns.len
     result = newSeq[string](cols)
@@ -738,9 +931,6 @@ proc getAllRows*(conn: Connection, query: SqlQuery,
   ## executes the query and returns the whole result dataset.
   let resultSet = await conn.query(query, args)
   result = resultSet.rows
-
-# proc rows*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[Row] {.async #[tags: [ReadDbEffect]]#.} =
-#   for r in await getAllRows(conn, query, args): yield r
 
 proc getValue*(conn: Connection, query: SqlQuery,
                args: varargs[string, `$`]): Future[string] {.async, #[tags: [ReadDbEffect]]#.} =
@@ -767,6 +957,7 @@ proc insertId*(conn: Connection, query: SqlQuery,
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
   let resultSet = await conn.query(query, args)
+  result = resultSet.status.last_insert_id.int64
 
 proc tryInsert*(conn: Connection, query: SqlQuery, pkName: string,
                 args: varargs[string, `$`]): Future[int64] {.async,#[raises: [], tags: [WriteDbEffect]]#.} =

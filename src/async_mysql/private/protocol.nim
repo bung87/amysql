@@ -341,8 +341,6 @@ proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEf
   buf.add(query)
   return conn.sendPacket(buf, reset_seq_no=true)
 
-## ######################################################################
-##
 ## MySQL packet packers/unpackers
 
 proc processHeader(c: Connection, hdr: array[4, char]): nat24 =
@@ -353,55 +351,25 @@ proc processHeader(c: Connection, hdr: array[4, char]): nat24 =
     raise newException(ProtocolError, "Bad packet number (got sequence number " & $(pnum) & ", expected " & $(c.packet_number) & ")")
   c.packet_number += 1
 
-when false:
-  # Prototype synchronous code
-  proc readExactly(s: Socket, buf: var openarray[char]) {.tags:[ReadIOEffect].} =
-    var amount_read: int = 0
-    while amount_read < len(buf):
-      let r = s.recv(addr(buf[amount_read]), len(buf) - amount_read)
-      if r < 0:
-        socketError(s, r, false)
-      if r == 0:
-        raise newException(ProtocolError, "Connection closed")
-      amount_read += r
-
-  proc receivePacket*(conn: Connection): string {.tags:[ReadIOEffect].}=
-    var b: array[4, char]
-    readExactly(conn.socket, b)
-    let packet_length = processHeader(conn, b)
-    let pkt = newSeq[char](packet_length)
-    conn.socket.readExactly(pkt)
-    result = newString(len(pkt))
-    # ugly, why are seq[char] and string so hard to interconvert?
-    for i in 0 .. high(pkt):
-      result[i] = pkt[i]
-
-  proc send*(socket: Socket, data: openarray[char]): int {.tags:[WriteIOEffect].} =
-    # This is horribly ugly, but it seems to be the only way to get
-    # something from a seq into a socket
-    let p = cast[ptr array[0 .. 1, char]](data)
-    return socket.send(p, len(data))
-else:
-  proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
-    # drop_ok used when close
-    let hdr = await conn.socket.recv(4)
-    if len(hdr) == 0:
-      if drop_ok:
-        return ""
-      else:
-        raise newException(ProtocolError, "Connection closed")
-    if len(hdr) != 4:
-      raise newException(ProtocolError, "Connection closed unexpectedly")
-    let b = cast[ptr array[4,char]](cstring(hdr))
-    let packet_length = conn.processHeader(b[])
-    if packet_length == 0:
+proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
+  # drop_ok used when close
+  let hdr = await conn.socket.recv(4)
+  if len(hdr) == 0:
+    if drop_ok:
       return ""
-    result = await conn.socket.recv(packet_length)
-    if len(result) == 0:
-      raise newException(ProtocolError, "Connection closed unexpectedly")
-    if len(result) != packet_length:
-      raise newException(ProtocolError, "TODO finish this part")
-
+    else:
+      raise newException(ProtocolError, "Connection closed")
+  if len(hdr) != 4:
+    raise newException(ProtocolError, "Connection closed unexpectedly")
+  let b = cast[ptr array[4,char]](cstring(hdr))
+  let packet_length = conn.processHeader(b[])
+  if packet_length == 0:
+    return ""
+  result = await conn.socket.recv(packet_length)
+  if len(result) == 0:
+    raise newException(ProtocolError, "Connection closed unexpectedly")
+  if len(result) != packet_length:
+    raise newException(ProtocolError, "TODO finish this part")
 
 proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
