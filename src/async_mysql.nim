@@ -917,7 +917,7 @@ proc open*(connection, user, password, database = ""): Future[Connection] {.asyn
             else: substr(connection, 0, colonPos-1)
       port: int32 = if colonPos < 0: 3306'i32
                     else: substr(connection, colonPos+1).parseInt.int32
-    let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
+    sock = newAsyncSocket(AF_INET, SOCK_STREAM)
     await connect(sock, host, Port(port))
   return await establishConnection(sock, user, password, database)
 
