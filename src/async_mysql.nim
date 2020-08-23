@@ -8,7 +8,7 @@
 ## This is currently very experimental.
 ##
 ## Copyright (c) 2015 William Lewis
-##
+## Copyright (c) 2020 Bung
 
 import async_mysql/private/protocol
 import async_mysql/private/cap

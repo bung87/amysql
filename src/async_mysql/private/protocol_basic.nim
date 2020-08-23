@@ -191,9 +191,9 @@ proc putLenStr*(buf: var string, val: string) =
 
 proc putTime*(buf: var string, val: Duration):int {.discardable.}  =
   let dp = toParts(val)
-  echo dp
   var micro = dp[Microseconds].int32
-  buf.putU8(if micro == 0: 8 else: 12) # length
+  result = if micro == 0: 8 else: 12
+  buf.putU8(result) # length
   buf.putU8(if val < DurationZero: 1 else: 0 ) 
   var days = dp[Days].int32
   buf.put32 days.addr
