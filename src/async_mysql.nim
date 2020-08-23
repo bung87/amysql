@@ -27,6 +27,7 @@ import times
 
 
 type
+  Year* = int32
   Row* = seq[string] 
   # This represents a value returned from the server when using
   # the prepared statement / binary protocol. For convenience's sake
@@ -153,9 +154,12 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
   of paramDouble:
     return 8
   of paramDate:
-    return 3
+    return 4
   of paramTime:
-    return 3
+    let dp = toParts(p.durVal)
+    let micro = dp[Microseconds]
+    result = if micro == 0: 8 else: 12
+    return result
   of paramDateTime:
     # case t.IsZero():
     # return 1
@@ -276,7 +280,6 @@ proc addValueUnlessNULL(p: SqlParam, pkt: var string) =
   of paramTimestamp:
     putDateTime(pkt, p.datetimeVal)
 
-
 proc asParam*(s: string): SqlParam =
   SqlParam(typ: paramString,strVal:s)
 
@@ -314,7 +317,6 @@ proc asParam*(d: DateTime): SqlParam = SqlParam(typ: paramDateTime, datetimeVal:
 proc asParam*(d: Date): SqlParam = SqlParam(typ: paramDate, datetimeVal: d)
 proc asParam*(d: Time): SqlParam = SqlParam(typ: paramTimestamp, datetimeVal: d.utc)
 proc asParam*(d: Duration): SqlParam = SqlParam(typ: paramTime, durVal: d)
-
 
 proc asParam*(b: bool): SqlParam = SqlParam(typ: paramInt, intVal: if b: 1 else: 0)
 
@@ -583,7 +585,7 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         inc(pos)
         let ext = (if uns: int(cast[uint8](v)) else: int(cast[int8](v)))
         result[ix] = ResultValue(typ: rvtInteger, intVal: ext)
-      of fieldTypeShort, fieldTypeYear:
+      of fieldTypeShort,fieldTypeYear:
         let v = int(scanU16(pkt, pos))
         inc(pos, 2)
         let ext = (if uns or (v <= 32767): v else: 65536 - v)

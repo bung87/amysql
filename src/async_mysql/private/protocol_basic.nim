@@ -47,7 +47,7 @@ proc scan16(buf: string, pos: int , p: pointer) {.inline.} =
   else:
     copyMem(p, buf[pos].unSafeAddr, 2)
 
-proc put16(buf: var string, p: pointer) {.inline.} =
+proc put16*(buf: var string, p: pointer) {.inline.} =
   var arr:array[0..1, char]
   littleEndian16(addr arr, p)
   var str = newString(2)
