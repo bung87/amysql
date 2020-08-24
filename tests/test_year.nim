@@ -1,7 +1,7 @@
 import amysql, asyncdispatch
 import unittest
 import net
-import times
+
 const database_name = "test"
 const port: int = 3306
 const host_name = "localhost"
