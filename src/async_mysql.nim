@@ -16,6 +16,8 @@ import async_mysql/conn
 export conn
 import async_mysql/private/mysqlparser
 import async_mysql/private/auth
+import async_mysql/private/json_sql_format
+export json_sql_format
 import asyncdispatch
 import macros except floatVal
 import net  # needed for the SslContext type
@@ -24,10 +26,9 @@ import strutils
 import asyncnet
 import uri
 import times
-
+import json
 
 type
-  Year* = int32
   Row* = seq[string] 
   # This represents a value returned from the server when using
   # the prepared statement / binary protocol. For convenience's sake
@@ -45,6 +46,7 @@ type
     rvtTimestamp,
     rvtString,
     rvtBlob,
+    rvtJson,
     rvtGeometry
   Date* = object of DateTime
   ResultValue* = object
@@ -55,7 +57,7 @@ type
         longVal: int64
       of rvtULong:
         uLongVal: uint64
-      of rvtString, rvtBlob:
+      of rvtString, rvtBlob,rvtJson:
         strVal: string
       of rvtNull:
         discard
@@ -88,7 +90,8 @@ type
     paramDate,
     paramTime,
     paramDateTime,
-    paramTimestamp
+    paramTimestamp,
+    paramJson
     # paramLazyString, paramLazyBlob,
   SqlParam* = object
     ## This represents a value we're sending to the server as a parameter.
@@ -98,7 +101,7 @@ type
     case typ: ParamBindingType
       of paramNull:
         discard
-      of paramString, paramBlob:
+      of paramString, paramBlob, paramJson:
         strVal: string# not nil
       of paramInt:
         intVal: int64
@@ -145,7 +148,7 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
   case p.typ
   of paramNull:
     return 0
-  of paramString, paramBlob:
+  of paramString, paramBlob, paramJson:
     return 5 + len(p.strVal)
   of paramInt, paramUInt:
     return 4
@@ -184,6 +187,9 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string) =
     pkt.add(char(0))
   of paramBlob:
     pkt.add(char(fieldTypeBlob))
+    pkt.add(char(0))
+  of paramJson:
+    pkt.add(char(fieldTypeJson))
     pkt.add(char(0))
   of paramInt:
     if p.intVal >= 0:
@@ -245,7 +251,7 @@ proc addValueUnlessNULL(p: SqlParam, pkt: var string) =
   case p.typ
   of paramNull:
     return
-  of paramString, paramBlob:
+  of paramString, paramBlob, paramJson:
     putLenStr(pkt, p.strVal)
   of paramInt:
     if p.intVal >= 0:
@@ -317,6 +323,8 @@ proc asParam*(d: DateTime): SqlParam = SqlParam(typ: paramDateTime, datetimeVal:
 proc asParam*(d: Date): SqlParam = SqlParam(typ: paramDate, datetimeVal: d)
 proc asParam*(d: Time): SqlParam = SqlParam(typ: paramTimestamp, datetimeVal: d.utc)
 proc asParam*(d: Duration): SqlParam = SqlParam(typ: paramTime, durVal: d)
+
+proc asParam*(d: JsonNode): SqlParam = SqlParam(typ: paramJson, strVal: $d)
 
 proc asParam*(b: bool): SqlParam = SqlParam(typ: paramInt, intVal: if b: 1 else: 0)
 
@@ -433,7 +441,13 @@ converter asBool*(v: ResultValue): bool =
   else:
     raise newException(ValueError, "cannot convert " & $(v.typ) & " to boolean")
 
-
+converter asJson*(v: ResultValue): JsonNode =
+  case v.typ
+  of rvtJson, rvtBlob:
+    ## linux mariadb may store as blob (eg. mariadb version 10.4)
+    parseJson v.strVal
+  else:
+    raise newException(ValueError, "cannot convert " & $(v.typ) & " to JsonNode")
 
 proc initDate*(monthday: MonthdayRange, month: Month, year: int, zone: Timezone = local()): Date =
   var dt = initDateTime(monthday,month,year,0,0,0,zone)
@@ -658,6 +672,8 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         result[ix] = ResultValue(typ: rvtBlob, strVal: scanLenStr(pkt, pos))
       of fieldTypeVarchar, fieldTypeVarString, fieldTypeString, fieldTypeDecimal, fieldTypeNewDecimal:
         result[ix] = ResultValue(typ: rvtString, strVal: scanLenStr(pkt, pos))
+      of fieldTypeJson:
+        result[ix] = ResultValue(typ: rvtJson, strVal: scanLenStr(pkt, pos))
       of fieldTypeEnum, fieldTypeSet, fieldTypeGeometry:
         raise newException(ProtocolError, "Unexpected field type " & $(typ) & " in resultset")
 

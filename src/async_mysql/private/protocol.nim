@@ -130,6 +130,7 @@ type
     fieldTypeYear        = uint8(13)
     fieldTypeVarchar     = uint8(15)
     fieldTypeBit         = uint8(16)
+    fieldTypeJson        = uint8(245)
     fieldTypeNewDecimal  = uint8(246)
     fieldTypeEnum        = uint8(247)
     fieldTypeSet         = uint8(248)
