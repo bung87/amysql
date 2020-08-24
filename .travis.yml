@@ -2,8 +2,9 @@ language: c
 
 cache: 
   ccache: true
-  directories:
-    - $HOME/Library/Caches/Homebrew
+  # directories:
+  #   - $HOME/Library/Caches/Homebrew
+  # not work
 # env: 
 #   jobs:
 #     - CHANNEL=stable
