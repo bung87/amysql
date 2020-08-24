@@ -326,13 +326,14 @@ proc newPacketParser( state = packInit ):PacketParser =
   result.bufPos = 0
   result.bufRealLen = 0
   result.word = ""
-  result.want = 4  
+  # if state == packInit:
+  #   result.want = 4  
   result.payloadLen = 0
   result.sequenceId = 0
   result.remainingPayloadLen = 0
   result.storedWord = ""
   result.storedWant = 0
-  result.storedState = packInit
+  result.storedState = state
   result.state = state
   result.wantEncodedState = lenFlagVal
   result.isEntire = true 

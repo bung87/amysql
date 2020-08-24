@@ -808,7 +808,7 @@ proc finishEstablishingConnection(conn: Connection,
 proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
   new result
   let pkt = await conn.receivePacket()
-  var parser = newPacketParser(PacketParserKind.ppkHandshake)
+  var parser = newPacketParser(PacketParserKind.ppkHandshake,packHandshake)
   loadBuffer(parser, pkt)
   let finished = parseHandshake(parser, result)
   assert finished == true
