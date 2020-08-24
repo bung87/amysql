@@ -830,7 +830,7 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
   let handshakePacket = await connect(result)
 
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
-
+{.push warning[ObservableStores]: off.}
 proc rawQuery*(conn: Connection, query: string, onlyFirst = false): Future[ResultSet[string]] {.
                async, tags: [ReadDbEffect, WriteDbEffect,RootEffect].} =
   await conn.sendQuery(query)
@@ -891,7 +891,7 @@ proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void]
         result.rows.add(parseBinaryRow(result.columns, pkt))
         if onlyFirst:
           break
-
+{.pop.}
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
             #[tags: [ReadDbEffect, WriteDbEffect]]#.} =
   var pkt = formatBoundParams(pstmt, params)
