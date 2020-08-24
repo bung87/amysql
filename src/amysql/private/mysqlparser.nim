@@ -268,22 +268,13 @@ proc initResultPacket(kind: ResultPacketKind): ResultPacket =
   result.kind = kind
   case kind
   of rpkOk:
-    result.affectedRows = 0
-    result.lastInsertId = 0
-    result.serverStatus = 0
-    result.warningCount = 0
-    result.message = ""
+  
     result.okState = okAffectedRows
   of rpkError:
-    result.errorCode = 0
-    result.sqlStateMarker = ""
-    result.sqlState = ""
-    result.errorMessage = ""
+  
     result.errState = errErrorCode
   of rpkResultSet:
-    result.extra = ""
-    result.fieldsPos = 0
-    result.fields = @[]
+
     result.fieldsEof = initEofPacket()
     result.rowsEof = initEofPacket()
     result.rsetState = rsetExtra
@@ -292,7 +283,7 @@ proc initResultPacket(kind: ResultPacketKind): ResultPacket =
   result.hasMoreResults = false
 
 proc initRowList*(): RowList =
-  result.value = @[]
+
   result.counter = -1
 
 proc newPacketParser( state = packInit ):PacketParser = 
