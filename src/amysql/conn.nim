@@ -3,7 +3,7 @@ import ./private/cap
 import regex
 import ./private/utils
 import strutils, parseutils
-
+import options
 
 type
   Version* = distinct string
@@ -21,6 +21,7 @@ type
     client_caps*: set[Cap]
 
     databaseVersion: Version
+    isMaria: Option[bool]
 
 proc `$`*(ver: Version): string {.borrow.}
 
@@ -60,4 +61,6 @@ proc getDatabaseVersion*(self: Connection): Version {.
   Version(versionString)
 
 proc mariadb*(self: Connection): bool =
-  self.server_version.contains(re"(?i)mariadb")
+  if self.isMaria.isNone:
+    self.isMaria = some self.server_version.contains(re"(?i)mariadb")
+  return self.isMaria.get
