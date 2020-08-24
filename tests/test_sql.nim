@@ -1,4 +1,4 @@
-import async_mysql, asyncdispatch, os
+import amysql, asyncdispatch, os
 import unittest
 import net
 

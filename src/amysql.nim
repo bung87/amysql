@@ -10,13 +10,13 @@
 ## Copyright (c) 2015 William Lewis
 ## Copyright (c) 2020 Bung
 
-import async_mysql/private/protocol
-import async_mysql/private/cap
-import async_mysql/conn
+import amysql/private/protocol
+import amysql/private/cap
+import amysql/conn
 export conn
-import async_mysql/private/mysqlparser
-import async_mysql/private/auth
-import async_mysql/private/json_sql_format
+import amysql/private/mysqlparser
+import amysql/private/auth
+import amysql/private/json_sql_format
 export json_sql_format
 import asyncdispatch
 import macros except floatVal

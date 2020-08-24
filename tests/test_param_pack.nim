@@ -1,5 +1,5 @@
 import unittest
-include async_mysql
+include amysql
 include ./utils
 
 suite "test_param_pack":

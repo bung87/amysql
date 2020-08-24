@@ -45,8 +45,7 @@ proc toSqlFormat(result: var string, node: JsonNode) =
 proc sqlFormat*(conn: Connection, node: JsonNode): string =
   ## Returns a JSON Representation of `node`, with spaces and
   ## on single line.
-  ##
-  debugEcho "isMaria:" & $conn.mariadb
+
   result = ""
   if conn.mariadb:
     result = $node

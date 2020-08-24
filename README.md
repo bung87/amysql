@@ -1,8 +1,8 @@
-# async_mysql  [![Build Status](https://travis-ci.org/bung87/async_mysql.svg?branch=master)](https://travis-ci.org/bung87/async_mysql)  [![Test status](https://github.com/bung87/async_mysql/workflows/test/badge.svg)](https://github.com/bung87/async_mysql/actions)  
+# amysql  [![Build Status](https://travis-ci.org/bung87/amysql.svg?branch=master)](https://travis-ci.org/bung87/amysql)  [![Test status](https://github.com/bung87/amysql/workflows/test/badge.svg)](https://github.com/bung87/amysql/actions)  
 
-`async_mysql` implements (a subset of) the MySQL/MariaDB client protocol based on asyncnet and asyncdispatch.  
+`amysql` implements (a subset of) the MySQL/MariaDB client protocol based on asyncnet and asyncdispatch.  
 
-`async_mysql` implements both the **text protocol** (send a simple string query, get back results as strings) and the **binary protocol** (get a prepared statement handle from a string with placeholders; send a set of value bindings, get back results as various datatypes approximating what the server is using).  
+`amysql` implements both the **text protocol** (send a simple string query, get back results as strings) and the **binary protocol** (get a prepared statement handle from a string with placeholders; send a set of value bindings, get back results as various datatypes approximating what the server is using).  
 
 ## Goals
 

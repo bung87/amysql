@@ -1,6 +1,6 @@
 import unittest
 import os
-import async_mysql, asyncdispatch
+import amysql, asyncdispatch
 import unittest
 import net
 
