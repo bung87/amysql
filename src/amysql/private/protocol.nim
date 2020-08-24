@@ -191,7 +191,7 @@ type
     sequenceId*: int           # 1
     protocolVersion*: int      # 1
     serverVersion*: string     # NullTerminatedString
-    threadId*: int             # 4
+    threadId*: int             # 4 connection id
     scrambleBuff1*: string      # 8 # auth_plugin_data_part_1
     capabilities*: int         # (4)
     capabilities1*: int         # 2

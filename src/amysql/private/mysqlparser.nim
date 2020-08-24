@@ -578,13 +578,14 @@ proc parseHandshakeProgress(p: PacketParser, packet: HandshakePacket): ProgressS
   while true:
     case packet.state
     of hssProtocolVersion:
+      p.want = 1
       checkIfOk parseFixed(p, packet.protocolVersion)
       packet.state = hssServerVersion
     of hssServerVersion:
       checkIfOk parseNul(p, packet.serverVersion)
       packet.state = hssThreadId
       p.want = 4
-    of hssThreadId:
+    of hssThreadId: # connection id
       checkIfOk parseFixed(p, packet.threadId)
       packet.state = hssScrambleBuff1
       p.want = 8
