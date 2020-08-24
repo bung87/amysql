@@ -247,20 +247,7 @@ string[NUL]    auth-plugin name
 
 
 proc initHandshakePacket(pkt:HandshakePacket) =
-  pkt.sequenceId = 0
-  pkt.protocolVersion = 0
-  pkt.serverVersion = ""
-  pkt.threadId = 0
-  pkt.scrambleBuff1 = ""
-  pkt.capabilities = 0
-  pkt.capabilities1 = 0
-  pkt.charset = 0
-  pkt.serverStatus = 0
-  pkt.capabilities2 = 0
-  pkt.scrambleLen = 0
-  pkt.scrambleBuff2 = ""
-  pkt.scrambleBuff = ""
-  pkt.plugin = ""
+ 
   pkt.protocol41 = true
   pkt.state = hssProtocolVersion
 
@@ -274,18 +261,7 @@ proc initEofPacket(): EofPacket =
   result.state = eofHeader   
 
 proc initFieldPacket(): FieldPacket =
-  result.catalog = ""
-  result.schema = ""
-  result.table = ""
-  result.orgTable = ""
-  result.name = ""
-  result.orgName = ""
-  result.charset = 0
-  result.fieldLen = 0
-  result.fieldType = 0
-  result.fieldFlags = 0
-  result.decimals = 0
-  result.defaultValue = ""
+
   result.state = fieldCatalog
 
 proc initResultPacket(kind: ResultPacketKind): ResultPacket =
@@ -321,18 +297,15 @@ proc initRowList*(): RowList =
 
 proc newPacketParser( state = packInit ):PacketParser = 
   new result
-  result.buf = nil
-  result.bufLen = 0
-  result.bufPos = 0
-  result.bufRealLen = 0
-  result.word = ""
-  # if state == packInit:
-  #   result.want = 4  
-  result.payloadLen = 0
-  result.sequenceId = 0
-  result.remainingPayloadLen = 0
-  result.storedWord = ""
-  result.storedWant = 0
+
+  case state 
+  of packInit:
+    result.want = 4 
+  of packHandshake:
+    result.want = 1
+  else:
+    discard
+  
   result.storedState = state
   result.state = state
   result.wantEncodedState = lenFlagVal
