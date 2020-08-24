@@ -809,7 +809,7 @@ proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
   new result
   let pkt = await conn.receivePacket()
   var parser = newPacketParser(PacketParserKind.ppkHandshake)
-  loadBuffer(parser, pkt.cstring, pkt.len)
+  loadBuffer(parser, pkt)
   let finished = parseHandshake(parser, result)
   assert finished == true
   conn.thread_id = result.threadId.uint32

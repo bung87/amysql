@@ -578,7 +578,6 @@ proc parseHandshakeProgress(p: PacketParser, packet: HandshakePacket): ProgressS
   while true:
     case packet.state
     of hssProtocolVersion:
-      p.want = 1
       checkIfOk parseFixed(p, packet.protocolVersion)
       packet.state = hssServerVersion
     of hssServerVersion:
