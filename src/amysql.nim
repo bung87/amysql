@@ -14,7 +14,7 @@ import amysql/private/protocol
 import amysql/private/cap
 import amysql/conn
 export conn
-import amysql/private/mysqlparser
+
 import amysql/private/auth
 import amysql/private/json_sql_format
 export json_sql_format
@@ -806,15 +806,8 @@ proc finishEstablishingConnection(conn: Connection,
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 
 proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
-  new result
   let pkt = await conn.receivePacket()
-  var parser = newPacketParser(PacketParserKind.ppkHandshake,packHandshake)
-  loadBuffer(parser, pkt)
-  let finished = parseHandshake(parser, result)
-  assert finished == true
-  conn.thread_id = result.threadId.uint32
-  conn.server_version = result.serverVersion
-  conn.server_caps = cast[set[Cap]](result.capabilities)
+  result = conn.parseHandshakePacket(pkt)
 
 when declared(SslContext) and declared(startTls):
   proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", ssl: SslContext): Future[Connection] {.async.} =

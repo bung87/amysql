@@ -237,6 +237,50 @@ proc parseErrorPacket*(pkt: string): ref ResponseERR =
     pos = 3
   result.msg = pkt[pos .. high(pkt)]
 
+proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket = 
+  new result
+  result.protocolVersion = int(buf[0])
+  if result.protocolVersion != HandshakeV10.int:
+    raise newException(ProtocolError, "Unexpected protocol version: " & $result.protocolVersion)
+  var pos = 1
+  conn.server_version = scanNulString(buf, pos)
+  result.serverVersion = conn.server_version
+  conn.thread_id = scanU32(buf, pos)
+  result.threadId = int(conn.thread_id)
+  inc(pos,4)
+  result.scrambleBuff1 = buf[pos .. pos+7]
+  inc(pos,8)
+  inc pos # filter0
+  let capabilities1 = scanU16(buf, pos)
+  result.capabilities1 = int(capabilities1)
+  result.capabilities = result.capabilities1
+  conn.server_caps = cast[set[Cap]](capabilities1)
+  inc(pos,2)
+  result.charset = int(buf[pos])
+  inc pos
+  result.serverStatus = int(scanU16(buf, pos))
+  inc pos,2
+  result.protocol41 = (capabilities1 and Cap.protocol41.ord) > 0
+  # if not (capabilities1 and Cap.protocol41.ord ) > 0:
+  #   raise newException(ProtocolError, "Old (pre-4.1) server protocol")
+  if result.protocol41:
+    let capabilities2 = scanU16(buf, pos)
+    result.capabilities2 = int(capabilities2)
+    inc pos,2
+    let cap = uint32(capabilities1) + (uint32(capabilities2) shl 16)
+    conn.server_caps = cast[set[Cap]]( cap )
+    result.capabilities = int(cap)
+    debugEcho conn.server_caps
+    result.scrambleLen = int(buf[pos])
+    inc pos
+    inc pos,10 # filter2
+    result.scrambleBuff2 = buf[pos ..< (pos + 12)]
+    inc pos,12
+    result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
+    inc pos # filter 3
+    if Cap.pluginAuth in conn.server_caps:
+      result.plugin = scanNulStringX(buf, pos)
+
 proc parseAuthSwitchPacket*(conn: Connection, pkt: string): ref ResponseAuthSwitch =
   new(result)
   var pos: int = 1
