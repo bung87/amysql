@@ -145,6 +145,7 @@ type
 ## Parameter and result packers/unpackers
 
 proc approximatePackedSize(p: SqlParam): int {.inline.} =
+  ## approximate packed size for reducing reallocations
   case p.typ
   of paramNull:
     return 0
@@ -905,41 +906,6 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   else:
     raise newException(ProtocolError, "unexpected response to COM_INIT_DB")
 
-proc open*(uriStr: string): Future[Connection] {.async.} =
-  # TODO uri.query 
-  let uri = parseUri(uriStr)
-  let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
-  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
-  await connect(sock, uri.hostname, Port(port))
-  return await establishConnection(sock, uri.username, uri.password, uri.path )
-
-proc open*(connection, user, password, database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
-  var isPath = false
-  var sock:AsyncSocket
-  when defined(posix):
-    isPath = connection[0] == '/'
-  if isPath:
-    sock = newAsyncSocket(AF_UNIX, SOCK_STREAM)
-    await connectUnix(sock,connection)
-  else:
-    let
-      colonPos = connection.find(':')
-      host = if colonPos < 0: connection
-            else: substr(connection, 0, colonPos-1)
-      port: int32 = if colonPos < 0: 3306'i32
-                    else: substr(connection, colonPos+1).parseInt.int32
-    sock = newAsyncSocket(AF_INET, SOCK_STREAM)
-    await connect(sock, host, Port(port))
-  return await establishConnection(sock, user, password, database)
-
-proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
-  var buf: string = newStringOfCap(5)
-  buf.setLen(4)
-  buf.add( char(Command.quit) )
-  await conn.sendPacket(buf, reset_seq_no=true)
-  discard await conn.receivePacket(drop_ok=true)
-  conn.socket.close()
-
 proc dbQuote*(s: string): string =
   ## DB quotes the string.
   result = "'"
@@ -1034,3 +1000,63 @@ proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async, #[r
   ## sets the encoding of a database connection, returns true for
   ## success, false for failure.
   result = await conn.tryQuery(sql"SET NAMES ?",encoding)
+
+proc handleParams(conn: Connection, q: string) {.async.}=
+  var key,val:string
+  var cmd = "SET "
+  var pos = 0
+  for item in split(q,"&"):
+    (key,val) = item.split("=")
+    case key
+    of "charset":
+      let charsets = val.split(",")
+      for charset in charsets:
+        try:
+          discard await conn.rawQuery("SET NAMES " & charset)
+        except:
+          discard
+    else:
+      if pos != 0:
+        cmd.add ','
+      cmd.add key
+      cmd.add '='
+      cmd.add val
+    inc pos
+  discard await conn.rawQuery cmd
+
+proc open*(uriStr: string): Future[Connection] {.async.} =
+  ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
+  let uri = parseUri(uriStr)
+  let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
+  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
+  await connect(sock, uri.hostname, Port(port))
+  result = await establishConnection(sock, uri.username, uri.password, uri.path )
+  if uri.query.len > 0:
+    await result.handleParams(uri.query)
+
+proc open*(connection, user, password, database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
+  var isPath = false
+  var sock:AsyncSocket
+  when defined(posix):
+    isPath = connection[0] == '/'
+  if isPath:
+    sock = newAsyncSocket(AF_UNIX, SOCK_STREAM)
+    await connectUnix(sock,connection)
+  else:
+    let
+      colonPos = connection.find(':')
+      host = if colonPos < 0: connection
+            else: substr(connection, 0, colonPos-1)
+      port: int32 = if colonPos < 0: 3306'i32
+                    else: substr(connection, colonPos+1).parseInt.int32
+    sock = newAsyncSocket(AF_INET, SOCK_STREAM)
+    await connect(sock, host, Port(port))
+  return await establishConnection(sock, user, password, database)
+
+proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
+  var buf: string = newStringOfCap(5)
+  buf.setLen(4)
+  buf.add( char(Command.quit) )
+  await conn.sendPacket(buf, reset_seq_no=true)
+  discard await conn.receivePacket(drop_ok=true)
+  conn.socket.close()
