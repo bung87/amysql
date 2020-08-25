@@ -12,4 +12,19 @@ The goals of this project are:
 2. **Async:** All operations must be truly asynchronous whenever possible.
 3. **High performance:** Avoid unnecessary allocations and copies when reading data.
 4. **Managed:** Managed code only, no native code.
-6. **Independent:** This is a clean-room reimplementation of the [MySQL Protocol](https://dev.mysql.com/doc/internals/en/client-server-protocol.html), not based on C lib.
+6. **Independent:** This is a clean-room reimplementation of the [MySQL Protocol](https://dev.mysql.com/doc/internals/en/client-server-protocol.html), not based on C lib.  
+
+## Testing  
+
+mysql 5.7 8.0  
+
+mariadb 10  
+
+## TODO  
+
+- [ ] Finish caching_sha2_password_auth.  
+- [ ] Testing ssl mode unix socket mode.  
+- [ ] thread pool.  
+- [ ] mutiple statements and mutilple resultsets.
+- [ ] compression mode  
+- [ ] handle connection options  

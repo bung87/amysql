@@ -40,7 +40,7 @@ matrix:
     - os: osx
       name: osx with mysql
       compiler: clang
-      env: USE_SHA2=true
+      # env: USE_SHA2=true
       before_install:
         - brew install ccache
         - export PATH="/usr/local/opt/ccache/libexec:$PATH"
