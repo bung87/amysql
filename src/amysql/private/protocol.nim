@@ -169,26 +169,11 @@ type
   ResponseERR* = object of CatchableError
     error_code: uint16
     sqlstate: string
-  HandshakeState* = enum # Parse state for handshaking.
-    hssProtocolVersion, 
-    hssServerVersion, 
-    hssThreadId, 
-    hssScrambleBuff1,   
-    hssFiller0,       
-    hssCapabilities1, 
-    hssCharSet,         
-    hssStatus,        
-    hssCapabilities2, 
-    hssFiller1,         
-    hssFiller2,       
-    hssScrambleBuff2, 
-    hssFiller3,         
-    hssPlugin
+ 
   HandshakePacket* = ref HandshakePacketObj
   HandshakePacketObj = object       
     ## Packet from mysql server when connecting to the server that requires authentication.
     ## see https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
-    sequenceId*: int           # 1
     protocolVersion*: int      # 1
     serverVersion*: string     # NullTerminatedString
     threadId*: int             # 4 connection id
@@ -203,7 +188,6 @@ type
     scrambleBuff*: string      # 8 + [12]
     plugin*: string            # NullTerminatedString 
     protocol41*: bool
-    state*: HandshakeState
 # EOF is signaled by a packet that starts with 0xFE, which is
 # also a valid length-encoded-integer. In order to distinguish
 # between the two cases, we check the length of the packet: EOFs
@@ -261,25 +245,24 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   result.serverStatus = int(scanU16(buf, pos))
   inc pos,2
   result.protocol41 = (capabilities1 and Cap.protocol41.ord) > 0
-  # if not (capabilities1 and Cap.protocol41.ord ) > 0:
-  #   raise newException(ProtocolError, "Old (pre-4.1) server protocol")
-  if result.protocol41:
-    let capabilities2 = scanU16(buf, pos)
-    result.capabilities2 = int(capabilities2)
-    inc pos,2
-    let cap = uint32(capabilities1) + (uint32(capabilities2) shl 16)
-    conn.server_caps = cast[set[Cap]]( cap )
-    result.capabilities = int(cap)
-    debugEcho conn.server_caps
-    result.scrambleLen = int(buf[pos])
-    inc pos
-    inc pos,10 # filter2
-    result.scrambleBuff2 = buf[pos ..< (pos + 12)]
-    inc pos,12
-    result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
-    inc pos # filter 3
-    if Cap.pluginAuth in conn.server_caps:
-      result.plugin = scanNulStringX(buf, pos)
+  if not result.protocol41:
+    raise newException(ProtocolError, "Old (pre-4.1) server protocol")
+
+  let capabilities2 = scanU16(buf, pos)
+  result.capabilities2 = int(capabilities2)
+  inc pos,2
+  let cap = uint32(capabilities1) + (uint32(capabilities2) shl 16)
+  conn.server_caps = cast[set[Cap]]( cap )
+  result.capabilities = int(cap)
+  result.scrambleLen = int(buf[pos])
+  inc pos
+  inc pos,10 # filter2
+  result.scrambleBuff2 = buf[pos ..< (pos + 12)]
+  inc pos,12
+  result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
+  inc pos # filter 3
+  if Cap.pluginAuth in conn.server_caps:
+    result.plugin = scanNulStringX(buf, pos)
 
 proc parseAuthSwitchPacket*(conn: Connection, pkt: string): ref ResponseAuthSwitch =
   new(result)
