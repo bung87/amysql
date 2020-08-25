@@ -824,6 +824,7 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
   let handshakePacket = await connect(result)
 
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
+
 {.push warning[ObservableStores]: off.}
 proc rawQuery*(conn: Connection, query: string, onlyFirst = false): Future[ResultSet[string]] {.
                async, tags: [ReadDbEffect, WriteDbEffect,RootEffect].} =
@@ -886,6 +887,7 @@ proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void]
         if onlyFirst:
           break
 {.pop.}
+
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
             #[tags: [ReadDbEffect, WriteDbEffect]]#.} =
   var pkt = formatBoundParams(pstmt, params)
@@ -1001,7 +1003,9 @@ proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async, #[r
   ## success, false for failure.
   result = await conn.tryQuery(sql"SET NAMES ?",encoding)
 
-proc handleParams(conn: Connection, q: string) {.async.}=
+proc handleParams(conn: Connection, q: string) {.async.} =
+  ## SHOW VARIABLES;
+  ## https://dev.mysql.com/doc/refman/8.0/en/using-system-variables.html
   var key,val:string
   var cmd = "SET "
   var pos = 0
@@ -1021,20 +1025,20 @@ proc handleParams(conn: Connection, q: string) {.async.}=
       cmd.add key
       cmd.add '='
       cmd.add val
-    inc pos
+      inc pos
   discard await conn.rawQuery cmd
 
-proc open*(uriStr: string): Future[Connection] {.async.} =
+proc open*(uriStr: string | Uri): Future[Connection] {.async.} =
   ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
-  let uri = parseUri(uriStr)
+  let uri = when uriStr is string: parseUri(uriStr) else: uriStr
   let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
   let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
   await connect(sock, uri.hostname, Port(port))
-  result = await establishConnection(sock, uri.username, uri.password, uri.path )
+  result = await establishConnection(sock, uri.username, uri.password, uri.path[ 1 .. uri.path.high ] )
   if uri.query.len > 0:
     await result.handleParams(uri.query)
 
-proc open*(connection, user, password, database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
+proc open*(connection, user, password:string; database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
   var isPath = false
   var sock:AsyncSocket
   when defined(posix):
