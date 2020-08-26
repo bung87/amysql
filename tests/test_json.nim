@@ -13,12 +13,10 @@ const ssl: bool = false
 const verbose: bool = false
 
 proc numberTests(conn: Connection): Future[void] {.async.} =
-  echo "Setting up table for date time tests..."
   discard await conn.selectDatabase(database_name)
   discard await conn.rawQuery("drop table if exists test_dt")
   discard await conn.rawQuery("CREATE TABLE test_dt(col JSON)")
 
-  echo "Testing date time parameters"
   # Insert values using the binary protocol
   let insrow = await conn.prepare("INSERT INTO test_dt (col) VALUES (?),(?)")
   let d1 = parseJson("""
@@ -40,7 +38,6 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
 
 
   # Now read them back using the binary protocol
-  echo "Testing numeric results"
   let rdtab = await conn.prepare("SELECT * FROM test_dt")
   let r2 = await conn.query(rdtab)
 

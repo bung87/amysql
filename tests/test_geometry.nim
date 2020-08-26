@@ -11,8 +11,10 @@ const ssl: bool = false
 const verbose: bool = false
 
 proc geometryTests(conn: Connection,data: string): Future[void] {.async.} =
+  if conn.mariadb:
+    return 
   discard await conn.rawQuery("drop table if exists geotest")
-  discard await conn.rawQuery("CREATE TABLE geotest (g GEOMETRY) ENGINE=aria")
+  discard await conn.rawQuery("CREATE TABLE geotest (g GEOMETRY)")
 
   # Insert values using the binary protocol
   let insrow = await conn.prepare("INSERT INTO geotest (g) VALUES (?)")
@@ -20,13 +22,6 @@ proc geometryTests(conn: Connection,data: string): Future[void] {.async.} =
 
   discard await conn.query(insrow, d1)
   await conn.finalize(insrow)
-
-  # Read them back using the text protocol
-  let r1 = await conn.rawQuery("SELECT * FROM geotest")
-  # check r1.rows[0][0] == "2020-01-01"
-  echo r1.rows
-  echo r1.rows[0][0]
-  
 
   # Now read them back using the binary protocol
   let rdtab = await conn.prepare("SELECT * FROM geotest")

@@ -14,12 +14,11 @@ template assertEq(T: typedesc, got: untyped, expect: untyped, msg: string = "inc
   check got == expect
 
 proc numberTests(conn: Connection): Future[void] {.async.} =
-  echo "Setting up table for numeric tests..."
+
   discard await conn.selectDatabase(database_name)
   discard await conn.rawQuery("drop table if exists float_test")
   discard await conn.rawQuery("CREATE TABLE `float_test`(`fla` FLOAT,`flb` FLOAT,`dba` DOUBLE(10,2),`dbb` DOUBLE(10,2))")
 
-  echo "Testing numeric parameters"
   # Insert values using the binary protocol
   let insrow = await conn.prepare("INSERT INTO `float_test` values (?,?,?,?)")
   discard await conn.query(insrow, 1.2'f32, 1.2'f32, 1.2'f64, 1.2'f64)
@@ -32,7 +31,6 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
     @[ "1.2", "1.2", "1.20", "1.20" ])
 
   # Now read them back using the binary protocol
-  echo "Testing numeric results"
   let rdtab = await conn.prepare("SELECT * FROM `float_test`")
   let r2 = await conn.query(rdtab)
 

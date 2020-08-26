@@ -25,11 +25,9 @@ proc getCurrentDatabase(conn: Connection): Future[string] {.async.} =
   return rslt.rows[0][0]
 
 proc connTest(): Future[Connection] {.async.} =
-  echo "Connecting (with initial db: ", database_name, ")"
   if host_name.len > 0:
     echo "Connecting with socket path: " & host_name
   let conn1 = await open(host_name,user_name,pass_word,database_name)
-  echo "Checking current database is correct"
   let conn1db1 = await getCurrentDatabase(conn1)
   check conn1db1 == database_name
 
@@ -54,7 +52,6 @@ proc connTest(): Future[Connection] {.async.} =
   check saw_conn1
   check saw_conn2
  
-  echo "Closing second connection"
   await conn2.close()
   return conn1
 

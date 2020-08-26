@@ -612,7 +612,6 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
     let bytePos = fieldIndex div 8
     let bitPos = fieldIndex mod 8
     let bitmap_entry = uint8(pkt[ 1 + bytePos ])
-    debugEcho "null by bitmap bitmap_entry:" & $bitmap_entry
     if (bitmap_entry and uint8(1 shl bitPos)) != 0'u8:
       result[ix] = ResultValue(typ: rvtNull)
     else:
@@ -620,7 +619,6 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
       let uns = FieldFlag.unsigned in columns[ix].flags
       case typ
       of fieldTypeNull:
-        debugEcho "null by fieldTypeNull"
         result[ix] = ResultValue(typ: rvtNull)
       of fieldTypeTiny:
         let v = pkt[pos]
