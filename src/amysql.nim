@@ -16,8 +16,13 @@ import amysql/conn
 export conn
 
 import amysql/private/auth
+
 import amysql/private/json_sql_format
 export json_sql_format
+
+import amysql/private/my_geometry
+export my_geometry
+
 import asyncdispatch
 import macros except floatVal
 import net  # needed for the SslContext type
@@ -57,7 +62,7 @@ type
         longVal: int64
       of rvtULong:
         uLongVal: uint64
-      of rvtString, rvtBlob,rvtJson:
+      of rvtString, rvtBlob,rvtJson,rvtGeometry:
         strVal: string
       of rvtNull:
         discard
@@ -76,8 +81,6 @@ type
         # variable length encoded unsigned64 value for each field
         # YYYY-MM-DD  YYYY-MM-DD HH:MM:SS [.fraction]
         datetimeVal: DateTime
-      of rvtGeometry:
-        discard
 
   ParamBindingType = enum
     paramNull,
@@ -91,7 +94,8 @@ type
     paramTime,
     paramDateTime,
     paramTimestamp,
-    paramJson
+    paramJson,
+    paramGeometry
     # paramLazyString, paramLazyBlob,
   SqlParam* = object
     ## This represents a value we're sending to the server as a parameter.
@@ -101,7 +105,7 @@ type
     case typ: ParamBindingType
       of paramNull:
         discard
-      of paramString, paramBlob, paramJson:
+      of paramString, paramBlob, paramJson,paramGeometry:
         strVal: string# not nil
       of paramInt:
         intVal: int64
@@ -149,7 +153,7 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
   case p.typ
   of paramNull:
     return 0
-  of paramString, paramBlob, paramJson:
+  of paramString, paramBlob, paramJson, paramGeometry:
     return 5 + len(p.strVal)
   of paramInt, paramUInt:
     return 4
@@ -191,6 +195,9 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string) =
     pkt.add(char(0))
   of paramJson:
     pkt.add(char(fieldTypeJson))
+    pkt.add(char(0))
+  of paramGeometry:
+    pkt.add(char(fieldTypeGeometry))
     pkt.add(char(0))
   of paramInt:
     if p.intVal >= 0:
@@ -252,7 +259,7 @@ proc addValueUnlessNULL(p: SqlParam, pkt: var string) =
   case p.typ
   of paramNull:
     return
-  of paramString, paramBlob, paramJson:
+  of paramString, paramBlob, paramJson, paramGeometry:
     putLenStr(pkt, p.strVal)
   of paramInt:
     if p.intVal >= 0:
@@ -326,6 +333,8 @@ proc asParam*(d: Time): SqlParam = SqlParam(typ: paramTimestamp, datetimeVal: d.
 proc asParam*(d: Duration): SqlParam = SqlParam(typ: paramTime, durVal: d)
 
 proc asParam*(d: JsonNode): SqlParam = SqlParam(typ: paramJson, strVal: $d)
+
+proc asParam*(d: MyGeometry): SqlParam = SqlParam(typ: paramGeometry, strVal: d.data )
 
 proc asParam*(b: bool): SqlParam = SqlParam(typ: paramInt, intVal: if b: 1 else: 0)
 
@@ -428,6 +437,13 @@ converter asDuration*(v: ResultValue): Duration =
     v.durVal
   else:
     raise newException(ValueError, "value is " & $(v.typ) & ", not Duration")
+
+converter asMyGeometry*(v: ResultValue): MyGeometry = 
+  case v.typ
+  of rvtGeometry:
+    newMyGeometry(v.strVal)
+  else:
+    raise newException(ValueError, "value is " & $(v.typ) & ", not Geometry")
 
 converter asBool*(v: ResultValue): bool =
   case v.typ
@@ -534,6 +550,7 @@ proc reset*(conn: Connection, pstmt: SqlPrepared): Future[void] =
   return conn.sendPacket(buf, reset_seq_no=true)
 
 proc formatBoundParams(pstmt: SqlPrepared, params: openarray[SqlParam]): string =
+  ## see https://mariadb.com/kb/en/com_stmt_execute/
   if len(params) != len(pstmt.parameters):
     raise newException(ValueError, "Wrong number of parameters supplied to prepared statement (got " & $len(params) & ", statement expects " & $len(pstmt.parameters) & ")")
   var approx = 14 + ( (params.len + 7) div 8 ) + (params.len * 2)
@@ -575,25 +592,35 @@ proc scanDateTime*(buf: string, pos: var int, typ: static[ResultValueType],zone:
   ResultValue(typ: typ, datetimeVal: dt)
 
 proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValue] =
+  ## see https://mariadb.com/kb/en/resultset-row/
+  ## https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html
+  
+  # For the Binary Protocol Resultset Row the num-fields and the field-pos need to add a offset of 2.
+  # For COM_STMT_EXECUTE this offset is 0.
+  const offset = 2 
   let column_count = columns.len
-  let bitmap_len = (column_count + 9) div 8
-  if len(pkt) < (1 + bitmap_len) or pkt[0] != char(0):
+  let bitmapBytes = (column_count + offset + 7) div 8
+  if len(pkt) < (1 + bitmapBytes) or pkt[0] != char(0):
     raise newException(ProtocolError, "Truncated or incorrect binary result row")
   newSeq(result, column_count)
-  var pos = 1 + bitmap_len
+  var pos = 1 + bitmapBytes
   for ix in 0 .. column_count-1:
     # First, check whether this column's bit is set in the null
-    # bitmap. The bitmap is offset by 2, for no apparent reason.
-    let bitmap_index = ix + 2
-    let bitmap_entry = uint8(pkt[ 1 + (bitmap_index div 8) ])
-    if (bitmap_entry and uint8(1 shl (bitmap_index mod 8))) != 0'u8:
-      # This value is NULL
+    # bitmap.
+    # https://dev.mysql.com/doc/internals/en/null-bitmap.html
+    let fieldIndex = ix + offset
+    let bytePos = fieldIndex div 8
+    let bitPos = fieldIndex mod 8
+    let bitmap_entry = uint8(pkt[ 1 + bytePos ])
+    debugEcho "null by bitmap bitmap_entry:" & $bitmap_entry
+    if (bitmap_entry and uint8(1 shl bitPos)) != 0'u8:
       result[ix] = ResultValue(typ: rvtNull)
     else:
       let typ = columns[ix].column_type
       let uns = FieldFlag.unsigned in columns[ix].flags
       case typ
       of fieldTypeNull:
+        debugEcho "null by fieldTypeNull"
         result[ix] = ResultValue(typ: rvtNull)
       of fieldTypeTiny:
         let v = pkt[pos]
@@ -675,7 +702,9 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         result[ix] = ResultValue(typ: rvtString, strVal: scanLenStr(pkt, pos))
       of fieldTypeJson:
         result[ix] = ResultValue(typ: rvtJson, strVal: scanLenStr(pkt, pos))
-      of fieldTypeEnum, fieldTypeSet, fieldTypeGeometry:
+      of fieldTypeGeometry:
+        result[ix] = ResultValue(typ: rvtGeometry, strVal: scanLenStr(pkt, pos))
+      of fieldTypeEnum, fieldTypeSet:
         raise newException(ProtocolError, "Unexpected field type " & $(typ) & " in resultset")
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): Future[void] =
