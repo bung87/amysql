@@ -28,7 +28,7 @@ proc `$`*(ver: Version): string {.borrow.}
 converter toBoolean*(ver: Version): bool = ($ver).len > 0
 
 proc `==`*(ver: Version, ver2: Version): bool = $ver == $ver2
-
+proc `<=`*(ver: Version, ver2: Version): bool = ver < ver2 or ver == ver2
 proc `<`*(ver: Version, ver2: Version): bool =
   ## This is synced from Nimble's version module.
  
