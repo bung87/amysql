@@ -12,18 +12,22 @@ cache:
 matrix:
   include:
     - name: linux with mysql8
-      # env: DB=MYSQL8 USE_SHA2=true
+      env: DB=MYSQL8 DOCKER=true
+      # USE_SHA2=true
       dist: xenial
       services:
         - docker
       before_install:
         - docker pull mysql:8.0
-        - docker run -d -p 127.0.0.1:3306:3306 -v $(pwd)/.travis/docker-entrypoint-initdb:/docker-entrypoint-initdb.d --name  mysqld -e MYSQL_DATABASE=gotest -e MYSQL_USER=gotest -e MYSQL_PASSWORD=secret -e MYSQL_ALLOW_EMPTY_PASSWORD=yes
-          mysql:8.0 --innodb_log_file_size=256MB --innodb_buffer_pool_size=512MB --max_allowed_packet=16MB --local-infile=1
-        - cp .travis/docker.cnf ~/.my.cnf
-        - bash .travis/wait_mysql.sh
-      # before_script:
-      #   - export cross_compile=false
+        - docker run -d -p 127.0.0.1:3306:3306 
+          -v $(pwd)/.travis/docker-entrypoint-initdb:/docker-entrypoint-initdb.d 
+          --name  mysqld  
+          -e MYSQL_DATABASE=test 
+          -e MYSQL_USER=test_user 
+          -e MYSQL_PASSWORD=123456 
+          -e MYSQL_ROOT_PASSWORD='' 
+          -e MYSQL_ALLOW_EMPTY_PASSWORD=yes
+          mysql:8.0 --innodb_log_file_size=256MB --innodb_buffer_pool_size=512MB --max_allowed_packet=16MB --local-infile=1 --default-authentication-plugin=mysql_native_password
 
     # Build and test against the master (stable) and devel branches of Nim
     - os: linux
@@ -83,26 +87,25 @@ before_script:
   #   fi
 
   - |
-    if [ "DB" == "MYSQL8" ]
+    if [ -z "$DOCKER" ]
     then
-      exit 0
-    fi
-    sudo mysql -u root -e "create database if not exists test;"
-    if [ -z "$TRAVIS_MARIADB_VERSION" ] 
-    then
-      sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
-      
-      if [ "$USE_SHA2" == "true" ]
+      sudo mysql -u root -e "create database if not exists test;"
+      if [ -z "$TRAVIS_MARIADB_VERSION" ] 
       then
-        sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'password';"
-        sudo mysql -u root  -e "grant all on *.* to 'sha2user'@'localhost';"
+        sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
+        
+        if [ "$USE_SHA2" == "true" ]
+        then
+          sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'password';"
+          sudo mysql -u root  -e "grant all on *.* to 'sha2user'@'localhost';"
+        fi
+      else
+        sudo mysql -u root  -e "create user 'test_user'@'localhost' identified VIA mysql_native_password USING PASSWORD('123456');"
+        # mariadb not well support https://mariadb.com/kb/en/authentication-plugin-sha-256/#client-authentication-plugins
+        # sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('123456');"
       fi
-    else
-      sudo mysql -u root  -e "create user 'test_user'@'localhost' identified VIA mysql_native_password USING PASSWORD('123456');"
-      # mariadb not well support https://mariadb.com/kb/en/authentication-plugin-sha-256/#client-authentication-plugins
-      # sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('123456');"
+      sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
     fi
-    sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
 
 
 install:
