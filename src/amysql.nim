@@ -228,7 +228,9 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
     # .type .length	.frac_dig	.flags
     pkt.add(fieldTypeFloat.char)
     let mysql8 = conn.mariadb == false and conn.getDatabaseVersion >= Version("8.0")
-    if not mysql8:
+    if mysql8:
+      discard
+    else:
       putFloatLen(pkt,p.floatVal)
       if p.floatVal >= 0:
         pkt.add(char(0x01))
@@ -238,7 +240,9 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
     # .type .length	.frac_dig	.flags
     pkt.add(fieldTypeDouble.char)
     let mysql8 = conn.mariadb == false and conn.getDatabaseVersion >= Version("8.0")
-    if not mysql8:
+    if mysql8:
+      discard
+    else:
       putFloatLen(pkt,p.doubleVal)
       if p.doubleVal >= 0:
         pkt.add(char(0x01))
