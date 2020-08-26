@@ -52,8 +52,8 @@ proc `<`*(ver: Version, ver2: Version): bool =
 proc versionString(fullVersionString: string): string =
   # 5.7.27-0ubuntu0.18.04.1
   var m: regex.RegexMatch
-  discard fullVersionString.match(re"^(?:5\.5\.5-)?(\d+\.\d+\.\d+)", m)
-  fullVersionString[m.group(1)[0]]
+  discard fullVersionString.find(re"^(?:5\.\d+\.\d+-)?(\d+\.\d+\.\d+)", m)
+  fullVersionString[m.group(0)[0]]
 
 proc getDatabaseVersion*(self: Connection): Version {.
                          cachedProperty: "databaseVersion".} =
