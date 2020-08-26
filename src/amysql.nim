@@ -180,7 +180,7 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
   of paramTimestamp:
     return 4
 
-proc addTypeUnlessNULL(p: SqlParam, pkt: var string) =
+proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
   ## see https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
   ## Param type table
   ## Param flags
@@ -227,19 +227,21 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string) =
   of paramFloat:
     # .type .length	.frac_dig	.flags
     pkt.add(fieldTypeFloat.char)
-    putFloatLen(pkt,p.floatVal)
-    if p.floatVal >= 0:
-      pkt.add(char(0x01))
-    else:
-      pkt.add(char(0))
+    if likely conn.getDatabaseVersion < Version("8"):
+      putFloatLen(pkt,p.floatVal)
+      if p.floatVal >= 0:
+        pkt.add(char(0x01))
+      else:
+        pkt.add(char(0))
   of paramDouble:
     # .type .length	.frac_dig	.flags
     pkt.add(fieldTypeDouble.char)
-    putFloatLen(pkt,p.doubleVal)
-    if p.doubleVal >= 0:
-      pkt.add(char(0x01))
-    else:
-      pkt.add(char(0))
+    if likely conn.getDatabaseVersion < Version("8"):
+      putFloatLen(pkt,p.doubleVal)
+      if p.doubleVal >= 0:
+        pkt.add(char(0x01))
+      else:
+        pkt.add(char(0))
   of paramDate:
     pkt.add ( fieldTypeDate.char)
     pkt.add(char(0))
@@ -253,7 +255,7 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string) =
     pkt.add ( fieldTypeTime.char)
     pkt.add(char(0))
 
-proc addValueUnlessNULL(p: SqlParam, pkt: var string) =
+proc addValueUnlessNULL(p: SqlParam, pkt: var string, conn: Connection) =
   ## https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
   ## Param type table
   case p.typ
@@ -549,7 +551,7 @@ proc reset*(conn: Connection, pstmt: SqlPrepared): Future[void] =
   pstmt.prepare(buf, Command.statementReset)
   return conn.sendPacket(buf, reset_seq_no=true)
 
-proc formatBoundParams(pstmt: SqlPrepared, params: openarray[SqlParam]): string =
+proc formatBoundParams(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): string =
   ## see https://mariadb.com/kb/en/com_stmt_execute/
   if len(params) != len(pstmt.parameters):
     raise newException(ValueError, "Wrong number of parameters supplied to prepared statement (got " & $len(params) & ", statement expects " & $len(pstmt.parameters) & ")")
@@ -573,9 +575,9 @@ proc formatBoundParams(pstmt: SqlPrepared, params: openarray[SqlParam]): string 
   result.add(char(ch))
   result.add(char(1)) # new-params-bound flag
   for p in params:
-    p.addTypeUnlessNULL(result)
+    p.addTypeUnlessNULL(result, conn)
   for p in params:
-    p.addValueUnlessNULL(result)
+    p.addValueUnlessNULL(result, conn)
 
 proc scanDateTime*(buf: string, pos: var int, typ: static[ResultValueType],zone: Timezone = utc()): ResultValue = 
   let year = int(buf[pos+1]) + int(buf[pos+2]) * 256
@@ -706,7 +708,7 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         raise newException(ProtocolError, "Unexpected field type " & $(typ) & " in resultset")
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): Future[void] =
-  var pkt = formatBoundParams(pstmt, params)
+  var pkt = conn.formatBoundParams(pstmt, params)
   return conn.sendPacket(pkt, reset_seq_no=true)
 
 when defined(ssl):
@@ -917,7 +919,7 @@ proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void]
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
             #[tags: [ReadDbEffect, WriteDbEffect]]#.} =
-  var pkt = formatBoundParams(pstmt, params)
+  var pkt = conn.formatBoundParams(pstmt, params)
   var sent = conn.sendPacket(pkt, reset_seq_no=true)
   return performPreparedQuery(conn, pstmt, sent)
 
