@@ -227,6 +227,7 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
   of paramFloat:
     # .type .length	.frac_dig	.flags
     pkt.add(fieldTypeFloat.char)
+    debugEcho conn.mariadb == false ,conn.getDatabaseVersion , conn.getDatabaseVersion >= Version("8.0")
     let mysql8 = conn.mariadb == false and conn.getDatabaseVersion >= Version("8.0")
     if mysql8:
       discard
@@ -239,6 +240,7 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
   of paramDouble:
     # .type .length	.frac_dig	.flags
     pkt.add(fieldTypeDouble.char)
+    debugEcho conn.mariadb == false ,conn.getDatabaseVersion , conn.getDatabaseVersion >= Version("8.0")
     let mysql8 = conn.mariadb == false and conn.getDatabaseVersion >= Version("8.0")
     if mysql8:
       discard
