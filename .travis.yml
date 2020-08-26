@@ -33,7 +33,7 @@ matrix:
         mysql # mysql  Ver 14.14 Distrib 5.7.30, for Linux (x86_64) using  EditLine wrapper
 
     - os: linux
-      name: linux with mariadb
+      name: linux with mariadb(10.4)
       compiler: gcc
       addons:
         mariadb: '10.4'

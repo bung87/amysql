@@ -1,4 +1,4 @@
-# amysql  [![Build Status](https://travis-ci.org/bung87/amysql.svg?branch=master)](https://travis-ci.org/bung87/amysql)  [![Test status](https://github.com/bung87/amysql/workflows/test/badge.svg)](https://github.com/bung87/amysql/actions)  
+# amysql  [![Build Status](https://travis-ci.org/bung87/amysql.svg?branch=master)](https://travis-ci.org/bung87/amysql)  
 
 `amysql` implements (a subset of) the MySQL/MariaDB client protocol based on asyncnet and asyncdispatch.  
 
