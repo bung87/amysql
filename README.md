@@ -32,3 +32,15 @@ mariadb: 10
 - [ ] mutiple statements and mutilple resultsets.
 - [ ] compression mode  
 - [ ] handle connection options  
+
+## Acknowledgements  
+
+[PyMySQL](https://github.com/PyMySQL/PyMySQL)  
+
+[MySqlConnector](https://github.com/mysql-net/MySqlConnector)
+
+[tulayang](https://github.com/tulayang)'s [asyncmysql](https://github.com/tulayang/asyncmysql) and [mysqlparser](https://github.com/tulayang/mysqlparser)  
+
+[wiml/nim-asyncmysql](https://github.com/wiml/nim-asyncmysql)  
+
+[go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
