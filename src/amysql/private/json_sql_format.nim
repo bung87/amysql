@@ -47,7 +47,7 @@ proc sqlFormat*(conn: Connection, node: JsonNode): string =
   ## on single line.
 
   result = ""
-  if conn.mariadb:
+  if conn.isMaria:
     result = $node
   else:
     toSqlFormat(result, node)

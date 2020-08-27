@@ -38,15 +38,15 @@ proc connTest(): Future[Connection] {.async.} =
   let conn2db2 = await getCurrentDatabase(conn2)
   check conn2db2 == database_name
 
-  echo "Checking TIDs (", conn1.thread_id, ", ", conn2.thread_id, ")"
+  echo "Checking TIDs (", conn1.threadId, ", ", conn2.threadId, ")"
   let rslt = await conn1.rawQuery("show processlist");
   var saw_conn1 = false
   var saw_conn2 = false
   for row in rslt.rows:
-    if row[0] == $(conn1.thread_id):
+    if row[0] == $(conn1.threadId):
       check saw_conn1 == false
       saw_conn1 = true
-    if row[0] == $(conn2.thread_id):
+    if row[0] == $(conn2.threadId):
       check saw_conn2 == false
       saw_conn2 = true
   check saw_conn1

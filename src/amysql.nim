@@ -656,7 +656,6 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         result[ix] = ResultValue(typ: rvtDouble, doubleVal: v)
       of fieldTypeDateTime:
         result[ix] = scanDateTime(pkt, pos, rvtDateTime)
-        debugEcho "fieldTypeDateTime length:" & $columns[ix].length
       of fieldTypeDate:
         let year = int(pkt[pos+1]) + int(pkt[pos+2]) * 256
         inc(pos,2)
@@ -665,7 +664,6 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         inc(pos,2)
         let dt = initDate(day,month.Month,year.int)
         result[ix] = ResultValue(typ: rvtDate, datetimeVal: dt)
-        debugEcho "fieldTypeDate length:" & $columns[ix].length
       of fieldTypeTimestamp:
         result[ix] = scanDateTime(pkt, pos, rvtTimestamp)
       of fieldTypeTime:
@@ -711,7 +709,7 @@ when defined(ssl):
   proc startTls(conn: Connection, ssl: SslContext): Future[void] {.async.} =
     # MySQL's equivalent of STARTTLS: we send a sort of stub response
     # here, do SSL setup, and continue afterwards with the encrypted connection
-    if Cap.ssl notin conn.server_caps:
+    if Cap.ssl notin conn.serverCaps:
       raise newException(ProtocolError, "Server does not support SSL")
     var buf: string = newStringOfCap(32)
     buf.setLen(4)
@@ -779,11 +777,10 @@ proc finishEstablishingConnection(conn: Connection,
   # As of MySQL 8.0, the default authentication plugin is changed to caching_sha2_password. 
   # https://dev.mysql.com/doc/refman/5.7/en/authentication-plugins.html
   # https://dev.mysql.com/doc/refman/8.0/en/authentication-plugins.html
-  # debugEcho handshakePacket
+
   var authResponse = plugin_auth(handshakePacket.plugin, handshakePacket.scrambleBuff, password)
 
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
-  debugEcho $handshakePacket[]
   # await confirmation from the server
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -793,7 +790,7 @@ proc finishEstablishingConnection(conn: Connection,
   elif isAuthSwitchRequestPacket(pkt):
     debugEcho "isAuthSwitchRequestPacket"
     let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
-    if Cap.pluginAuth in conn.server_caps  and responseAuthSwitch.pluginName.len > 0:
+    if Cap.pluginAuth in conn.serverCaps  and responseAuthSwitch.pluginName.len > 0:
       debugEcho "plugin auth handshake:" & responseAuthSwitch.pluginName
       debugEcho "pluginData:" & responseAuthSwitch.pluginData
       let authData = plugin_auth(responseAuthSwitch.pluginName,responseAuthSwitch.pluginData, password)

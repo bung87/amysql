@@ -1,47 +1,30 @@
 import macros
+import options
 
 macro cachedProperty*(s: string, prc: untyped): untyped =
   if prc.kind notin {nnkProcDef, nnkLambda, nnkMethodDef, nnkDo}:
     error("Cannot transform this node kind into an cached_property proc." &
           " proc/method definition or lambda node expected.")
+
   let self = prc.params[1][0]
+  let propName = ident(s.strVal)
+  let prop =  nnkDotExpr.newTree(self, propName )
+  let propIsNone = newCall("isNone", prop)
+  let propGet = newCall("get", prop)
   var outerProcBody = nnkStmtList.newTree(
-      nnkIfStmt.newTree(
-        nnkElifBranch.newTree(
-          nnkDotExpr.newTree(
-            self,
-            newIdentNode(s.strVal)
-    ),
+    nnkIfStmt.newTree(
+    nnkElifBranch.newTree(propIsNone,
     nnkStmtList.newTree(
       nnkAsgn.newTree(
-        newIdentNode("result"),
-        nnkDotExpr.newTree(
-          self,
-          newIdentNode(s.strVal)
+        prop,
+        newCall("some", nnkPar.newTree prc.body)
       )
     )
     )
   ),
-        nnkElse.newTree(
-          nnkStmtList.newTree(
-            nnkAsgn.newTree(
-              nnkDotExpr.newTree(
-                self,
-                newIdentNode(s.strVal)
-    ),
-    prc.body
-  ),
-            nnkAsgn.newTree(
-              newIdentNode("result"),
-              nnkDotExpr.newTree(
-                self,
-                newIdentNode(s.strVal)
-    )
+  nnkReturnStmt.newTree(propGet)
   )
-    )
-  )
-    )
-  )
+  
   result = prc
   result.body = outerProcBody
   return result

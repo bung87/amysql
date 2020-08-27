@@ -227,10 +227,10 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   if result.protocolVersion != HandshakeV10.int:
     raise newException(ProtocolError, "Unexpected protocol version: " & $result.protocolVersion)
   var pos = 1
-  conn.server_version = scanNulString(buf, pos)
-  result.serverVersion = conn.server_version
-  conn.thread_id = scanU32(buf, pos)
-  result.threadId = int(conn.thread_id)
+  conn.serverVersion = scanNulString(buf, pos)
+  result.serverVersion = conn.serverVersion
+  conn.threadId = scanU32(buf, pos)
+  result.threadId = int(conn.threadId)
   inc(pos,4)
   result.scrambleBuff1 = buf[pos .. pos+7]
   inc(pos,8)
@@ -238,7 +238,7 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   let capabilities1 = scanU16(buf, pos)
   result.capabilities1 = int(capabilities1)
   result.capabilities = result.capabilities1
-  conn.server_caps = cast[set[Cap]](capabilities1)
+  conn.serverCaps = cast[set[Cap]](capabilities1)
   inc(pos,2)
   result.charset = int(buf[pos])
   inc pos
@@ -252,7 +252,7 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   result.capabilities2 = int(capabilities2)
   inc pos,2
   let cap = uint32(capabilities1) + (uint32(capabilities2) shl 16)
-  conn.server_caps = cast[set[Cap]]( cap )
+  conn.serverCaps = cast[set[Cap]]( cap )
   result.capabilities = int(cap)
   result.scrambleLen = int(buf[pos])
   inc pos
@@ -261,7 +261,7 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   inc pos,12
   result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
   inc pos # filter 3
-  if Cap.pluginAuth in conn.server_caps:
+  if Cap.pluginAuth in conn.serverCaps:
     result.plugin = scanNulStringX(buf, pos)
 
 proc parseAuthSwitchPacket*(conn: Connection, pkt: string): ref ResponseAuthSwitch =
@@ -286,7 +286,7 @@ proc parseOKPacket*(conn: Connection, pkt: string): ResponseOK =
   result.status_flags = cast[set[Status]]( scanU16(pkt, pos) )
   result.warning_count = scanU16(pkt, pos+2)
   pos = pos + 4
-  if Cap.sessionTrack in conn.client_caps:
+  if Cap.sessionTrack in conn.clientCaps:
     result.info = scanLenStr(pkt, pos)
   else:
     result.info = scanNulStringX(pkt, pos)
@@ -304,9 +304,9 @@ proc sendPacket*(conn: Connection, buf: var string, reset_seq_no = false): Futur
   buf[1] = char( ((bodylen shr 8) and 0xFF) )
   buf[2] = char( ((bodylen shr 16) and 0xFF) )
   if reset_seq_no:
-    conn.packet_number = 0
-  buf[3] = char( conn.packet_number )
-  inc(conn.packet_number)
+    conn.sequenceId = 0
+  buf[3] = char( conn.sequenceId )
+  inc(conn.sequenceId)
   # hexdump(buf, stdmsg)
   conn.socket.send(buf)
 
@@ -319,17 +319,17 @@ proc writeHandshakeResponse*(conn: Connection,
   buf.setLen(4)
 
   var caps: set[Cap] = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
-  if Cap.longFlag in conn.server_caps:
+  if Cap.longFlag in conn.serverCaps:
     incl(caps, Cap.longFlag)
-  if auth_response.len > 0 and Cap.pluginAuthLenencClientData in conn.server_caps:
+  if auth_response.len > 0 and Cap.pluginAuthLenencClientData in conn.serverCaps:
     if len(auth_response) > 255:
       incl(caps, Cap.pluginAuthLenencClientData)
-  if database.len > 0 and Cap.connectWithDb in conn.server_caps:
+  if database.len > 0 and Cap.connectWithDb in conn.serverCaps:
     incl(caps, Cap.connectWithDb)
   if auth_plugin.len > 0:
     incl(caps, Cap.pluginAuth)
 
-  conn.client_caps = caps
+  conn.clientCaps = caps
 
   # Fixed-length portion
   putU32(buf, cast[uint32](caps))
@@ -374,10 +374,9 @@ proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEf
 proc processHeader(c: Connection, hdr: array[4, char]): nat24 =
   result = int32(hdr[0]) + int32(hdr[1])*256 + int32(hdr[2])*65536
   let pnum = uint8(hdr[3])
-  # stdmsg.writeLine("plen=", result, ", pnum=", pnum, " (expecting ", c.packet_number, ")")
-  if pnum != c.packet_number:
-    raise newException(ProtocolError, "Bad packet number (got sequence number " & $(pnum) & ", expected " & $(c.packet_number) & ")")
-  c.packet_number += 1
+  if pnum != c.sequenceId:
+    raise newException(ProtocolError, "Bad packet number (got sequence number " & $(pnum) & ", expected " & $(c.sequenceId) & ")")
+  c.sequenceId += 1
 
 proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
   # drop_ok used when close

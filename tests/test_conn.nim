@@ -28,7 +28,27 @@ proc connTest(): Future[Connection] {.async.} =
   let conn1 = await open(host_name,user_name,pass_word,database_name)
   let conn1db1 = await getCurrentDatabase(conn1)
   check conn1db1 == database_name
-  
+  let conn2 = await open(host_name,user_name,pass_word)
+  let conn2db1 = await getCurrentDatabase(conn2)
+  check conn2db1.len == 0
+  discard await conn2.selectDatabase(database_name)
+  let conn2db2 = await getCurrentDatabase(conn2)
+  check conn2db2 == database_name
+
+  let rslt = await conn1.rawQuery("show processlist");
+  var saw_conn1 = false
+  var saw_conn2 = false
+  for row in rslt.rows:
+    if row[0] == $(conn1.thread_id):
+      check saw_conn1 == false
+      saw_conn1 = true
+    if row[0] == $(conn2.thread_id):
+      check saw_conn2 == false
+      saw_conn2 = true
+  check saw_conn1
+  check saw_conn2
+
+  await conn2.close()
   return conn1
 
 proc runTests(): Future[void] {.async.} =

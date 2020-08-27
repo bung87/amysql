@@ -1,27 +1,29 @@
+
 import asyncnet
 import ./private/cap
 import regex
 import ./private/utils
 import strutils, parseutils
 import options
+import tables
 
 type
   Version* = distinct string
   Connection* = ref ConnectionObj
   ConnectionObj* = object of RootObj
     socket*: AsyncSocket               # Bytestream connection
-    packet_number*: uint8              # Next expected seq number (mod-256)
+    sequenceId*: uint8              # Next expected seq number (mod-256)
 
     # Information from the connection setup
-    server_version*: string
-    thread_id*: uint32
-    server_caps*: set[Cap]
+    serverVersion*: string
+    threadId*: uint32
+    serverCaps*: set[Cap]
 
     # Other connection parameters
-    client_caps*: set[Cap]
+    clientCaps*: set[Cap]
 
-    databaseVersion: Version
-    isMaria: Option[bool]
+    databaseVersion: Option[Version]
+    priv_isMaria: Option[bool]
 
 proc `$`*(ver: Version): string {.borrow.}
 
@@ -49,23 +51,37 @@ proc `<`*(ver: Version, ver2: Version): bool =
 proc `==`*(ver: Version, ver2: Version): bool = $ver == $ver2
 
 proc `>`*(ver: Version, ver2: Version): bool = ver2 < ver
+
 proc `<=`*(ver: Version, ver2: Version): bool = ver < ver2 or ver == ver2
+
 proc versionString(fullVersionString: string): string =
   # 5.7.27-0ubuntu0.18.04.1
+  if fullVersionString.len == 0:
+    return result
   var m: regex.RegexMatch
   discard fullVersionString.find(re"^(?:5\.\d+\.\d+-)?(\d+\.\d+\.\d+)", m)
   fullVersionString[m.group(0)[0]]
 
 proc getDatabaseVersion*(self: Connection): Version {.
                          cachedProperty: "databaseVersion".} =
-  let versionString = versionString(self.server_version)
+  let versionString = versionString(self.serverVersion)
   Version(versionString)
 
-proc mariadb*(self: Connection): bool =
-  if self.isMaria.isNone:
-    self.isMaria = some self.server_version.contains(re"(?i)mariadb")
-  return self.isMaria.get
+proc isMaria*(self: Connection): bool  {.
+              cachedProperty: "priv_isMaria".} =
+  self.serverVersion.contains(re"(?i)mariadb")
+
+proc `$`*(conn: Connection): string = 
+  var tbl:OrderedTable[string,string]
+  tbl["serverVersion"] = conn.serverVersion
+  tbl["serverCaps"] = $conn.serverCaps
+  tbl["clientCaps"] = $conn.clientCaps
+  tbl["databaseVersion"] = $conn.getDatabaseVersion()
+  tbl["isMaria"] = $conn.isMaria
+  $tbl
 
 when isMainModule:
   echo Version("8.0.21") >= Version("8.0")
   echo Version("5.7.30") >= Version("8.0")
+  var conn = Connection()
+  echo conn
