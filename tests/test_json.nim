@@ -1,7 +1,6 @@
 import amysql, asyncdispatch
 import unittest
 import net
-import times
 import json
 
 const database_name = "test"

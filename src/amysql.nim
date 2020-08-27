@@ -251,7 +251,7 @@ proc addValueUnlessNULL(p: SqlParam, pkt: var string, conn: Connection) =
   case p.typ
   of paramNull:
     return
-  of paramString, paramBlob, paramJson, paramGeometry:
+  of paramString, paramBlob,paramJson, paramGeometry:
     putLenStr(pkt, p.strVal)
   of paramInt:
     if p.intVal >= 0:
@@ -324,7 +324,10 @@ proc asParam*(d: Date): SqlParam = SqlParam(typ: paramDate, datetimeVal: d)
 proc asParam*(d: Time): SqlParam = SqlParam(typ: paramTimestamp, datetimeVal: d.utc)
 proc asParam*(d: Duration): SqlParam = SqlParam(typ: paramTime, durVal: d)
 
-proc asParam*(d: JsonNode): SqlParam = SqlParam(typ: paramJson, strVal: $d)
+proc asParam*(d: JsonNode): SqlParam = 
+  var r:string 
+  toUgly(r,d)
+  SqlParam(typ: paramJson, strVal: r)
 
 proc asParam*(d: MyGeometry): SqlParam = SqlParam(typ: paramGeometry, strVal: d.data )
 
