@@ -201,7 +201,8 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
     pkt.add(char(fieldTypeString)) # fieldTypeJson
     pkt.add(char(0))
   of paramGeometry:
-    pkt.add(char(fieldTypeGeometry))
+    # fieldTypeGeometry mysql works well, but 5.5.5-10.4.14-MariaDB-1:10.4.14+maria~xenial not supported ?
+    pkt.add(char(fieldTypeBlob))
     pkt.add(char(0))
   of paramInt:
     if p.intVal >= 0:
