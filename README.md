@@ -16,9 +16,13 @@ The goals of this project are:
 
 ## Testing  
 
-mysql 5.7 8.0  
+platform: Linux and OSX  
 
-mariadb 10  
+note: mysql 8 is not well tested  
+
+mysql: 5.7 8.0  
+
+mariadb: 10  
 
 ## TODO  
 

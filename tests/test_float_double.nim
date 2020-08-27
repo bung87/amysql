@@ -17,6 +17,11 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
 
   discard await conn.selectDatabase(database_name)
   discard await conn.rawQuery("drop table if exists float_test")
+  # https://dev.mysql.com/doc/refman/8.0/en/floating-point-types.html
+  # let deprecatedMD = conn.mariadb == false and conn.getDatabaseVersion >= Version("8.0.17")
+  # if deprecatedMD:
+  #   discard await conn.rawQuery("CREATE TABLE `float_test`(`fla` FLOAT,`flb` FLOAT,`dba` DOUBLE(53),`dbb` DOUBLE(53)")
+  # else:
   discard await conn.rawQuery("CREATE TABLE `float_test`(`fla` FLOAT,`flb` FLOAT,`dba` DOUBLE(10,2),`dbb` DOUBLE(10,2))")
 
   # Insert values using the binary protocol

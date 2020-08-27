@@ -1,6 +1,5 @@
 import strutils
 import endians
-import protobuf,streams
 import times
 
 type
@@ -16,30 +15,6 @@ const
 ## Basic datatype packers/unpackers
 ## little endian
 # Integers
-
-const protoSpec = """
-syntax = "proto3";
-
-message FloatLen {
-  uint32 length = 1;
-  uint32 fractional_digits = 2;
-}
-"""
-
-parseProto(protoSpec)
-
-exportMessage FloatLen
-
-proc putFloatLen*(buf: var string, val: float32|float64) {.inline.} =
-  let s = $val
-  let l = len(s)
-  let f = max(l - 1 - s.find("."),0)
-  var x = new FloatLen
-  x.length = l.uint32
-  x.fractional_digits = f.uint32
-  var stream = newStringStream()
-  stream.write x
-  buf.add stream.readAll
 
 proc scan16(buf: string, pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
@@ -99,10 +74,13 @@ proc putU32*(buf: var string, val: uint32) =
   put32(buf, val.unSafeAddr)
 
 proc putFloat*(buf: var string, val:float32) =
-  put32(buf, val.unSafeAddr)
+  var str = newString(4)
+  copyMem(str[0].addr, val.unSafeAddr, 4)
+  buf.add str
 
 proc putDouble*(buf: var string, val: float64) =
-  put64(buf, val.unSafeAddr)
+  var uval = cast[ptr uint64](val.unSafeAddr)
+  put64(buf, uval)
 
 proc scanFloat*(buf: string, pos: int): float32 =
   scan32(buf, pos, addr result)

@@ -27,11 +27,8 @@ proc `$`*(ver: Version): string {.borrow.}
 
 converter toBoolean*(ver: Version): bool = ($ver).len > 0
 
-proc `==`*(ver: Version, ver2: Version): bool = $ver == $ver2
-proc `<=`*(ver: Version, ver2: Version): bool = ver < ver2 or ver == ver2
 proc `<`*(ver: Version, ver2: Version): bool =
   ## This is synced from Nimble's version module.
- 
   # Handling for normal versions such as "0.1.0" or "1.0".
   var sVer = string(ver).split('.')
   var sVer2 = string(ver2).split('.')
@@ -49,6 +46,10 @@ proc `<`*(ver: Version, ver2: Version): bool =
     else:
       return false
 
+proc `==`*(ver: Version, ver2: Version): bool = $ver == $ver2
+
+proc `>`*(ver: Version, ver2: Version): bool = ver2 < ver
+proc `<=`*(ver: Version, ver2: Version): bool = ver < ver2 or ver == ver2
 proc versionString(fullVersionString: string): string =
   # 5.7.27-0ubuntu0.18.04.1
   var m: regex.RegexMatch
@@ -64,3 +65,7 @@ proc mariadb*(self: Connection): bool =
   if self.isMaria.isNone:
     self.isMaria = some self.server_version.contains(re"(?i)mariadb")
   return self.isMaria.get
+
+when isMainModule:
+  echo Version("8.0.21") >= Version("8.0")
+  echo Version("5.7.30") >= Version("8.0")

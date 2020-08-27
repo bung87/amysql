@@ -225,31 +225,13 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
       pkt.add(char(fieldTypeLongLong))
     pkt.add(char(0x80))
   of paramFloat:
-    # .type .length	.frac_dig	.flags
+    # .type .unsigned?
     pkt.add(fieldTypeFloat.char)
-    debugEcho conn.mariadb == false ,conn.getDatabaseVersion , conn.getDatabaseVersion >= Version("8.0")
-    let mysql8 = conn.mariadb == false and conn.getDatabaseVersion >= Version("8.0")
-    if mysql8:
-      discard
-    else:
-      putFloatLen(pkt,p.floatVal)
-      if p.floatVal >= 0:
-        pkt.add(char(0x01))
-      else:
-        pkt.add(char(0))
+    pkt.add(char(0))
   of paramDouble:
-    # .type .length	.frac_dig	.flags
+    # .type .unsigned?
     pkt.add(fieldTypeDouble.char)
-    debugEcho conn.mariadb == false ,conn.getDatabaseVersion , conn.getDatabaseVersion >= Version("8.0")
-    let mysql8 = conn.mariadb == false and conn.getDatabaseVersion >= Version("8.0")
-    if mysql8:
-      discard
-    else:
-      putFloatLen(pkt,p.doubleVal)
-      if p.doubleVal >= 0:
-        pkt.add(char(0x01))
-      else:
-        pkt.add(char(0))
+    pkt.add(char(0))
   of paramDate:
     pkt.add ( fieldTypeDate.char)
     pkt.add(char(0))

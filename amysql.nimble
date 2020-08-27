@@ -10,5 +10,4 @@ srcDir        = "src"
 
 # Dependencies
 requires "nimcrypto"
-requires "protobuf"
 requires "regex"
