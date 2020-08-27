@@ -197,9 +197,9 @@ proc putDateTime*(buf: var string, val: DateTime):int {.discardable.} =
     result = 7
   else:
     result = 4
-  buf.putU8 result.uint8
+  buf.putU8 result.uint8 # length
   var uyear = val.year.uint16
-  buf.put16 uyear.addr
+  buf.putU16 uyear
   buf.putU8 val.month.ord.uint8
   buf.putU8 val.monthday.uint8
   
@@ -211,6 +211,12 @@ proc putDateTime*(buf: var string, val: DateTime):int {.discardable.} =
       var micro = val.nanosecond div 1000
       var umico = micro.int32
       buf.put32 umico.addr
+
+proc putTimestamp*(buf: var string, val: DateTime): int {.discardable.} = 
+  # for text protocol
+  let ts = val.format("yyyy-MM-dd HH:mm:ss'.'ffffff") # len 26 + 13
+  buf.putNulString "timestamp('$#')" % [ts]
+  # default "timestamp('0000-00-00')" len 23
 
 proc hexdump*(buf: openarray[char], fp: File) =
   var pos = low(buf)

@@ -182,8 +182,10 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
 
 proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
   ## see https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
-  ## Param type table
-  ## Param flags
+  ## Param type
+  ## Param Unsigned flag
+  ## isUnsigned = dbType == MySqlDbType.UByte || dbType == MySqlDbType.UInt16 ||
+  ## dbType == MySqlDbType.UInt24 || dbType == MySqlDbType.UInt32 || dbType == MySqlDbType.UInt64;
   case p.typ
   of paramNull:
     return
@@ -227,11 +229,9 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
       pkt.add(char(fieldTypeLongLong))
     pkt.add(char(0x80))
   of paramFloat:
-    # .type .unsigned?
     pkt.add(fieldTypeFloat.char)
     pkt.add(char(0))
   of paramDouble:
-    # .type .unsigned?
     pkt.add(fieldTypeDouble.char)
     pkt.add(char(0))
   of paramDate:
@@ -239,10 +239,10 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
     pkt.add(char(0))
   of paramDateTime:
     pkt.add ( fieldTypeDateTime.char)
-    pkt.add(char(0)) # unsigned flag or isTimestamp flag
+    pkt.add(char(0))
   of paramTimestamp:
     pkt.add ( fieldTypeTimestamp.char)
-    pkt.add(char(0x01))
+    pkt.add(char(0))
   of paramTime:
     pkt.add ( fieldTypeTime.char)
     pkt.add(char(0))
