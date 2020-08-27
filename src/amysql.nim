@@ -194,7 +194,9 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
     pkt.add(char(fieldTypeBlob))
     pkt.add(char(0))
   of paramJson:
-    pkt.add(char(fieldTypeJson))
+    ## MYSQL_TYPE_JSON is not allowed as Item_param lacks a proper implementation for val_json.
+    ## https://github.com/mysql/mysql-server/blob/124c7ab1d6f914637521fd4463a993aa73403513/sql/sql_prepare.cc#L636-L639
+    pkt.add(char(fieldTypeString)) # fieldTypeJson
     pkt.add(char(0))
   of paramGeometry:
     pkt.add(char(fieldTypeGeometry))
