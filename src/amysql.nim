@@ -699,66 +699,50 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
   let handshakePacket = await connect(result)
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
+template fetchResultset(conn:typed, pkt:typed, result:typed, onlyFirst:typed, process:untyped): untyped =
+  var p = 0
+  let column_count = readLenInt(pkt, p)
+  result.columns = await conn.receiveMetadata(column_count)
+  while true:
+    let pkt = await conn.receivePacket()
+    if isEOFPacket(pkt):
+      result.status = parseEOFPacket(pkt)
+      break
+    elif isOKPacket(pkt):
+      result.status = parseOKPacket(conn, pkt)
+      break
+    elif isERRPacket(pkt):
+      raise parseErrorPacket(pkt)
+    else:
+      result.rows.add(process)
+      when onlyFirst:
+        break
+
 {.push warning[ObservableStores]: off.}
-proc rawQuery*(conn: Connection, query: string, onlyFirst = false): Future[ResultSet[string]] {.
+proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
                async, tags: [ReadDbEffect, WriteDbEffect,RootEffect].} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
     # Success, but no rows returned.
     result.status = parseOKPacket(conn, pkt)
-    result.columns = @[]
-    result.rows = @[]
   elif isERRPacket(pkt):
-    # Some kind of failure.
     raise parseErrorPacket(pkt)
   else:
-    var p = 0
-    let column_count = readLenInt(pkt, p)
-    result.columns = await conn.receiveMetadata(column_count)
-    while true:
-      let pkt = await conn.receivePacket()
-      if isEOFPacket(pkt):
-        result.status = parseEOFPacket(pkt)
-        break
-      elif isOKPacket(pkt):
-        result.status = parseOKPacket(conn, pkt)
-        break
-      elif isERRPacket(pkt):
-        raise parseErrorPacket(pkt)
-      else:
-        result.rows.add(parseTextRow(pkt))
-        if onlyFirst:
-          break
+    conn.fetchResultset(pkt, result, onlyFirst, parseTextRow(pkt))
   return
 
-proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst = false): Future[ResultSet[ResultValue]] {.
+proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async, tags:[RootEffect].} =
   await st
-  let initialPacket = await conn.receivePacket()
-  if isOKPacket(initialPacket):
+  let pkt = await conn.receivePacket()
+  if isOKPacket(pkt):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, initialPacket)
-    result.columns = @[]
-    result.rows = @[]
-  elif isERRPacket(initialPacket):
-    # Some kind of failure.
-    raise parseErrorPacket(initialPacket)
+    result.status = parseOKPacket(conn, pkt)
+  elif isERRPacket(pkt):
+    raise parseErrorPacket(pkt)
   else:
-    var p = 0
-    let column_count = readLenInt(initialPacket, p)
-    result.columns = await conn.receiveMetadata(column_count)
-    while true:
-      let pkt = await conn.receivePacket()
-      if isEOFPacket(pkt):
-        result.status = parseEOFPacket(pkt)
-        break
-      elif isERRPacket(pkt):
-        raise parseErrorPacket(pkt)
-      else:
-        result.rows.add(parseBinaryRow(result.columns, pkt))
-        if onlyFirst:
-          break
+    conn.fetchResultset(pkt, result, onlyFirst, parseBinaryRow(result.columns, pkt))
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
@@ -791,7 +775,7 @@ proc dbFormat(formatstr: SqlQuery, args: varargs[string]): string =
     else:
       add(result, c)
 
-proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst = false): Future[ResultSet[string]] {.
+proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
             async, #[tags: [ReadDbEffect]]#.} =
   var q = dbFormat(query, args)
   result = await conn.rawQuery(q, onlyFirst)
