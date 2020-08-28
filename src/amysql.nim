@@ -770,7 +770,7 @@ proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asPa
 proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.async.} =
   var buf: string = newStringOfCap(4 + 1 + len(database))
   buf.setLen(4)
-  buf.add( char(Command.initDb) )
+  buf.add( Command.initDb.char )
   buf.add(database)
   await conn.sendPacket(buf, reset_seq_no=true)
   let pkt = await conn.receivePacket()
@@ -870,11 +870,11 @@ proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async, #[r
 proc handleParams(conn: Connection, q: string) {.async.} =
   ## SHOW VARIABLES;
   ## https://dev.mysql.com/doc/refman/8.0/en/using-system-variables.html
-  var key,val:string
+  var key, val: string
   var cmd = "SET "
   var pos = 0
   for item in split(q,"&"):
-    (key,val) = item.split("=")
+    (key, val) = item.split("=")
     case key
     of "charset":
       let charsets = val.split(",")
@@ -886,9 +886,7 @@ proc handleParams(conn: Connection, q: string) {.async.} =
     else:
       if pos != 0:
         cmd.add ','
-      cmd.add key
-      cmd.add '='
-      cmd.add val
+      cmd.add key & '=' & val
       inc pos
   discard await conn.rawQuery cmd
 
