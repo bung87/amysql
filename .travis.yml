@@ -5,14 +5,14 @@ cache:
   # directories:
   #   - $HOME/Library/Caches/Homebrew
   # not work
-# env: 
+# env:
 #   jobs:
-#     - CHANNEL=stable
+#     # - CHANNEL=stable
 #     - CHANNEL=devel
 matrix:
   include:
     - name: linux with mysql8
-      env: DB=MYSQL8 DOCKER=true
+      env: DB=MYSQL8 DOCKER=true CHANNEL=devel
       # USE_SHA2=true
       dist: xenial
       services:
@@ -32,12 +32,14 @@ matrix:
     # Build and test against the master (stable) and devel branches of Nim
     - os: linux
       name: linux with mysql(5.7.30)
+      env: CHANNEL=devel
       compiler: gcc
       services:
         mysql # mysql  Ver 14.14 Distrib 5.7.30, for Linux (x86_64) using  EditLine wrapper
 
     - os: linux
       name: linux with mariadb(10.4)
+      env: CHANNEL=devel
       compiler: gcc
       addons:
         mariadb: '10.4'
@@ -45,6 +47,7 @@ matrix:
     # On OSX we only test against clang (gcc is mapped to clang by default)
     - os: osx
       name: osx with mysql(8.0.21)
+      env: CHANNEL=devel
       compiler: clang
       # env: USE_SHA2=true
       before_install:
@@ -56,7 +59,7 @@ matrix:
       name: osx with mariadb(10.5.5)
       compiler: clang
       # mariadb-10.5.5.high_sierra.bottle.tar.gz
-      env: TRAVIS_MARIADB_VERSION=10.5.5
+      env: CHANNEL=devel TRAVIS_MARIADB_VERSION=10.5.5
       before_install:
         - brew install ccache
         - rm -f /etc/my.cnf
@@ -110,11 +113,12 @@ before_script:
 
 install:
   - export CHOOSENIM_NO_ANALYTICS=1
+  # - export CHOOSENIM_CHOOSE_VERSION=1.3.1
   - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
   - sh init.sh -y
   - export PATH=~/.nimble/bin:$PATH
   - echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile
-  # - choosenim $CHANNEL
+  - choosenim $CHANNEL
   - nimble install -d -y
 
 script:
