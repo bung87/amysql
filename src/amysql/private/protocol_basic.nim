@@ -372,7 +372,7 @@ proc writeTypeAndFlag*(buf: var string, intVal: uint64) =
     buf.add(char(fieldTypeLongLong))
   buf.add(char(0x80))
 
-proc writeValue*(buf: var string, intVal: int64) = 
+proc putValue*(buf: var string, intVal: int64) = 
   if intVal >= 0:
     buf.putU8(intVal and 0xFF)
     if intVal >= 256:
@@ -389,7 +389,7 @@ proc writeValue*(buf: var string, intVal: int64) =
     else:
       buf.putS64(intVal)
 
-proc writeValue*(buf: var string, intVal: uint64) = 
+proc putValue*(buf: var string, intVal: uint64) = 
   putU32(buf, uint32(intVal and 0xFFFFFFFF'u64))
   if intVal >= 0xFFFFFFFF'u64:
     putU32(buf, uint32(intVal shr 32))

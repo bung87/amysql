@@ -12,10 +12,10 @@
 
 import amysql/private/protocol
 import amysql/private/cap
+import amysql/private/auth
+import amysql/private/conn_auth
 import amysql/conn
 export conn
-
-import amysql/private/auth
 
 import amysql/private/json_sql_format
 export json_sql_format
@@ -242,24 +242,20 @@ proc addValueUnlessNULL(p: SqlParam, pkt: var string, conn: Connection) =
   case p.typ
   of paramNull:
     return
-  of paramString, paramBlob,paramJson, paramGeometry:
+  of paramString, paramBlob, paramJson, paramGeometry:
     putLenStr(pkt, p.strVal)
   of paramInt:
-    writeValue(pkt, p.intVal)
+    putValue(pkt, p.intVal)
   of paramUInt:
-    writeValue(pkt, p.uintVal)
+    putValue(pkt, p.uintVal)
   of paramFloat:
     putFloat(pkt, p.floatVal)
   of paramDouble:
     putDouble(pkt, p.doubleVal)
-  of paramDate:
+  of paramDate, paramDateTime, paramTimestamp:
     putDate(pkt, p.datetimeVal)
   of paramTime:
     putTime(pkt, p.durVal)
-  of paramDateTime:
-    putDateTime(pkt, p.datetimeVal)
-  of paramTimestamp:
-    putDateTime(pkt, p.datetimeVal)
 
 proc asParam*(s: string): SqlParam =
   SqlParam(typ: paramString,strVal:s)
@@ -661,48 +657,6 @@ when defined(ssl):
     wrapConnectedSocket(ssl, conn.socket, handshake=SslHandshakeType.handshakeAsClient)
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
-
-
-proc caching_sha2_password_auth(conn:Connection, pkt, scrambleBuff, password: string): Future[string] {.async.} =
-  # pkt 
-  # 1 status 0x01
-  # 2 auth_method_data (string.EOF) -- extra auth-data beyond the initial challenge
-  if password.len == 0:
-    return await conn.roundtrip("")
-  var pkt = pkt
-  if pkt.isAuthSwitchRequestPacket():
-    let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
-    let authData = scramble_caching_sha2(responseAuthSwitch.pluginData, password)
-    pkt = await conn.roundtrip(authData)
-  if not pkt.isExtraAuthDataPacket:
-    raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & pkt)
-  
-  # magic numbers:
-  # 2 - request public key
-  # 3 - fast auth succeeded
-  # 4 - need full auth
-  # var pos: int = 1
-  let n = int(pkt[1])
-  if n == 3:
-    pkt = await conn.receivePacket()
-    if isERRPacket(pkt):
-      raise parseErrorPacket(pkt)
-    return pkt
-  if n != 4:
-    raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & $n)
-  # full path
-  debugEcho "full path magic number:" & $n
-  # raise newException(CatchableError, "Unimplemented")
-  # if conn.secure # Sending plain password via secure connection (Localhost via UNIX socket or ssl)
-  return await conn.roundtrip(password & char(0))
-  # if not conn.server_public_key:
-  #   pkt = await roundtrip(conn, "2") 
-  #   if not isExtraAuthDataPacket(pkt):
-  #     raise newException(ProtocolError,"caching sha2: Unknown packet for public key: "  & pkt)
-  #   conn.server_public_key = pkt[1..pkt.high]
-  # let data = sha2_rsa_encrypt(password, scrambleBuff, conn.server_public_key)
-  # pkt = await roundtrip(conn, data)
-  # return pkt
 
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
