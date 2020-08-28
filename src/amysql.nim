@@ -78,7 +78,6 @@ type
       of rvtDate, rvtDateTime,rvtTimestamp:
         # https://dev.mysql.com/doc/internals/en/date-and-time-data-type-representation.html
         datetimeVal: DateTime
-
   ParamBindingType = enum
     paramNull,
     paramString,
@@ -116,7 +115,6 @@ type
         datetimeVal: DateTime
       of paramTime:
         durVal: Duration
-type
   ColumnDefinition* {.final.} = object 
     catalog*     : string
     schema*      : string
@@ -129,12 +127,10 @@ type
     column_type* : FieldType
     flags*       : set[FieldFlag]
     decimals*    : int
-
   ResultSet*[T] {.final.} = object 
     status*     : ResponseOK
     columns*    : seq[ColumnDefinition]
     rows*       : seq[seq[T]]
-
   SqlPrepared* = ref SqlPreparedObj
   SqlPreparedObj = object
     statement_id: array[4, char]
@@ -147,23 +143,17 @@ type
 proc approximatePackedSize(p: SqlParam): int {.inline.} =
   ## approximate packed size for reducing reallocations
   case p.typ
-  of paramNull:
-    return 0
+  of paramNull: result = 0
   of paramString, paramBlob, paramJson, paramGeometry:
-    return 5 + len(p.strVal)
-  of paramInt, paramUInt:
-    return 4
-  of paramFloat:
-    return 4
+    result = 5 + len(p.strVal)
+  of paramInt, paramUInt, paramFloat, paramDate, paramTimestamp: 
+    result = 4
   of paramDouble:
     return 8
-  of paramDate:
-    return 4
   of paramTime:
     let dp = toParts(p.durVal)
     let micro = dp[Microseconds]
-    result = if micro == 0: 8 else: 12
-    return result
+    result = if micro == 0: 8 + 1 else: 12 + 1
   of paramDateTime:
     # case t.IsZero():
     # return 1
@@ -173,26 +163,17 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
       return 7 + 1
     else:
       return 4 + 1
-  of paramTimestamp:
-    return 4
 
-proc paramToField(p: SqlParam): FieldType {.inline.} =
+proc paramToField(p: SqlParam): FieldType =
   ## types that unsigned false and no special process
   case p.typ
-    of paramFloat:
-      result = fieldTypeFloat
-    of paramDouble:
-      result = fieldTypeDouble
-    of paramDate:
-      result = fieldTypeDate
-    of paramDateTime:
-      result = fieldTypeDateTime
-    of paramTimestamp:
-      result = fieldTypeTimestamp
-    of paramTime:
-      result = fieldTypeTime
-    else:
-      discard
+  of paramFloat: result = fieldTypeFloat
+  of paramDouble: result = fieldTypeDouble
+  of paramDate: result = fieldTypeDate
+  of paramDateTime: result = fieldTypeDateTime
+  of paramTimestamp: result = fieldTypeTimestamp
+  of paramTime: result = fieldTypeTime
+  else: discard
 
 proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
   ## see https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
@@ -204,27 +185,22 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
   of paramNull:
     return
   of paramString:
-    pkt.add(char(fieldTypeString))
-    pkt.add(char(0))
+    pkt.writeTypeAndFlag(fieldTypeString)
   of paramBlob:
-    pkt.add(char(fieldTypeBlob))
-    pkt.add(char(0))
+    pkt.writeTypeAndFlag(fieldTypeBlob)
   of paramJson:
     ## MYSQL_TYPE_JSON is not allowed as Item_param lacks a proper implementation for val_json.
     ## https://github.com/mysql/mysql-server/blob/124c7ab1d6f914637521fd4463a993aa73403513/sql/sql_prepare.cc#L636-L639
-    pkt.add(char(fieldTypeString)) # fieldTypeJson
-    pkt.add(char(0))
+    pkt.writeTypeAndFlag(fieldTypeString) # fieldTypeJson
   of paramGeometry:
     # fieldTypeGeometry mysql works well, but 5.5.5-10.4.14-MariaDB-1:10.4.14+maria~xenial not supported ?
-    pkt.add(char(fieldTypeBlob))
-    pkt.add(char(0))
+    pkt.writeTypeAndFlag(fieldTypeBlob)
   of paramInt:
-    writeTypeAndFlag(pkt, p.intVal)
+    pkt.writeTypeAndFlag(p.intVal)
   of paramUInt:
-    writeTypeAndFlag(pkt, p.uintVal)
+    pkt.writeTypeAndFlag(p.uintVal)
   else:
-    pkt.add(char(paramToField(p)))
-    pkt.add(char(0))
+    pkt.writeTypeAndFlag(paramToField(p))
 
 proc addValueUnlessNULL(p: SqlParam, pkt: var string, conn: Connection) =
   ## https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
@@ -326,7 +302,6 @@ proc `$`*(v: ResultValue): string =
     return prefix & "$1:$2:$3" % [ $hours, $dp[Minutes], $dp[Seconds]]
   else:
     return "(unrepresentable!)"
-
 
 {.push overflowChecks: on .}
 proc toNumber[T](v: ResultValue): T {.inline.} =
@@ -623,7 +598,7 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
       of fieldTypeEnum, fieldTypeSet:
         raise newException(ProtocolError, "Unexpected field type " & $(typ) & " in resultset")
 
-proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): Future[void] =
+proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlParam]]): Future[void] =
   var pkt = conn.formatBoundParams(pstmt, params)
   return conn.sendPacket(pkt, reset_seq_no=true)
 
@@ -722,7 +697,6 @@ when declared(SslContext) and declared(startTls):
 proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = ""): Future[Connection] {.async.} =
   result = Connection(socket: sock)
   let handshakePacket = await connect(result)
-
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
 {.push warning[ObservableStores]: off.}
@@ -821,7 +795,6 @@ proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyF
             async, #[tags: [ReadDbEffect]]#.} =
   var q = dbFormat(query, args)
   result = await conn.rawQuery(q, onlyFirst)
-
 
 proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
                async, #[tags: [ReadDbEffect]]#.} =

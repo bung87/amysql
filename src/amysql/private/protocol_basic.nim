@@ -345,7 +345,7 @@ proc putLenStr*(buf: var string, val: string) =
   putLenInt(buf, val.len)
   buf.add(val)
 
-proc writeTypeAndFlag*(buf :var string, intVal: int64) = 
+proc writeTypeAndFlag*(buf :var string, intVal: int64) {.inline.} = 
   if intVal >= 0:
     if intVal < 256'i64:
       buf.add(char(fieldTypeTiny))
@@ -365,7 +365,7 @@ proc writeTypeAndFlag*(buf :var string, intVal: int64) =
       buf.add(char(fieldTypeLongLong))
     buf.add(char(0))
 
-proc writeTypeAndFlag*(buf: var string, intVal: uint64) = 
+proc writeTypeAndFlag*(buf: var string, intVal: uint64) {.inline.} = 
   if intVal < (65536'u64 * 65536'u64):
     buf.add(char(fieldTypeLong))
   else:
@@ -393,6 +393,10 @@ proc putValue*(buf: var string, intVal: uint64) =
   putU32(buf, uint32(intVal and 0xFFFFFFFF'u64))
   if intVal >= 0xFFFFFFFF'u64:
     putU32(buf, uint32(intVal shr 32))
+
+proc writeTypeAndFlag*(buf: var string, fieldType: FieldType) {.inline.} = 
+  let typAndFlag: array[2,char] = [fieldType.char, 0.char]
+  buf.add $typAndFlag
 
 when isMainModule or defined(test):
   proc hexstr(s: string): string =
