@@ -23,6 +23,12 @@ export json_sql_format
 import amysql/private/my_geometry
 export my_geometry
 
+import amysql/private/quote
+export quote
+
+import amysql/private/errors
+export errors
+
 import asyncdispatch
 import macros except floatVal
 import net  # needed for the SslContext type
@@ -180,6 +186,24 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
   of paramTimestamp:
     return 4
 
+proc paramToField(p: SqlParam): FieldType {.inline.} =
+  ## types that unsigned false and no special process
+  case p.typ
+    of paramFloat:
+      result = fieldTypeFloat
+    of paramDouble:
+      result = fieldTypeDouble
+    of paramDate:
+      result = fieldTypeDate
+    of paramDateTime:
+      result = fieldTypeDateTime
+    of paramTimestamp:
+      result = fieldTypeTimestamp
+    of paramTime:
+      result = fieldTypeTime
+    else:
+      discard
+
 proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
   ## see https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
   ## Param type
@@ -205,47 +229,11 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
     pkt.add(char(fieldTypeBlob))
     pkt.add(char(0))
   of paramInt:
-    if p.intVal >= 0:
-      if p.intVal < 256'i64:
-        pkt.add(char(fieldTypeTiny))
-      elif p.intVal < 65536'i64:
-        pkt.add(char(fieldTypeShort))
-      elif p.intVal < (65536'i64 * 65536'i64):
-        pkt.add(char(fieldTypeLong))
-      else:
-        pkt.add(char(fieldTypeLongLong))
-      pkt.add(char(0x80))
-    else:
-      if p.intVal >= -128:
-        pkt.add(char(fieldTypeTiny))
-      elif p.intVal >= -32768:
-        pkt.add(char(fieldTypeShort))
-      else:
-        pkt.add(char(fieldTypeLongLong))
-      pkt.add(char(0))
+    writeTypeAndFlag(pkt, p.intVal)
   of paramUInt:
-    if p.uintVal < (65536'u64 * 65536'u64):
-      pkt.add(char(fieldTypeLong))
-    else:
-      pkt.add(char(fieldTypeLongLong))
-    pkt.add(char(0x80))
-  of paramFloat:
-    pkt.add(fieldTypeFloat.char)
-    pkt.add(char(0))
-  of paramDouble:
-    pkt.add(fieldTypeDouble.char)
-    pkt.add(char(0))
-  of paramDate:
-    pkt.add ( fieldTypeDate.char)
-    pkt.add(char(0))
-  of paramDateTime:
-    pkt.add ( fieldTypeDateTime.char)
-    pkt.add(char(0))
-  of paramTimestamp:
-    pkt.add ( fieldTypeTimestamp.char)
-    pkt.add(char(0))
-  of paramTime:
-    pkt.add ( fieldTypeTime.char)
+    writeTypeAndFlag(pkt, p.uintVal)
+  else:
+    pkt.add(char(paramToField(p)))
     pkt.add(char(0))
 
 proc addValueUnlessNULL(p: SqlParam, pkt: var string, conn: Connection) =
@@ -257,25 +245,9 @@ proc addValueUnlessNULL(p: SqlParam, pkt: var string, conn: Connection) =
   of paramString, paramBlob,paramJson, paramGeometry:
     putLenStr(pkt, p.strVal)
   of paramInt:
-    if p.intVal >= 0:
-      pkt.putU8(p.intVal and 0xFF)
-      if p.intVal >= 256:
-        pkt.putU8((p.intVal shr 8) and 0xFF)
-        if p.intVal >= 65536:
-          pkt.putU16( (p.intVal shr 16).uint16 and 0xFFFF'u16)
-          if p.intVal >= (65536'i64 * 65536'i64):
-            pkt.putU32(uint32(p.intVal shr 32))
-    else:
-      if p.intVal >= -128:
-        pkt.putU8(uint8(p.intVal + 256))
-      elif p.intVal >= -32768:
-        pkt.putU16(uint16(p.intVal + 65536))
-      else:
-        pkt.putS64(p.intVal)
+    writeValue(pkt, p.intVal)
   of paramUInt:
-    putU32(pkt, uint32(p.uintVal and 0xFFFFFFFF'u64))
-    if p.uintVal >= 0xFFFFFFFF'u64:
-      putU32(pkt, uint32(p.uintVal shr 32))
+    writeValue(pkt, p.uintVal)
   of paramFloat:
     putFloat(pkt, p.floatVal)
   of paramDouble:
@@ -476,7 +448,7 @@ proc parseTextRow(pkt: string): seq[string] =
       result.add("")
       inc(pos)
     else:
-      result.add(pkt.scanLenStr(pos))
+      result.add(pkt.readLenStr(pos))
 
 proc receiveMetadata(conn: Connection, count: Positive): Future[seq[ColumnDefinition]] {.async.}  =
   var received = 0
@@ -487,13 +459,13 @@ proc receiveMetadata(conn: Connection, count: Positive): Future[seq[ColumnDefini
     if uint8(pkt[0]) == ResponseCode_ERR or uint8(pkt[0]) == ResponseCode_EOF:
       raise newException(ProtocolError, "TODO")
     var pos = 0
-    result[received].catalog = scanLenStr(pkt, pos)
-    result[received].schema = scanLenStr(pkt, pos)
-    result[received].table = scanLenStr(pkt, pos)
-    result[received].orig_table = scanLenStr(pkt, pos)
-    result[received].name = scanLenStr(pkt, pos)
-    result[received].orig_name = scanLenStr(pkt, pos)
-    let extras_len = scanLenInt(pkt, pos)
+    result[received].catalog = readLenStr(pkt, pos)
+    result[received].schema = readLenStr(pkt, pos)
+    result[received].table = readLenStr(pkt, pos)
+    result[received].orig_table = readLenStr(pkt, pos)
+    result[received].name = readLenStr(pkt, pos)
+    result[received].orig_name = readLenStr(pkt, pos)
+    let extras_len = readLenInt(pkt, pos)
     if extras_len < 10 or (pos+extras_len > len(pkt)):
       raise newException(ProtocolError, "truncated column packet")
     result[received].charset = int16(scanU16(pkt, pos))
@@ -575,20 +547,6 @@ proc formatBoundParams(conn: Connection, pstmt: SqlPrepared, params: openarray[S
   for p in params:
     p.addValueUnlessNULL(result, conn)
 
-proc scanDateTime*(buf: string, pos: var int, typ: static[ResultValueType],zone: Timezone = utc()): ResultValue = 
-  let year = int(buf[pos+1]) + int(buf[pos+2]) * 256
-  inc(pos,2)
-  let month = int(buf[pos + 1])
-  let day = int(buf[pos + 2])
-  inc(pos,2)
-  var hour,minute,second:int
-  hour = int(buf[pos + 1])
-  minute = int(buf[pos + 2])
-  second = int(buf[pos + 3])
-  inc(pos,3)
-  let dt = initDateTime(day,month.Month,year.int,hour,minute,second,zone)
-  ResultValue(typ: typ, datetimeVal: dt)
-
 proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValue] =
   ## see https://mariadb.com/kb/en/resultset-row/
   ## https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html
@@ -655,7 +613,7 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         inc(pos, 8)
         result[ix] = ResultValue(typ: rvtDouble, doubleVal: v)
       of fieldTypeDateTime:
-        result[ix] = scanDateTime(pkt, pos, rvtDateTime)
+        result[ix] = ResultValue(typ: rvtDateTime, datetimeVal: readDateTime(pkt, pos))
       of fieldTypeDate:
         let year = int(pkt[pos+1]) + int(pkt[pos+2]) * 256
         inc(pos,2)
@@ -665,39 +623,17 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
         let dt = initDate(day,month.Month,year.int)
         result[ix] = ResultValue(typ: rvtDate, datetimeVal: dt)
       of fieldTypeTimestamp:
-        result[ix] = scanDateTime(pkt, pos, rvtTimestamp)
+        result[ix] = ResultValue(typ: rvtTimestamp, datetimeVal: readDateTime(pkt, pos))  
       of fieldTypeTime:
-        let dataLen = int(pkt[pos])
-        var isNegative = int(pkt[pos + 1])
-        inc(pos,2)
-        var days:int32
-        scan32(pkt,pos,days.addr)
-        inc(pos,4)
-        var hours = int(pkt[pos])
-        var minutes = int(pkt[pos + 1])
-        var seconds = int(pkt[pos + 2])
-        inc(pos,3)
-        var microseconds:int32 
-        if dataLen == 8 :
-          microseconds = 0 
-        else: 
-          scan32(pkt,pos,microseconds.addr)
-          inc(pos,4)
-        if isNegative != 0:
-          days = -days
-          hours = -hours
-          minutes = -minutes
-          seconds = -seconds
-          microseconds = -microseconds
-        result[ix] = ResultValue(typ: rvtTime, durVal: initDuration(days=days,hours=hours,minutes=minutes,seconds=seconds,microseconds=microseconds))
+        result[ix] = ResultValue(typ: rvtTime, durVal: readTime(pkt, pos) )
       of fieldTypeTinyBlob, fieldTypeMediumBlob, fieldTypeLongBlob, fieldTypeBlob, fieldTypeBit:
-        result[ix] = ResultValue(typ: rvtBlob, strVal: scanLenStr(pkt, pos))
+        result[ix] = ResultValue(typ: rvtBlob, strVal: readLenStr(pkt, pos))
       of fieldTypeVarchar, fieldTypeVarString, fieldTypeString, fieldTypeDecimal, fieldTypeNewDecimal:
-        result[ix] = ResultValue(typ: rvtString, strVal: scanLenStr(pkt, pos))
+        result[ix] = ResultValue(typ: rvtString, strVal: readLenStr(pkt, pos))
       of fieldTypeJson:
-        result[ix] = ResultValue(typ: rvtJson, strVal: scanLenStr(pkt, pos))
+        result[ix] = ResultValue(typ: rvtJson, strVal: readLenStr(pkt, pos))
       of fieldTypeGeometry:
-        result[ix] = ResultValue(typ: rvtGeometry, strVal: scanLenStr(pkt, pos))
+        result[ix] = ResultValue(typ: rvtGeometry, strVal: readLenStr(pkt, pos))
       of fieldTypeEnum, fieldTypeSet:
         raise newException(ProtocolError, "Unexpected field type " & $(typ) & " in resultset")
 
@@ -862,7 +798,7 @@ proc rawQuery*(conn: Connection, query: string, onlyFirst = false): Future[Resul
     raise parseErrorPacket(pkt)
   else:
     var p = 0
-    let column_count = scanLenInt(pkt, p)
+    let column_count = readLenInt(pkt, p)
     result.columns = await conn.receiveMetadata(column_count)
     while true:
       let pkt = await conn.receivePacket()
@@ -894,7 +830,7 @@ proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void]
     raise parseErrorPacket(initialPacket)
   else:
     var p = 0
-    let column_count = scanLenInt(initialPacket, p)
+    let column_count = readLenInt(initialPacket, p)
     result.columns = await conn.receiveMetadata(column_count)
     while true:
       let pkt = await conn.receivePacket()
@@ -929,28 +865,6 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
     return parseOKPacket(conn, pkt)
   else:
     raise newException(ProtocolError, "unexpected response to COM_INIT_DB")
-
-proc dbQuote*(s: string): string =
-  ## DB quotes the string.
-  result = newStringOfCap(s.len + 2)
-  result.add "'"
-  for c in items(s):
-    # see https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html#mysql-escaping
-    case c:
-      of '\0': result.add "\\0"
-      of '\b': result.add "\\b"
-      of '\t': result.add "\\t"
-      of '\l': result.add "\\n"
-      of '\r': result.add "\\r"
-      of '\x1a': result.add "\\Z"
-      of '"': result.add "\\\""
-      of '%': result.add "\\%"
-      of '\'': result.add "\\'"
-      of '\\': result.add "\\\\"
-      of '_': result.add "\\_"
-      of Letters+Digits: result.add c
-      else: result.add "\\" & c
-  add(result, '\'')
 
 proc dbFormat(formatstr: SqlQuery, args: varargs[string]): string =
   result = ""

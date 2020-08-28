@@ -1,16 +1,194 @@
 import strutils
 import endians
-import times
-
-type
-  # ProtocolError indicates we got something we don't understand. We might
-  # even have lost framing, etc.. The connection should really be closed at this point.
-  ProtocolError* = object of IOError
+import ./errors
 
 const
   LenEnc_16        = 0xFC
   LenEnc_24        = 0xFD
   LenEnc_64        = 0xFE
+
+# These are protocol constants; see
+#  https://dev.mysql.com/doc/internals/en/overview.html
+
+const
+  ResponseCode_OK*  : uint8 = 0
+  ResponseCode_EOF* : uint8 = 254   # Deprecated in mysql 5.7.5
+  ResponseCode_ERR* : uint8 = 255
+  ResponseCode_AuthSwitchRequest*: uint8 = 254 # 0xFE
+  ResponseCode_ExtraAuthData*: uint8 = 1 # 0x01
+  NullColumn*       = char(0xFB)
+
+  HandshakeV10 : uint8 = 0x0A  # Initial handshake packet since MySQL 3.21
+
+  Charset_swedish_ci : uint8 = 0x08
+  Charset_utf8_ci*    : uint8 = 0x21
+  Charset_binary     : uint8 = 0x3f
+
+type
+  nat24 = range[0 .. 16777215]
+
+  Status* {.pure.} = enum
+    inTransaction = 1  # a transaction is active
+    autoCommit = 2 # auto-commit is enabled
+    moreResultsExist = 3
+    noGoodIndexUsed = 4
+    noIndexUsed = 5
+    cursorExists = 6 # Used by Binary Protocol Resultset
+    lastRowSent = 7
+    dbDropped = 8
+    noBackslashEscapes = 9
+    metadataChanged = 10
+    queryWasSlow = 11
+    psOutParams = 12
+    inTransactionReadOnly = 13 # in a read-only transaction
+    sessionStateChanged = 14 # connection state information has changed
+
+  # These correspond to the CMD_FOO definitions in mysql.
+  # Commands marked "internal to the server", and commands
+  # only used by the replication protocol, are commented out
+  # https://dev.mysql.com/worklog/task/?id=8754
+  # Following COM_XXX commands can be deprecated as there are alternative sql 
+  # statements associated with them.
+  # COM_FIELD_LIST (show columns sql statement)
+  # COM_REFRESH (flush sql statement)
+  # COM_PROCESS_INFO(show processlist sql statement)
+  # COM_PROCESS_KILL (kill connection/query sql statement)
+  Command* {.pure.} = enum
+    # sleep = 0
+    quit = 1
+    initDb = 2
+    query = 3
+    fieldList = 4     # Deprecated, show fields sql statement
+    createDb = 5      # Deprecated, create table sql statement
+    dropDb = 6        # Deprecated, drop table sql statement
+    refresh = 7       # Deprecated, flush sql statement
+    shutdown = 8
+    statistics = 9
+    processInfo = 10  # Deprecated, show processlist sql statement
+    # connect = 11
+    processKill = 12  # Deprecated, kill connection/query sql statement
+    debug = 13
+    ping = 14
+    # time = 15
+    # delayedInsert = 16
+    changeUser = 17
+
+    # Replication commands
+    # binlogDump = 18
+    # tableDump = 19
+    # connectOut = 20
+    # registerSlave = 21
+    # binlogDumpGtid = 30
+
+    # Prepared statements
+    statementPrepare = 22
+    statementExecute = 23
+    statementSendLongData = 24
+    statementClose = 25
+    statementReset = 26
+
+    # Stored procedures
+    setOption = 27
+    statementFetch = 28
+
+    # daemon = 29
+    resetConnection = 31
+    
+
+  FieldFlag* {.pure.} = enum
+    notNull = 0 # Field can't be NULL
+    primaryKey = 1 # Field is part of a primary key
+    uniqueKey = 2 # Field is part of a unique key
+    multipleKey = 3 # Field is part of a key
+    blob = 4 # Field is a blob
+    unsigned = 5 # Field is unsigned
+    zeroFill = 6 # Field is zerofill
+    binary = 7 # Field is binary
+
+    # The following are only sent to new clients (what is "new"? 4.1+?)
+    enumeration = 8 # field is an enum
+    autoIncrement = 9 # field is a autoincrement field
+    timeStamp = 10 # Field is a timestamp
+    isSet = 11 # Field is a set
+    noDefaultValue = 12 # Field doesn't have default value
+    onUpdateNow = 13 # Field is set to NOW on UPDATE
+    isNum = 15 # Field is num (for clients)
+
+  FieldType* = enum
+    fieldTypeDecimal     = uint8(0)
+    fieldTypeTiny        = uint8(1)
+    fieldTypeShort       = uint8(2)
+    fieldTypeLong        = uint8(3)
+    fieldTypeFloat       = uint8(4)
+    fieldTypeDouble      = uint8(5)
+    fieldTypeNull        = uint8(6)
+    fieldTypeTimestamp   = uint8(7)
+    fieldTypeLongLong    = uint8(8)
+    fieldTypeInt24       = uint8(9)
+    fieldTypeDate        = uint8(10)
+    fieldTypeTime        = uint8(11)
+    fieldTypeDateTime    = uint8(12)
+    fieldTypeYear        = uint8(13)
+    fieldTypeVarchar     = uint8(15)
+    fieldTypeBit         = uint8(16)
+    fieldTypeJson        = uint8(245)
+    fieldTypeNewDecimal  = uint8(246)
+    fieldTypeEnum        = uint8(247)
+    fieldTypeSet         = uint8(248)
+    fieldTypeTinyBlob    = uint8(249)
+    fieldTypeMediumBlob  = uint8(250)
+    fieldTypeLongBlob    = uint8(251)
+    fieldTypeBlob        = uint8(252)
+    fieldTypeVarString   = uint8(253)
+    fieldTypeString      = uint8(254)
+    fieldTypeGeometry    = uint8(255)
+
+  CursorType* {.pure.} = enum
+    noCursor             = 0
+    readOnly             = 1
+    forUpdate            = 2
+    scrollable           = 3
+
+  # Server response packets: OK and EOF
+  ResponseOK* {.final.} = object 
+    eof               : bool  # True if EOF packet, false if OK packet
+    affected_rows*    : Natural
+    last_insert_id*   : Natural
+    status_flags*     : set[Status]
+    warning_count*    : Natural
+    info*             : string
+    # session_state_changes: seq[ ... ]
+  ResponseAuthSwitch* {.final.} = object 
+    status: uint8 # const ResponseCode_AuthSwitchRequest
+    pluginName*: string
+    pluginData*: string
+  ResponseAuthMore* {.final.} = object
+    status: uint8 # const 0x01
+    pluginData*: string
+
+  # Server response packet: ERR (which can be thrown as an exception)
+  ResponseERR* = object of CatchableError
+    error_code: uint16
+    sqlstate: string
+ 
+  HandshakePacket* = ref HandshakePacketObj
+  HandshakePacketObj = object       
+    ## Packet from mysql server when connecting to the server that requires authentication.
+    ## see https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
+    protocolVersion*: int      # 1
+    serverVersion*: string     # NullTerminatedString
+    threadId*: int             # 4 connection id
+    scrambleBuff1*: string      # 8 # auth_plugin_data_part_1
+    capabilities*: int         # (4)
+    capabilities1*: int         # 2
+    charset*: int              # 1
+    serverStatus*: int         # 2
+    capabilities2*: int         # [2]
+    scrambleLen*: int          # [1]
+    scrambleBuff2*: string      # [12]
+    scrambleBuff*: string      # 8 + [12]
+    plugin*: string            # NullTerminatedString 
+    protocol41*: bool
 
 ## Basic datatype packers/unpackers
 ## little endian
@@ -22,14 +200,14 @@ proc scan16(buf: string, pos: int , p: pointer) {.inline.} =
   else:
     copyMem(p, buf[pos].unSafeAddr, 2)
 
-proc put16*(buf: var string, p: pointer) {.inline.} =
+proc put16(buf: var string, p: pointer) {.inline.} =
   var arr:array[0..1, char]
   littleEndian16(addr arr, p)
   var str = newString(2)
   copyMem(str[0].addr, arr[0].addr, 2)
   buf.add str
 
-proc scan32*(buf: string, pos: int , p: pointer) {.inline.} =
+proc scan32(buf: string, pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
     swapEndian32(p, buf[pos].addr)
   else:
@@ -55,7 +233,7 @@ proc put64(buf: var string, p: pointer) {.inline.} =
   copyMem(str[0].addr, arr[0].addr, 8)
   buf.add str
 
-proc putU8*(buf: var string, val: uint8) {.inline.} =
+proc putU8(buf: var string, val: uint8) {.inline.} =
   buf.add( char(val) )
 
 proc putU8*(buf: var string, val: range[0..255]) {.inline.} =
@@ -97,7 +275,7 @@ proc putS64*(buf: var string, val: int64) =
 proc putU64*(buf: var string, val: uint64) =
   put64(buf, val.unSafeAddr)
 
-proc scanLenInt*(buf: string, pos: var int): int =
+proc readLenInt*(buf: string, pos: var int): int =
   let b1 = uint8(buf[pos])
   if b1 < 251:
     inc(pos)
@@ -137,14 +315,14 @@ proc putLenInt*(buf: var string, val: int|uint|int32|uint32):int {.discardable.}
 
 
 # Strings
-proc scanNulString*(buf: string, pos: var int): string =
+proc readNulString*(buf: string, pos: var int): string =
   result = ""
   while buf[pos] != char(0):
     result.add(buf[pos])
     inc(pos)
   inc(pos)
 
-proc scanNulStringX*(buf: string, pos: var int): string =
+proc readNulStringX*(buf: string, pos: var int): string =
   # scan null string limited to buf high
   result = ""
   while pos <= high(buf) and buf[pos] != char(0):
@@ -156,8 +334,8 @@ proc putNulString*(buf: var string, val: string) =
   buf.add(val)
   buf.add( char(0) )
 
-proc scanLenStr*(buf: string, pos: var int): string =
-  let slen = scanLenInt(buf, pos)
+proc readLenStr*(buf: string, pos: var int): string =
+  let slen = readLenInt(buf, pos)
   if slen < 0:
     raise newException(ProtocolError, "lenenc-int: is 0x" & toHex(int(buf[pos]), 2))
   result = substr(buf, pos, pos+slen-1)
@@ -167,73 +345,54 @@ proc putLenStr*(buf: var string, val: string) =
   putLenInt(buf, val.len)
   buf.add(val)
 
-proc putTime*(buf: var string, val: Duration):int {.discardable.}  =
-  let dp = toParts(val)
-  var micro = dp[Microseconds].int32
-  result = if micro == 0: 8 else: 12
-  buf.putU8(result) # length
-  buf.putU8(if val < DurationZero: 1 else: 0 ) 
-  var days = dp[Days].int32
-  buf.put32 days.addr
-  buf.putU8 dp[Hours]
-  buf.putU8 dp[Minutes]
-  buf.putU8 dp[Seconds]
-  if micro != 0:
-    buf.put32 micro.addr
-  
-proc putDate*(buf: var string, val: DateTime):int {.discardable.}  =
-  result = 4
-  buf.putU8 result.uint8
-  var uyear = val.year.uint16
-  buf.put16 uyear.addr
-  buf.putU8 val.month.ord.uint8
-  buf.putU8 val.monthday.uint8
-
-proc putDateTime*(buf: var string, val: DateTime):int {.discardable.} =
-  let hasTime = val.second != 0 or val.minute != 0 or val.hour != 0
-  if val.nanosecond != 0:
-    result = 11
-  elif hasTime:
-    result = 7
+proc writeTypeAndFlag*(buf :var string, intVal: int64) = 
+  if intVal >= 0:
+    if intVal < 256'i64:
+      buf.add(char(fieldTypeTiny))
+    elif intVal < 65536'i64:
+      buf.add(char(fieldTypeShort))
+    elif intVal < (65536'i64 * 65536'i64):
+      buf.add(char(fieldTypeLong))
+    else:
+      buf.add(char(fieldTypeLongLong))
+    buf.add(char(0x80))
   else:
-    result = 4
-  buf.putU8 result.uint8 # length
-  var uyear = val.year.uint16
-  buf.putU16 uyear
-  buf.putU8 val.month.ord.uint8
-  buf.putU8 val.monthday.uint8
-  
-  if result > 4:
-    buf.putU8 val.hour.uint8
-    buf.putU8 val.minute.uint8
-    buf.putU8 val.second.uint8
-    if result > 7:
-      var micro = val.nanosecond div 1000
-      var umico = micro.int32
-      buf.put32 umico.addr
+    if intVal >= -128:
+      buf.add(char(fieldTypeTiny))
+    elif intVal >= -32768:
+      buf.add(char(fieldTypeShort))
+    else:
+      buf.add(char(fieldTypeLongLong))
+    buf.add(char(0))
 
-proc putTimestamp*(buf: var string, val: DateTime): int {.discardable.} = 
-  # for text protocol
-  let ts = val.format("yyyy-MM-dd HH:mm:ss'.'ffffff") # len 26 + 13
-  buf.putNulString "timestamp('$#')" % [ts]
-  # default "timestamp('0000-00-00')" len 23
+proc writeTypeAndFlag*(buf: var string, intVal: uint64) = 
+  if intVal < (65536'u64 * 65536'u64):
+    buf.add(char(fieldTypeLong))
+  else:
+    buf.add(char(fieldTypeLongLong))
+  buf.add(char(0x80))
 
-proc hexdump*(buf: openarray[char], fp: File) =
-  var pos = low(buf)
-  while pos <= high(buf):
-    for i in 0 .. 15:
-      fp.write(' ')
-      if i == 8: fp.write(' ')
-      let p = i+pos
-      fp.write( if p <= high(buf): toHex(int(buf[p]), 2) else: "  " )
-    fp.write("  |")
-    for i in 0 .. 15:
-      var ch = ( if (i+pos) > high(buf): ' ' else: buf[i+pos] )
-      if ch < ' ' or ch > '~':
-        ch = '.'
-      fp.write(ch)
-    pos += 16
-    fp.write("|\n")
+proc writeValue*(buf: var string, intVal: int64) = 
+  if intVal >= 0:
+    buf.putU8(intVal and 0xFF)
+    if intVal >= 256:
+      buf.putU8((intVal shr 8) and 0xFF)
+      if intVal >= 65536:
+        buf.putU16( (intVal shr 16).uint16 and 0xFFFF'u16)
+        if intVal >= (65536'i64 * 65536'i64):
+          buf.putU32(uint32(intVal shr 32))
+  else:
+    if intVal >= -128:
+      buf.putU8(uint8(intVal + 256))
+    elif intVal >= -32768:
+      buf.putU16(uint16(intVal + 65536))
+    else:
+      buf.putS64(intVal)
+
+proc writeValue*(buf: var string, intVal: uint64) = 
+  putU32(buf, uint32(intVal and 0xFFFFFFFF'u64))
+  if intVal >= 0xFFFFFFFF'u64:
+    putU32(buf, uint32(intVal shr 32))
 
 when isMainModule or defined(test):
   proc hexstr(s: string): string =
@@ -261,16 +420,16 @@ when isMainModule or defined(test):
   assert "0001fafcfb00fcfc00fc0002fc8002fcfffffd000001fdabcdefffff000000000100aa0ac080" == hexstr(buf)
   var pos: int = 0
 
-  assert 0 == scanLenInt(buf, pos)
-  assert 1    == scanLenInt(buf, pos)
-  assert 250  == scanLenInt(buf, pos)
-  assert 251  == scanLenInt(buf, pos)
-  assert 252  == scanLenInt(buf, pos)
-  assert 512  == scanLenInt(buf, pos)
-  assert 640  == scanLenInt(buf, pos)
-  assert 0x0FFFF == scanLenInt(buf, pos)
-  assert 0x10000 ==  scanLenInt(buf, pos)
-  assert 15715755 ==  scanLenInt(buf, pos)
+  assert 0 == readLenInt(buf, pos)
+  assert 1    == readLenInt(buf, pos)
+  assert 250  == readLenInt(buf, pos)
+  assert 251  == readLenInt(buf, pos)
+  assert 252  == readLenInt(buf, pos)
+  assert 512  == readLenInt(buf, pos)
+  assert 640  == readLenInt(buf, pos)
+  assert 0x0FFFF == readLenInt(buf, pos)
+  assert 0x10000 ==  readLenInt(buf, pos)
+  assert 15715755 ==  readLenInt(buf, pos)
   assert 65535 ==  int(scanU32(buf, pos))
   assert 65535'u16 ==  scanU16(buf, pos)
   assert 255'u16 ==  scanU16(buf, pos+1)

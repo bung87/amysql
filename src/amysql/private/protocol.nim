@@ -1,193 +1,12 @@
 
-import ./protocol_basic
-export protocol_basic
+include ./protocol_basic
+
 import ./cap
 import asyncnet,asyncdispatch
 import ../conn
-
-# These are protocol constants; see
-#  https://dev.mysql.com/doc/internals/en/overview.html
-
-const
-  ResponseCode_OK*  : uint8 = 0
-  ResponseCode_EOF* : uint8 = 254   # Deprecated in mysql 5.7.5
-  ResponseCode_ERR* : uint8 = 255
-  ResponseCode_AuthSwitchRequest*: uint8 = 254 # 0xFE
-  ResponseCode_ExtraAuthData*: uint8 = 1 # 0x01
-  NullColumn*       = char(0xFB)
-
-  HandshakeV10 : uint8 = 0x0A  # Initial handshake packet since MySQL 3.21
-
-  Charset_swedish_ci : uint8 = 0x08
-  Charset_utf8_ci*    : uint8 = 0x21
-  Charset_binary     : uint8 = 0x3f
+import times
 
 
-type
-  nat24 = range[0 .. 16777215]
-
-  Status* {.pure.} = enum
-    inTransaction = 1  # a transaction is active
-    autoCommit = 2 # auto-commit is enabled
-    moreResultsExist = 3
-    noGoodIndexUsed = 4
-    noIndexUsed = 5
-    cursorExists = 6 # Used by Binary Protocol Resultset
-    lastRowSent = 7
-    dbDropped = 8
-    noBackslashEscapes = 9
-    metadataChanged = 10
-    queryWasSlow = 11
-    psOutParams = 12
-    inTransactionReadOnly = 13 # in a read-only transaction
-    sessionStateChanged = 14 # connection state information has changed
-
-  # These correspond to the CMD_FOO definitions in mysql.
-  # Commands marked "internal to the server", and commands
-  # only used by the replication protocol, are commented out
-  # https://dev.mysql.com/worklog/task/?id=8754
-  # Following COM_XXX commands can be deprecated as there are alternative sql 
-  # statements associated with them.
-  # COM_FIELD_LIST (show columns sql statement)
-  # COM_REFRESH (flush sql statement)
-  # COM_PROCESS_INFO(show processlist sql statement)
-  # COM_PROCESS_KILL (kill connection/query sql statement)
-  Command* {.pure.} = enum
-    # sleep = 0
-    quit = 1
-    initDb = 2
-    query = 3
-    fieldList = 4     # Deprecated, show fields sql statement
-    createDb = 5      # Deprecated, create table sql statement
-    dropDb = 6        # Deprecated, drop table sql statement
-    refresh = 7       # Deprecated, flush sql statement
-    shutdown = 8
-    statistics = 9
-    processInfo = 10  # Deprecated, show processlist sql statement
-    # connect = 11
-    processKill = 12  # Deprecated, kill connection/query sql statement
-    debug = 13
-    ping = 14
-    # time = 15
-    # delayedInsert = 16
-    changeUser = 17
-
-    # Replication commands
-    # binlogDump = 18
-    # tableDump = 19
-    # connectOut = 20
-    # registerSlave = 21
-    # binlogDumpGtid = 30
-
-    # Prepared statements
-    statementPrepare = 22
-    statementExecute = 23
-    statementSendLongData = 24
-    statementClose = 25
-    statementReset = 26
-
-    # Stored procedures
-    setOption = 27
-    statementFetch = 28
-
-    # daemon = 29
-    resetConnection = 31
-    
-
-  FieldFlag* {.pure.} = enum
-    notNull = 0 # Field can't be NULL
-    primaryKey = 1 # Field is part of a primary key
-    uniqueKey = 2 # Field is part of a unique key
-    multipleKey = 3 # Field is part of a key
-    blob = 4 # Field is a blob
-    unsigned = 5 # Field is unsigned
-    zeroFill = 6 # Field is zerofill
-    binary = 7 # Field is binary
-
-    # The following are only sent to new clients (what is "new"? 4.1+?)
-    enumeration = 8 # field is an enum
-    autoIncrement = 9 # field is a autoincrement field
-    timeStamp = 10 # Field is a timestamp
-    isSet = 11 # Field is a set
-    noDefaultValue = 12 # Field doesn't have default value
-    onUpdateNow = 13 # Field is set to NOW on UPDATE
-    isNum = 15 # Field is num (for clients)
-
-  FieldType* = enum
-    fieldTypeDecimal     = uint8(0)
-    fieldTypeTiny        = uint8(1)
-    fieldTypeShort       = uint8(2)
-    fieldTypeLong        = uint8(3)
-    fieldTypeFloat       = uint8(4)
-    fieldTypeDouble      = uint8(5)
-    fieldTypeNull        = uint8(6)
-    fieldTypeTimestamp   = uint8(7)
-    fieldTypeLongLong    = uint8(8)
-    fieldTypeInt24       = uint8(9)
-    fieldTypeDate        = uint8(10)
-    fieldTypeTime        = uint8(11)
-    fieldTypeDateTime    = uint8(12)
-    fieldTypeYear        = uint8(13)
-    fieldTypeVarchar     = uint8(15)
-    fieldTypeBit         = uint8(16)
-    fieldTypeJson        = uint8(245)
-    fieldTypeNewDecimal  = uint8(246)
-    fieldTypeEnum        = uint8(247)
-    fieldTypeSet         = uint8(248)
-    fieldTypeTinyBlob    = uint8(249)
-    fieldTypeMediumBlob  = uint8(250)
-    fieldTypeLongBlob    = uint8(251)
-    fieldTypeBlob        = uint8(252)
-    fieldTypeVarString   = uint8(253)
-    fieldTypeString      = uint8(254)
-    fieldTypeGeometry    = uint8(255)
-
-  CursorType* {.pure.} = enum
-    noCursor             = 0
-    readOnly             = 1
-    forUpdate            = 2
-    scrollable           = 3
-
-  # Server response packets: OK and EOF
-  ResponseOK* {.final.} = object 
-    eof               : bool  # True if EOF packet, false if OK packet
-    affected_rows*    : Natural
-    last_insert_id*   : Natural
-    status_flags*     : set[Status]
-    warning_count*    : Natural
-    info*             : string
-    # session_state_changes: seq[ ... ]
-  ResponseAuthSwitch* {.final.} = object 
-    status: uint8 # const ResponseCode_AuthSwitchRequest
-    pluginName*: string
-    pluginData*: string
-  ResponseAuthMore* {.final.} = object
-    status: uint8 # const 0x01
-    pluginData*: string
-
-  # Server response packet: ERR (which can be thrown as an exception)
-  ResponseERR* = object of CatchableError
-    error_code: uint16
-    sqlstate: string
- 
-  HandshakePacket* = ref HandshakePacketObj
-  HandshakePacketObj = object       
-    ## Packet from mysql server when connecting to the server that requires authentication.
-    ## see https://dev.mysql.com/doc/internals/en/connection-phase-packets.html
-    protocolVersion*: int      # 1
-    serverVersion*: string     # NullTerminatedString
-    threadId*: int             # 4 connection id
-    scrambleBuff1*: string      # 8 # auth_plugin_data_part_1
-    capabilities*: int         # (4)
-    capabilities1*: int         # 2
-    charset*: int              # 1
-    serverStatus*: int         # 2
-    capabilities2*: int         # [2]
-    scrambleLen*: int          # [1]
-    scrambleBuff2*: string      # [12]
-    scrambleBuff*: string      # 8 + [12]
-    plugin*: string            # NullTerminatedString 
-    protocol41*: bool
 # EOF is signaled by a packet that starts with 0xFE, which is
 # also a valid length-encoded-integer. In order to distinguish
 # between the two cases, we check the length of the packet: EOFs
@@ -227,7 +46,7 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   if result.protocolVersion != HandshakeV10.int:
     raise newException(ProtocolError, "Unexpected protocol version: " & $result.protocolVersion)
   var pos = 1
-  conn.serverVersion = scanNulString(buf, pos)
+  conn.serverVersion = readNulString(buf, pos)
   result.serverVersion = conn.serverVersion
   conn.threadId = scanU32(buf, pos)
   result.threadId = int(conn.threadId)
@@ -262,34 +81,34 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
   inc pos # filter 3
   if Cap.pluginAuth in conn.serverCaps:
-    result.plugin = scanNulStringX(buf, pos)
+    result.plugin = readNulStringX(buf, pos)
 
 proc parseAuthSwitchPacket*(conn: Connection, pkt: string): ref ResponseAuthSwitch =
   new(result)
   var pos: int = 1
   result.status = ResponseCode_ExtraAuthData
-  result.pluginName = scanNulString(pkt, pos)
-  result.pluginData = scanNulStringX(pkt, pos)
+  result.pluginName = readNulString(pkt, pos)
+  result.pluginData = readNulStringX(pkt, pos)
 
 proc parseResponseAuthMorePacket*(conn: Connection,pkt: string): ref ResponseAuthMore =
   new(result)
   var pos: int = 1
   result.status = ResponseCode_ExtraAuthData
-  result.pluginData = scanNulStringX(pkt, pos)
+  result.pluginData = readNulStringX(pkt, pos)
 
 proc parseOKPacket*(conn: Connection, pkt: string): ResponseOK =
   result.eof = false
   var pos: int = 1
-  result.affected_rows = scanLenInt(pkt, pos)
-  result.last_insert_id = scanLenInt(pkt, pos)
+  result.affected_rows = readLenInt(pkt, pos)
+  result.last_insert_id = readLenInt(pkt, pos)
   # We always supply Cap.protocol41 in client caps
   result.status_flags = cast[set[Status]]( scanU16(pkt, pos) )
   result.warning_count = scanU16(pkt, pos+2)
   pos = pos + 4
   if Cap.sessionTrack in conn.clientCaps:
-    result.info = scanLenStr(pkt, pos)
+    result.info = readLenStr(pkt, pos)
   else:
-    result.info = scanNulStringX(pkt, pos)
+    result.info = readNulStringX(pkt, pos)
 
 proc parseEOFPacket*(pkt: string): ResponseOK =
   result.eof = true
@@ -361,6 +180,112 @@ proc writeHandshakeResponse*(conn: Connection,
     putNulString(buf, auth_plugin)
 
   return conn.sendPacket(buf)
+
+proc putTime*(buf: var string, val: Duration):int {.discardable.}  =
+  let dp = toParts(val)
+  var micro = dp[Microseconds].int32
+  result = if micro == 0: 8 else: 12
+  buf.putU8(result) # length
+  buf.putU8(if val < DurationZero: 1 else: 0 ) 
+  var days = dp[Days].int32
+  buf.put32 days.addr
+  buf.putU8 dp[Hours]
+  buf.putU8 dp[Minutes]
+  buf.putU8 dp[Seconds]
+  if micro != 0:
+    buf.put32 micro.addr
+
+proc readTime*(buf: string, pos: var int): Duration = 
+  let dataLen = int(buf[pos])
+  var isNegative = int(buf[pos + 1])
+  inc(pos,2)
+  var days:int32
+  scan32(buf,pos,days.addr)
+  inc(pos,4)
+  var hours = int(buf[pos])
+  var minutes = int(buf[pos + 1])
+  var seconds = int(buf[pos + 2])
+  inc(pos,3)
+  var microseconds:int32 
+  if dataLen == 8 :
+    microseconds = 0 
+  else: 
+    scan32(buf,pos,microseconds.addr)
+    inc(pos,4)
+  if isNegative != 0:
+    days = -days
+    hours = -hours
+    minutes = -minutes
+    seconds = -seconds
+    microseconds = -microseconds
+  initDuration(days=days,hours=hours,minutes=minutes,seconds=seconds,microseconds=microseconds)
+
+proc putDate*(buf: var string, val: DateTime):int {.discardable.}  =
+  result = 4
+  buf.putU8 result.uint8
+  var uyear = val.year.uint16
+  buf.put16 uyear.addr
+  buf.putU8 val.month.ord.uint8
+  buf.putU8 val.monthday.uint8
+
+proc putDateTime*(buf: var string, val: DateTime):int {.discardable.} =
+  let hasTime = val.second != 0 or val.minute != 0 or val.hour != 0
+  if val.nanosecond != 0:
+    result = 11
+  elif hasTime:
+    result = 7
+  else:
+    result = 4
+  buf.putU8 result.uint8 # length
+  var uyear = val.year.uint16
+  buf.putU16 uyear
+  buf.putU8 val.month.ord.uint8
+  buf.putU8 val.monthday.uint8
+  
+  if result > 4:
+    buf.putU8 val.hour.uint8
+    buf.putU8 val.minute.uint8
+    buf.putU8 val.second.uint8
+    if result > 7:
+      var micro = val.nanosecond div 1000
+      var umico = micro.int32
+      buf.put32 umico.addr
+
+proc readDateTime*(buf: string, pos: var int, zone: Timezone = utc()): DateTime = 
+  let year = int(buf[pos+1]) + int(buf[pos+2]) * 256
+  inc(pos,2)
+  let month = int(buf[pos + 1])
+  let day = int(buf[pos + 2])
+  inc(pos,2)
+  var hour,minute,second:int
+  hour = int(buf[pos + 1])
+  minute = int(buf[pos + 2])
+  second = int(buf[pos + 3])
+  inc(pos,3)
+  result = initDateTime(day,month.Month,year.int,hour,minute,second,zone)
+
+proc putTimestamp*(buf: var string, val: DateTime): int {.discardable.} = 
+  # for text protocol
+  let ts = val.format("yyyy-MM-dd HH:mm:ss'.'ffffff") # len 26 + 13
+  buf.putNulString "timestamp('$#')" % [ts]
+  # default "timestamp('0000-00-00')" len 23
+
+proc hexdump*(buf: openarray[char], fp: File) =
+  var pos = low(buf)
+  while pos <= high(buf):
+    for i in 0 .. 15:
+      fp.write(' ')
+      if i == 8: fp.write(' ')
+      let p = i+pos
+      fp.write( if p <= high(buf): toHex(int(buf[p]), 2) else: "  " )
+    fp.write("  |")
+    for i in 0 .. 15:
+      var ch = ( if (i+pos) > high(buf): ' ' else: buf[i+pos] )
+      if ch < ' ' or ch > '~':
+        ch = '.'
+      fp.write(ch)
+    pos += 16
+    fp.write("|\n")
 
 proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEffect,RootEffect].} =
   var buf: string = newStringOfCap(4 + 1 + len(query))
