@@ -1,5 +1,6 @@
 import macros
 import options
+export options
 
 macro cachedProperty*(s: string, prc: untyped): untyped =
   if prc.kind notin {nnkProcDef, nnkLambda, nnkMethodDef, nnkDo}:

@@ -24,3 +24,4 @@ dnimcache/
 *.pdb
 .DS_Store
 *.out
+src/htmldocs
