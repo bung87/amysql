@@ -252,8 +252,10 @@ proc addValueUnlessNULL(p: SqlParam, pkt: var string, conn: Connection) =
     putFloat(pkt, p.floatVal)
   of paramDouble:
     putDouble(pkt, p.doubleVal)
-  of paramDate, paramDateTime, paramTimestamp:
+  of paramDate:
     putDate(pkt, p.datetimeVal)
+  of paramDateTime, paramTimestamp:
+    putDateTime(pkt, p.datetimeVal)
   of paramTime:
     putTime(pkt, p.durVal)
 
