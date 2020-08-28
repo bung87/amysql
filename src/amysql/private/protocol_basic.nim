@@ -395,8 +395,8 @@ proc putValue*(buf: var string, intVal: uint64) =
     putU32(buf, uint32(intVal shr 32))
 
 proc writeTypeAndFlag*(buf: var string, fieldType: FieldType) {.inline.} = 
-  let typAndFlag: array[2,char] = [fieldType.char, 0.char]
-  buf.add $typAndFlag
+  buf.add fieldType.char
+  buf.add char(0)
 
 when isMainModule or defined(test):
   proc hexstr(s: string): string =

@@ -147,7 +147,7 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
   of paramString, paramBlob, paramJson, paramGeometry:
     result = 5 + len(p.strVal)
   of paramInt, paramUInt, paramFloat, paramDate, paramTimestamp: 
-    result = 4
+    result = 4 + 1
   of paramDouble:
     return 8
   of paramTime:
