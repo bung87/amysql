@@ -32,7 +32,7 @@ export errors
 import asyncdispatch
 import macros except floatVal
 import net  # needed for the SslContext type
-import db_common #except DbEffect,ReadDbEffect,WriteDbEffect
+import db_common
 import strutils
 import asyncnet
 import uri
@@ -41,9 +41,6 @@ import json
 
 type
   Row* = seq[string] 
-  # This represents a value returned from the server when using
-  # the prepared statement / binary protocol. For convenience's sake
-  # we combine multiple wire types into the nearest Nim type.
   ResultValueType = enum
     rvtNull,
     rvtInteger,
@@ -77,15 +74,9 @@ type
       of rvtDouble:
         doubleVal: float64
       of rvtTime:
-        # .type TIME
-        # HH:MM:SS
         durVal: Duration
       of rvtDate, rvtDateTime,rvtTimestamp:
         # https://dev.mysql.com/doc/internals/en/date-and-time-data-type-representation.html
-        # .type DATETIME
-        # .flags is_timestamp
-        # variable length encoded unsigned64 value for each field
-        # YYYY-MM-DD  YYYY-MM-DD HH:MM:SS [.fraction]
         datetimeVal: DateTime
 
   ParamBindingType = enum
@@ -133,7 +124,6 @@ type
     orig_table*  : string
     name*        : string
     orig_name*   : string
-
     charset      : int16
     length*      : uint32
     column_type* : FieldType
@@ -238,7 +228,6 @@ proc addTypeUnlessNULL(p: SqlParam, pkt: var string,conn: Connection) =
 
 proc addValueUnlessNULL(p: SqlParam, pkt: var string, conn: Connection) =
   ## https://dev.mysql.com/doc/internals/en/x-protocol-messages-messages.html
-  ## Param type table
   case p.typ
   of paramNull:
     return
@@ -376,7 +365,7 @@ converter asString*(v: ResultValue): string =
   of rvtString, rvtBlob:
     return v.strVal
   else:
-    raise newException(ValueError, "value is " & $(v.typ) & ", not string")
+    raise newException(ValueError, "Can't convert " & $(v.typ) & " to string")
 
 converter asDateTime*(v: ResultValue): DateTime =
   case v.typ
@@ -387,7 +376,7 @@ converter asDateTime*(v: ResultValue): DateTime =
   of rvtDate:
     return v.datetimeVal
   else:
-    raise newException(ValueError, "value is " & $(v.typ) & ", not DateTime")
+    raise newException(ValueError, "Can't convert " & $(v.typ) & " to DateTime")
 
 converter asDate*(v: ResultValue): Date =
   cast[Date](v.datetimeVal)
@@ -397,21 +386,21 @@ converter asTime*(v: ResultValue): Time =
   of rvtTimestamp:
     v.datetimeVal.toTime
   else:
-    raise newException(ValueError, "value is " & $(v.typ) & ", not Time")
+    raise newException(ValueError, "Can't convert " & $(v.typ) & " to Time")
 
 converter asDuration*(v: ResultValue): Duration =
   case v.typ
   of rvtTime:
     v.durVal
   else:
-    raise newException(ValueError, "value is " & $(v.typ) & ", not Duration")
+    raise newException(ValueError, "Can't convert " & $(v.typ) & " to Duration")
 
 converter asMyGeometry*(v: ResultValue): MyGeometry = 
   case v.typ
   of rvtGeometry:
     newMyGeometry(v.strVal)
   else:
-    raise newException(ValueError, "value is " & $(v.typ) & ", not Geometry")
+    raise newException(ValueError, "Can't convert " & $(v.typ) & " to MyGeometry")
 
 converter asBool*(v: ResultValue): bool =
   case v.typ
@@ -424,7 +413,7 @@ converter asBool*(v: ResultValue): bool =
   of rvtNull:
     raise newException(ValueError, "NULL value")
   else:
-    raise newException(ValueError, "cannot convert " & $(v.typ) & " to boolean")
+    raise newException(ValueError, "Can't convert " & $(v.typ) & " to boolean")
 
 converter asJson*(v: ResultValue): JsonNode =
   case v.typ
@@ -432,7 +421,7 @@ converter asJson*(v: ResultValue): JsonNode =
     ## linux mariadb may store as blob (eg. mariadb version 10.4)
     parseJson v.strVal
   else:
-    raise newException(ValueError, "cannot convert " & $(v.typ) & " to JsonNode")
+    raise newException(ValueError, "Can't convert " & $(v.typ) & " to JsonNode")
 
 proc initDate*(monthday: MonthdayRange, month: Month, year: int, zone: Timezone = local()): Date =
   var dt = initDateTime(monthday,month,year,0,0,0,zone)
@@ -453,7 +442,6 @@ proc receiveMetadata(conn: Connection, count: Positive): Future[seq[ColumnDefini
   result = newSeq[ColumnDefinition](count)
   while received < count:
     let pkt = await conn.receivePacket()
-    # hexdump(pkt, stdmsg)
     if uint8(pkt[0]) == ResponseCode_ERR or uint8(pkt[0]) == ResponseCode_EOF:
       raise newException(ProtocolError, "TODO")
     var pos = 0
@@ -701,7 +689,6 @@ proc finishEstablishingConnection(conn: Connection,
       return
     else:
       debugEcho "legacy handshake"
-      # send legacy handshake
       var buf: string = newStringOfCap(32)
       buf.setLen(4)
       var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
@@ -728,7 +715,6 @@ when declared(SslContext) and declared(startTls):
   proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", ssl: SslContext): Future[Connection] {.async.} =
     result = Connection(socket: sock)
     let handshakePacket = await connect(result)
-    
     # Negotiate encryption
     await result.startTls(ssl)
     await result.finishEstablishingConnection(username, password, database, handshakePacket)
@@ -790,7 +776,6 @@ proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void]
     result.columns = await conn.receiveMetadata(column_count)
     while true:
       let pkt = await conn.receivePacket()
-      # hexdump(pkt, stdmsg)
       if isEOFPacket(pkt):
         result.status = parseEOFPacket(pkt)
         break
