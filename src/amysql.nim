@@ -787,6 +787,11 @@ proc dbFormat(formatstr: SqlQuery, args: varargs[string]): string =
     else:
       add(result, c)
 
+proc exec*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
+            async, #[tags: [ReadDbEffect]]#.} =
+  var q = dbFormat(query, args)
+  result = await conn.rawExec(q)
+
 proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
             async, #[tags: [ReadDbEffect]]#.} =
   var q = dbFormat(query, args)
@@ -797,7 +802,7 @@ proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): F
   ## tries to execute the query and returns true if successful, false otherwise.
   result = true
   try:
-    discard await conn.query(query, args)
+    discard await conn.exec(query, args)
   except:
     result = false
   return result
@@ -833,7 +838,7 @@ proc tryInsertId*(conn: Connection, query: SqlQuery,
   ## generated ID for the row or -1 in case of an error.
   var resultSet:ResultSet[string]
   try:
-    resultSet = await conn.query(query, args)
+    resultSet = await conn.exec(query, args)
   except:
     result = -1'i64
     return result
@@ -843,7 +848,7 @@ proc insertId*(conn: Connection, query: SqlQuery,
                args: varargs[string, `$`]): Future[int64] {.async, #[tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
-  let resultSet = await conn.query(query, args)
+  let resultSet = await conn.exec(query, args)
   result = resultSet.status.last_insert_id.int64
 
 proc tryInsert*(conn: Connection, query: SqlQuery, pkName: string,
@@ -855,7 +860,7 @@ proc insert*(conn: Connection, query: SqlQuery, pkName: string,
              args: varargs[string, `$`]): Future[int64]
             {.async, #[tags: [WriteDbEffect]]#.} =
   ## same as insertId
-  let resultSet = await conn.query(query, args)
+  let resultSet = await conn.exec(query, args)
   result = resultSet.status.last_insert_id.int64
 
 proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async, #[raises: [], tags: [DbEffect]]#.} =
