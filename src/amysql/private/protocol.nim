@@ -115,18 +115,17 @@ proc parseEOFPacket*(pkt: string): ResponseOK =
   result.warning_count = scanU16(pkt, 1)
   result.status_flags = cast[set[Status]]( scanU16(pkt, 3) )
 
-proc sendPacket*(conn: Connection, buf: var string, reset_seq_no = false): Future[void] =
+proc sendPacket*(conn: Connection, buf: var string, resetSeqId = false): Future[void] =
   # Caller must have left the first four bytes of the buffer available for
   # us to write the packet header.
   let bodylen = len(buf) - 4
   buf[0] = char( (bodylen and 0xFF) )
   buf[1] = char( ((bodylen shr 8) and 0xFF) )
   buf[2] = char( ((bodylen shr 16) and 0xFF) )
-  if reset_seq_no:
+  if resetSeqId:
     conn.sequenceId = 0
   buf[3] = char( conn.sequenceId )
   inc(conn.sequenceId)
-  # hexdump(buf, stdmsg)
   conn.socket.send(buf)
 
 proc writeHandshakeResponse*(conn: Connection,
@@ -292,7 +291,7 @@ proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEf
   buf.setLen(4)
   buf.add( char(Command.query) )
   buf.add(query)
-  return conn.sendPacket(buf, reset_seq_no=true)
+  return conn.sendPacket(buf, resetSeqId=true)
 
 ## MySQL packet packers/unpackers
 

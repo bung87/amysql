@@ -444,7 +444,7 @@ proc prepare*(conn: Connection, query: string): Future[SqlPrepared] {.async.} =
   buf.setLen(4)
   buf.add( char(Command.statementPrepare) )
   buf.add(query)
-  await conn.sendPacket(buf, reset_seq_no=true)
+  await conn.sendPacket(buf, resetSeqId=true)
   let pkt = await conn.receivePacket()
   if isERRPacket(pkt):
     raise parseErrorPacket(pkt)
@@ -473,12 +473,12 @@ proc prepare(pstmt: SqlPrepared, buf: var string, cmd: Command, cap: int = 9) =
 proc finalize*(conn: Connection, pstmt: SqlPrepared): Future[void] =
   var buf: string
   pstmt.prepare(buf, Command.statementClose)
-  return conn.sendPacket(buf, reset_seq_no=true)
+  return conn.sendPacket(buf, resetSeqId=true)
 
 proc reset*(conn: Connection, pstmt: SqlPrepared): Future[void] =
   var buf: string
   pstmt.prepare(buf, Command.statementReset)
-  return conn.sendPacket(buf, reset_seq_no=true)
+  return conn.sendPacket(buf, resetSeqId=true)
 
 proc formatBoundParams(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): string =
   ## see https://mariadb.com/kb/en/com_stmt_execute/
@@ -600,7 +600,7 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlParam]]): Future[void] =
   var pkt = conn.formatBoundParams(pstmt, params)
-  return conn.sendPacket(pkt, reset_seq_no=true)
+  return conn.sendPacket(pkt, resetSeqId=true)
 
 when defined(ssl):
   proc startTls(conn: Connection, ssl: SslContext): Future[void] {.async.} =
@@ -714,11 +714,23 @@ template fetchResultset(conn:typed, pkt:typed, result:typed, onlyFirst:typed, is
     elif isERRPacket(pkt):
       raise parseErrorPacket(pkt)
     else:
-      result.rows.add(process)
+      process
       when onlyFirst:
-        break
+        continue
 
 {.push warning[ObservableStores]: off.}
+proc rawExec*(conn: Connection, query: string): Future[ResultSet[string]] {.
+               async, tags: [ReadDbEffect, WriteDbEffect,RootEffect].} =
+  await conn.sendQuery(query)
+  let pkt = await conn.receivePacket()
+  if isOKPacket(pkt):
+    # Success, but no rows returned.
+    result.status = parseOKPacket(conn, pkt)
+  elif isERRPacket(pkt):
+    raise parseErrorPacket(pkt)
+  else: 
+    conn.fetchResultset(pkt, result, onlyFirst = false, isTextMode = true): discard
+
 proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
                async, tags: [ReadDbEffect, WriteDbEffect,RootEffect].} =
   await conn.sendQuery(query)
@@ -729,7 +741,7 @@ proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false):
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst, true, parseTextRow(pkt))
+    conn.fetchResultset(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt)))
   return
 
 proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
@@ -742,13 +754,13 @@ proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void]
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst,false, parseBinaryRow(result.columns, pkt))
+    conn.fetchResultset(pkt, result, onlyFirst,false, result.rows.add(parseBinaryRow(result.columns, pkt)))
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
             #[tags: [ReadDbEffect, WriteDbEffect]]#.} =
   var pkt = conn.formatBoundParams(pstmt, params)
-  var sent = conn.sendPacket(pkt, reset_seq_no=true)
+  var sent = conn.sendPacket(pkt, resetSeqId=true)
   return performPreparedQuery(conn, pstmt, sent)
 
 proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.async.} =
@@ -756,7 +768,7 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   buf.setLen(4)
   buf.add( Command.initDb.char )
   buf.add(database)
-  await conn.sendPacket(buf, reset_seq_no=true)
+  await conn.sendPacket(buf, resetSeqId=true)
   let pkt = await conn.receivePacket()
   if isERRPacket(pkt):
     raise parseErrorPacket(pkt)
@@ -907,6 +919,6 @@ proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
   var buf: string = newStringOfCap(5)
   buf.setLen(4)
   buf.add( char(Command.quit) )
-  await conn.sendPacket(buf, reset_seq_no=true)
+  await conn.sendPacket(buf, resetSeqId=true)
   discard await conn.receivePacket(drop_ok=true)
   conn.socket.close()
