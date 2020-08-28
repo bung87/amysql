@@ -699,7 +699,7 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
   let handshakePacket = await connect(result)
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-template fetchResultset(conn:typed, pkt:typed, result:typed, onlyFirst:typed, process:untyped): untyped =
+template fetchResultset(conn:typed, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped =
   var p = 0
   let column_count = readLenInt(pkt, p)
   result.columns = await conn.receiveMetadata(column_count)
@@ -708,7 +708,7 @@ template fetchResultset(conn:typed, pkt:typed, result:typed, onlyFirst:typed, pr
     if isEOFPacket(pkt):
       result.status = parseEOFPacket(pkt)
       break
-    elif isOKPacket(pkt):
+    elif isTextMode and isOKPacket(pkt):
       result.status = parseOKPacket(conn, pkt)
       break
     elif isERRPacket(pkt):
@@ -729,7 +729,7 @@ proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false):
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst, parseTextRow(pkt))
+    conn.fetchResultset(pkt, result, onlyFirst, true, parseTextRow(pkt))
   return
 
 proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
@@ -742,7 +742,7 @@ proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void]
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst, parseBinaryRow(result.columns, pkt))
+    conn.fetchResultset(pkt, result, onlyFirst,false, parseBinaryRow(result.columns, pkt))
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
