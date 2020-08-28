@@ -18,7 +18,7 @@ task ghpage,"gh page":
   exec "git config user.name \"bung87\""
   exec "git config user.email \"crc32@qq.com\""
   exec "git commit -m \"docs(docs): update gh-pages\""
-  let url = "https://bung87@amysql"
+  let url = "\"https://bung87@amysql\""
   exec "git push --force --quiet " & url & " master:gh-pages"
 
 
