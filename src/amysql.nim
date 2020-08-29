@@ -139,7 +139,7 @@ type
     columns: seq[ColumnDefinition]
     warnings: Natural
 
-## Parameter and result packers/unpackers
+# Parameter and result packers/unpackers
 
 proc approximatePackedSize(p: SqlParam): int {.inline.} =
   ## approximate packed size for reducing reallocations
