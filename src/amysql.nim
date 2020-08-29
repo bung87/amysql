@@ -38,6 +38,7 @@ import asyncnet
 import uri
 import times
 import json
+# import std/with
 
 type
   Row* = seq[string] 
@@ -720,7 +721,7 @@ template fetchResultset(conn:typed, pkt:typed, result:typed, onlyFirst:typed, is
 
 {.push warning[ObservableStores]: off.}
 proc rawExec*(conn: Connection, query: string): Future[ResultSet[string]] {.
-               async, tags: [ReadDbEffect, WriteDbEffect,RootEffect].} =
+               async#[, tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -732,7 +733,7 @@ proc rawExec*(conn: Connection, query: string): Future[ResultSet[string]] {.
     conn.fetchResultset(pkt, result, onlyFirst = false, isTextMode = true): discard
 
 proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
-               async, tags: [ReadDbEffect, WriteDbEffect,RootEffect].} =
+               async#[, tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -745,7 +746,7 @@ proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false):
   return
 
 proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
-                          async, tags:[RootEffect].} =
+                          async#[, tags:[RootEffect]]#.} =
   await st
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -927,3 +928,18 @@ proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
   await conn.sendPacket(buf, resetSeqId=true)
   discard await conn.receivePacket(drop_ok=true)
   conn.socket.close()
+
+proc startTransaction*(conn: Connection) {.async, inline.} =
+  discard await conn.rawExec("START TRANSACTION")
+
+proc commit*(conn: Connection) {.async, inline.} =
+  discard await conn.rawExec("COMMIT")
+
+proc rollback*(conn: Connection) {.async, inline.} =
+  discard await conn.rawExec("ROLLBACK")
+
+template transaction*(conn: typed, process: untyped) =
+  ## experimental
+  discard await conn.rawExec("START TRANSACTION")
+  process
+  discard await conn.rawExec("COMMIT")

@@ -6,7 +6,7 @@ description   = "Async MySQL Connector write in pure Nim."
 license       = "MIT"
 srcDir        = "src"
 
-task doc,"":
+task docs,"":
   exec "nim doc --project src/amysql.nim"
   exec "mv src/htmldocs/amysql.html src/htmldocs/index.html"
 
