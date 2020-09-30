@@ -138,6 +138,7 @@ type
     parameters: seq[ColumnDefinition]
     columns: seq[ColumnDefinition]
     warnings: Natural
+    conn: Connection
 
 # Parameter and result packers/unpackers
 
@@ -295,7 +296,7 @@ proc `$`*(v: ResultValue): string =
   of rvtDate:
     return v.datetimeVal.format("yyyy-MM-dd")
   of rvtTimestamp:
-    $v.datetimeVal.toTime.toUnix
+    return $v.datetimeVal.toTime.toUnix
   of rvtTime:
     let dp = toParts(v.durVal)
     let hours = dp[Days] * 24 + dp[Hours]
@@ -340,6 +341,8 @@ converter asString*(v: ResultValue): string =
     return ""
   of rvtString, rvtBlob:
     return v.strVal
+  of rvtDate:
+    return v.datetimeVal.format("yyyy-MM-dd")
   else:
     raise newException(ValueError, "Can't convert " & $(v.typ) & " to string")
 
@@ -743,7 +746,6 @@ proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false):
     raise parseErrorPacket(pkt)
   else:
     conn.fetchResultset(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt)))
-  return
 
 proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =
@@ -894,7 +896,7 @@ proc handleParams(conn: Connection, q: string) {.async.} =
 
 proc open*(uriStr: string | Uri): Future[Connection] {.async.} =
   ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
-  let uri = when uriStr is string: parseUri(uriStr) else: uriStr
+  let uri:Uri = when uriStr is string: parseUri(uriStr) else: uriStr
   let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
   let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
   await connect(sock, uri.hostname, Port(port))
