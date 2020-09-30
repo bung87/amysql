@@ -38,7 +38,11 @@ import asyncnet
 import uri
 import times
 import json
-# import std/with
+import logging
+
+var consoleLog = newConsoleLogger()
+addHandler(consoleLog)
+when defined(release):  setLogFilter(lvlInfo)
 
 type
   Row* = seq[string] 
@@ -295,7 +299,7 @@ proc `$`*(v: ResultValue): string =
   of rvtDate:
     return v.datetimeVal.format("yyyy-MM-dd")
   of rvtTimestamp:
-    $v.datetimeVal.toTime.toUnix
+    return $v.datetimeVal.toTime.toUnix
   of rvtTime:
     let dp = toParts(v.durVal)
     let hours = dp[Days] * 24 + dp[Hours]
@@ -340,6 +344,8 @@ converter asString*(v: ResultValue): string =
     return ""
   of rvtString, rvtBlob:
     return v.strVal
+  of rvtDate:
+    return v.datetimeVal.format("yyyy-MM-dd")
   else:
     raise newException(ValueError, "Can't convert " & $(v.typ) & " to string")
 
@@ -644,11 +650,11 @@ proc finishEstablishingConnection(conn: Connection,
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   elif isAuthSwitchRequestPacket(pkt):
-    debugEcho "isAuthSwitchRequestPacket"
+    debug "isAuthSwitchRequestPacket"
     let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
     if Cap.pluginAuth in conn.serverCaps  and responseAuthSwitch.pluginName.len > 0:
-      debugEcho "plugin auth handshake:" & responseAuthSwitch.pluginName
-      debugEcho "pluginData:" & responseAuthSwitch.pluginData
+      debug "plugin auth handshake:" & responseAuthSwitch.pluginName
+      debug "pluginData:" & responseAuthSwitch.pluginData
       let authData = plugin_auth(responseAuthSwitch.pluginName,responseAuthSwitch.pluginData, password)
       var buf: string = newStringOfCap(32)
       buf.setLen(4)
@@ -664,7 +670,7 @@ proc finishEstablishingConnection(conn: Connection,
       
       return
     else:
-      debugEcho "legacy handshake"
+      debug "legacy handshake"
       var buf: string = newStringOfCap(32)
       buf.setLen(4)
       var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
@@ -672,7 +678,7 @@ proc finishEstablishingConnection(conn: Connection,
       await conn.sendPacket(buf)
       discard await conn.receivePacket()
   elif isExtraAuthDataPacket(pkt):
-    debugEcho "isExtraAuthDataPacket"
+    debug "isExtraAuthDataPacket"
     # https://dev.mysql.com/doc/internals/en/successful-authentication.html
     if handshakePacket.plugin == "caching_sha2_password":
         discard await caching_sha2_password_auth(conn, pkt, password, handshakePacket.scrambleBuff)
@@ -743,7 +749,6 @@ proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false):
     raise parseErrorPacket(pkt)
   else:
     conn.fetchResultset(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt)))
-  return
 
 proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =
@@ -894,7 +899,7 @@ proc handleParams(conn: Connection, q: string) {.async.} =
 
 proc open*(uriStr: string | Uri): Future[Connection] {.async.} =
   ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
-  let uri = when uriStr is string: parseUri(uriStr) else: uriStr
+  let uri:Uri = when uriStr is string: parseUri(uriStr) else: uriStr
   let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
   let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
   await connect(sock, uri.hostname, Port(port))
