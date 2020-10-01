@@ -4,6 +4,8 @@
 
 `amysql` implements both the **text protocol** (send a simple string query, get back results as strings) and the **binary protocol** (get a prepared statement handle from a string with placeholders; send a set of value bindings, get back results as various datatypes approximating what the server is using).  
 
+`amysql` implements async connection pool(`amysql/async_pool`) and a threaded pool(`amysql/db_pool`).  
+
 ## Goals
 
 The goals of this project are:
@@ -17,8 +19,6 @@ The goals of this project are:
 ## Testing  
 
 platform: Linux and OSX  
-
-note: mysql 8 is not well tested  
 
 mysql: 5.7 8.0  
 

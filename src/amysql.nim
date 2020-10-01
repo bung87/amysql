@@ -5,13 +5,12 @@
 ## No attempt is made to make this look like the C-language
 ## libmysql API.
 ##
-## This is currently very experimental.
-##
 ## Copyright (c) 2015 William Lewis
 ## Copyright (c) 2020 Bung
 
 import amysql/private/protocol
 export protocol
+import amysql/private/format
 import amysql/conn
 export conn
 import amysql/conn_connection
@@ -128,6 +127,7 @@ type
     parameters: seq[ColumnDefinition]
     columns: seq[ColumnDefinition]
     warnings: Natural
+    conn: Connection
 
 # Parameter and result packers/unpackers
 
@@ -584,7 +584,7 @@ template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:type
       raise parseErrorPacket(pkt)
     else:
       process
-      when onlyFirst:
+      if onlyFirst:
         continue
 
 {.push warning[ObservableStores]: off.}
@@ -600,7 +600,7 @@ proc rawExec*(conn: Connection, query: string): Future[ResultSet[string]] {.
   else: 
     conn.fetchResultset(pkt, result, onlyFirst = false, isTextMode = true): discard
 
-proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
+proc rawQuery*(conn: Connection, query: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async,asyncPooled,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
@@ -644,16 +644,6 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
     return parseOKPacket(conn, pkt)
   else:
     raise newException(ProtocolError, "unexpected response to COM_INIT_DB")
-
-proc dbFormat(formatstr: SqlQuery, args: varargs[string]): string =
-  result = ""
-  var a = 0
-  for c in items(string(formatstr)):
-    if c == '?':
-      add(result, dbQuote(args[a]))
-      inc(a)
-    else:
-      add(result, c)
 
 proc exec*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
             async, asyncPooled, #[tags: [ReadDbEffect]]#.} =
