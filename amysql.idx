@@ -1,0 +1,63 @@
+SqlParam	amysql.html#SqlParam	amysql: SqlParam	
+SqlPrepared	amysql.html#SqlPrepared	amysql: SqlPrepared	
+Row	amysql.html#Row	amysql: Row	
+Date	amysql.html#Date	amysql: Date	
+ResultValue	amysql.html#ResultValue	amysql: ResultValue	
+asParam	amysql.html#asParam,string	amysql: asParam(s: string): SqlParam	
+asParam	amysql.html#asParam.m,untyped	amysql: asParam(s: untyped): untyped	
+asParam	amysql.html#asParam,int	amysql: asParam(i: int): SqlParam	
+asParam	amysql.html#asParam,uint	amysql: asParam(i: uint): SqlParam	
+asParam	amysql.html#asParam,int64	amysql: asParam(i: int64): SqlParam	
+asParam	amysql.html#asParam,uint64	amysql: asParam(i: uint64): SqlParam	
+asParam	amysql.html#asParam,float32	amysql: asParam(f: float32): SqlParam	
+asParam	amysql.html#asParam,float64	amysql: asParam(f: float64): SqlParam	
+asParam	amysql.html#asParam,DateTime	amysql: asParam(d: DateTime): SqlParam	
+asParam	amysql.html#asParam,Date	amysql: asParam(d: Date): SqlParam	
+asParam	amysql.html#asParam,Time	amysql: asParam(d: Time): SqlParam	
+asParam	amysql.html#asParam,Duration	amysql: asParam(d: Duration): SqlParam	
+asParam	amysql.html#asParam,JsonNode	amysql: asParam(d: JsonNode): SqlParam	
+asParam	amysql.html#asParam,MyGeometry	amysql: asParam(d: MyGeometry): SqlParam	
+asParam	amysql.html#asParam,bool	amysql: asParam(b: bool): SqlParam	
+isNull	amysql.html#isNull,ResultValue	amysql: isNull(v: ResultValue): bool	
+`$`	amysql.html#$,ResultValue	amysql: `$`(v: ResultValue): string	
+asInt8	amysql.html#asInt8.c,ResultValue	amysql: asInt8(v: ResultValue): int8	
+asInt	amysql.html#asInt.c,ResultValue	amysql: asInt(v: ResultValue): int	
+asUInt	amysql.html#asUInt.c,ResultValue	amysql: asUInt(v: ResultValue): uint	
+asInt64	amysql.html#asInt64.c,ResultValue	amysql: asInt64(v: ResultValue): int64	
+asUint64	amysql.html#asUint64.c,ResultValue	amysql: asUint64(v: ResultValue): uint64	
+asFloat	amysql.html#asFloat.c,ResultValue	amysql: asFloat(v: ResultValue): float32	
+asDouble	amysql.html#asDouble.c,ResultValue	amysql: asDouble(v: ResultValue): float64	
+asString	amysql.html#asString.c,ResultValue	amysql: asString(v: ResultValue): string	
+asDateTime	amysql.html#asDateTime.c,ResultValue	amysql: asDateTime(v: ResultValue): DateTime	
+asDate	amysql.html#asDate.c,ResultValue	amysql: asDate(v: ResultValue): Date	
+asTime	amysql.html#asTime.c,ResultValue	amysql: asTime(v: ResultValue): Time	
+asDuration	amysql.html#asDuration.c,ResultValue	amysql: asDuration(v: ResultValue): Duration	
+asMyGeometry	amysql.html#asMyGeometry.c,ResultValue	amysql: asMyGeometry(v: ResultValue): MyGeometry	
+asBool	amysql.html#asBool.c,ResultValue	amysql: asBool(v: ResultValue): bool	
+asJson	amysql.html#asJson.c,ResultValue	amysql: asJson(v: ResultValue): JsonNode	
+initDate	amysql.html#initDate,MonthdayRange,Month,int,Timezone	amysql: initDate(monthday: MonthdayRange; month: Month; year: int; zone: Timezone = local()): Date	
+prepare	amysql.html#prepare,Connection,string	amysql: prepare(conn: Connection; query: string): Future[SqlPrepared]	
+finalize	amysql.html#finalize,Connection,SqlPrepared	amysql: finalize(conn: Connection; pstmt: SqlPrepared): Future[void]	
+reset	amysql.html#reset,Connection,SqlPrepared	amysql: reset(conn: Connection; pstmt: SqlPrepared): Future[void]	
+formatBoundParams	amysql.html#formatBoundParams,Connection,SqlPrepared,openArray[SqlParam]	amysql: formatBoundParams(conn: Connection; pstmt: SqlPrepared; params: openArray[SqlParam]): string	
+query	amysql.html#query,Connection,SqlPrepared,openArray[static[SqlParam]]	amysql: query(conn: Connection; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[\n    void]	
+rawExec	amysql.html#rawExec,Connection,string	amysql: rawExec(conn: Connection; query: string): Future[ResultSet[string]]	
+rawQuery	amysql.html#rawQuery,Connection,string,bool	amysql: rawQuery(conn: Connection; query: string; onlyFirst: bool = false): Future[\n    ResultSet[string]]	
+performPreparedQuery	amysql.html#performPreparedQuery,Connection,SqlPrepared,Future[void],static[bool]	amysql: performPreparedQuery(conn: Connection; pstmt: SqlPrepared; st: Future[void];\n                     onlyFirst: static[bool] = false): Future[ResultSet[ResultValue]]	
+query	amysql.html#query,Connection,SqlPrepared,varargs[SqlParam,asParam]	amysql: query(conn: Connection; pstmt: SqlPrepared; params: varargs[SqlParam, asParam]): Future[\n    ResultSet[ResultValue]]	
+selectDatabase	amysql.html#selectDatabase,Connection,string	amysql: selectDatabase(conn: Connection; database: string): Future[ResponseOK]	
+exec	amysql.html#exec,Connection,SqlQuery,varargs[string,]	amysql: exec(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[\n    ResultSet[string]]	
+query	amysql.html#query,Connection,SqlQuery,varargs[string,],static[bool]	amysql: query(conn: Connection; query: SqlQuery; args: varargs[string, `$`];\n      onlyFirst: static[bool] = false): Future[ResultSet[string]]	
+tryQuery	amysql.html#tryQuery,Connection,SqlQuery,varargs[string,]	amysql: tryQuery(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[bool]	
+getRow	amysql.html#getRow,Connection,SqlQuery,varargs[string,]	amysql: getRow(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[Row]	
+getAllRows	amysql.html#getAllRows,Connection,SqlQuery,varargs[string,]	amysql: getAllRows(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[\n    seq[Row]]	
+getValue	amysql.html#getValue,Connection,SqlQuery,varargs[string,]	amysql: getValue(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[string]	
+tryInsertId	amysql.html#tryInsertId,Connection,SqlQuery,varargs[string,]	amysql: tryInsertId(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[\n    int64]	
+insertId	amysql.html#insertId,Connection,SqlQuery,varargs[string,]	amysql: insertId(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[int64]	
+tryInsert	amysql.html#tryInsert,Connection,SqlQuery,string,varargs[string,]	amysql: tryInsert(conn: Connection; query: SqlQuery; pkName: string;\n          args: varargs[string, `$`]): Future[int64]	
+insert	amysql.html#insert,Connection,SqlQuery,string,varargs[string,]	amysql: insert(conn: Connection; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[\n    int64]	
+setEncoding	amysql.html#setEncoding,Connection,string	amysql: setEncoding(conn: Connection; encoding: string): Future[bool]	
+startTransaction	amysql.html#startTransaction,Connection	amysql: startTransaction(conn: Connection): owned(Future[void])	
+commit	amysql.html#commit,Connection	amysql: commit(conn: Connection): owned(Future[void])	
+rollback	amysql.html#rollback,Connection	amysql: rollback(conn: Connection): owned(Future[void])	
+transaction	amysql.html#transaction.t,typed,untyped	amysql: transaction(conn: typed; process: untyped)	

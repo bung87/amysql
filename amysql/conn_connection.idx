@@ -1,0 +1,4 @@
+establishConnection	amysql/conn_connection.html#establishConnection,AsyncSocket,string,string,string	conn_connection: establishConnection(sock: AsyncSocket; username: string; password: string = &quot;&quot;;\n                    database: string = &quot;&quot;): Future[Connection]	
+open	amysql/conn_connection.html#open	conn_connection: open(uriStr: string | Uri): Future[Connection]	
+open	amysql/conn_connection.html#open,string,string,string,string	conn_connection: open(connection, user, password: string; database = &quot;&quot;): Future[Connection]	
+close	amysql/conn_connection.html#close,Connection	conn_connection: close(conn: Connection): Future[void]	

@@ -1,0 +1,7 @@
+MyGeometry	amysql/private/my_geometry.html#MyGeometry	my_geometry: MyGeometry	
+fromWkb	amysql/private/my_geometry.html#fromWkb,int,	my_geometry: fromWkb(srid: int; wkb: sink string): MyGeometry	
+newMyGeometry	amysql/private/my_geometry.html#newMyGeometry	my_geometry: newMyGeometry(data: sink string): MyGeometry	
+srid	amysql/private/my_geometry.html#srid,MyGeometry	my_geometry: srid(self: MyGeometry): int	
+wkb	amysql/private/my_geometry.html#wkb,MyGeometry	my_geometry: wkb(self: MyGeometry): string	
+data	amysql/private/my_geometry.html#data,MyGeometry	my_geometry: data(self: MyGeometry): lent string	
+`==`	amysql/private/my_geometry.html#==,MyGeometry,MyGeometry	my_geometry: `==`(a, b: MyGeometry): bool	

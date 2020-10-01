@@ -1,0 +1,1 @@
+dbQuote	amysql/private/quote.html#dbQuote,string	quote: dbQuote(s: string): string	

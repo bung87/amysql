@@ -1,0 +1,25 @@
+DBPool	amysql/db_pool.html#DBPool	db_pool: DBPool	
+DBConn	amysql/db_pool.html#DBConn	db_pool: DBConn	
+DBSqlPrepared	amysql/db_pool.html#DBSqlPrepared	db_pool: DBSqlPrepared	
+newDBConn	amysql/db_pool.html#newDBConn,ptr.Channel[DBResult]	db_pool: newDBConn(writer: ptr Channel[DBResult]): DBConn	
+close	amysql/db_pool.html#close,DBConn	db_pool: close(self: DBConn): owned(Future[void])	
+expired	amysql/db_pool.html#expired,DBConn,Duration	db_pool: expired(self: DBConn; timeout: Duration): bool	
+newDBPool	amysql/db_pool.html#newDBPool	db_pool: newDBPool(uriStr: string | Uri): Future[DBPool]	
+close	amysql/db_pool.html#close,DBPool	db_pool: close(self: DBPool): Future[void]	
+fetchConn	amysql/db_pool.html#fetchConn,DBPool	db_pool: fetchConn(self: DBPool): Future[DBConn]	
+rawQuery	amysql/db_pool.html#rawQuery,DBPool,string,static[bool]	db_pool: rawQuery(self: DBPool; query: string; onlyFirst: static[bool] = false): Future[\n    ResultSet[string]]	
+query	amysql/db_pool.html#query,DBPool,DBSqlPrepared,varargs[SqlParam,asParam]	db_pool: query(self: DBPool; pstmt: DBSqlPrepared; params: varargs[SqlParam, asParam]): Future[\n    ResultSet[ResultValue]]	
+rawExec	amysql/db_pool.html#rawExec,DBPool,string	db_pool: rawExec(self: DBPool; query: string): Future[ResultSet[string]]	
+prepare	amysql/db_pool.html#prepare,DBPool,string	db_pool: prepare(self: DBPool; query: string): Future[DBSqlPrepared]	
+finalize	amysql/db_pool.html#finalize,DBPool,DBSqlPrepared	db_pool: finalize(self: DBPool; pstmt: DBSqlPrepared): Future[void]	
+reset	amysql/db_pool.html#reset,DBPool,DBSqlPrepared	db_pool: reset(self: DBPool; pstmt: DBSqlPrepared): Future[void]	
+exec	amysql/db_pool.html#exec,DBPool,SqlQuery,varargs[string,]	db_pool: exec(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[\n    ResultSet[string]]	
+query	amysql/db_pool.html#query,DBPool,SqlQuery,varargs[string,],static[bool]	db_pool: query(conn: DBPool; query: SqlQuery; args: varargs[string, `$`];\n      onlyFirst: static[bool] = false): Future[ResultSet[string]]	
+tryQuery	amysql/db_pool.html#tryQuery,DBPool,SqlQuery,varargs[string,]	db_pool: tryQuery(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]	
+getRow	amysql/db_pool.html#getRow,DBPool,SqlQuery,varargs[string,]	db_pool: getRow(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]	
+getAllRows	amysql/db_pool.html#getAllRows,DBPool,SqlQuery,varargs[string,]	db_pool: getAllRows(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]	
+getValue	amysql/db_pool.html#getValue,DBPool,SqlQuery,varargs[string,]	db_pool: getValue(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[string]	
+tryInsertId	amysql/db_pool.html#tryInsertId,DBPool,SqlQuery,varargs[string,]	db_pool: tryInsertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]	
+insertId	amysql/db_pool.html#insertId,DBPool,SqlQuery,varargs[string,]	db_pool: insertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]	
+tryInsert	amysql/db_pool.html#tryInsert,DBPool,SqlQuery,string,varargs[string,]	db_pool: tryInsert(conn: DBPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[\n    int64]	
+insert	amysql/db_pool.html#insert,DBPool,SqlQuery,string,varargs[string,]	db_pool: insert(conn: DBPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[\n    int64]	

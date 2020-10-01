@@ -1,0 +1,4 @@
+scramble_native_password	amysql/private/auth.html#scramble_native_password,string,string	auth: scramble_native_password(scrambleBuff: string; password: string): string	
+scramble_caching_sha2	amysql/private/auth.html#scramble_caching_sha2,string,string	auth: scramble_caching_sha2(scrambleBuff: string; password: string): string	
+scramble323	amysql/private/auth.html#scramble323,string,string	auth: scramble323(seed: string; password: string): string	
+plugin_auth	amysql/private/auth.html#plugin_auth,string,string,string	auth: plugin_auth(plugin_name, scramble, password: string): string	

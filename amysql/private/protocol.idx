@@ -1,0 +1,94 @@
+ResponseCode_OK	amysql/private/protocol.html#ResponseCode_OK	protocol: ResponseCode_OK	
+ResponseCode_EOF	amysql/private/protocol.html#ResponseCode_EOF	protocol: ResponseCode_EOF	
+ResponseCode_ERR	amysql/private/protocol.html#ResponseCode_ERR	protocol: ResponseCode_ERR	
+ResponseCode_AuthSwitchRequest	amysql/private/protocol.html#ResponseCode_AuthSwitchRequest	protocol: ResponseCode_AuthSwitchRequest	
+ResponseCode_ExtraAuthData	amysql/private/protocol.html#ResponseCode_ExtraAuthData	protocol: ResponseCode_ExtraAuthData	
+NullColumn	amysql/private/protocol.html#NullColumn	protocol: NullColumn	
+Charset_utf8_ci	amysql/private/protocol.html#Charset_utf8_ci	protocol: Charset_utf8_ci	
+Status	amysql/private/protocol.html#Status	protocol: Status	
+Command	amysql/private/protocol.html#Command	protocol: Command	
+FieldFlag	amysql/private/protocol.html#FieldFlag	protocol: FieldFlag	
+fieldTypeDecimal	amysql/private/protocol.html#fieldTypeDecimal	FieldType.fieldTypeDecimal	
+fieldTypeTiny	amysql/private/protocol.html#fieldTypeTiny	FieldType.fieldTypeTiny	
+fieldTypeShort	amysql/private/protocol.html#fieldTypeShort	FieldType.fieldTypeShort	
+fieldTypeLong	amysql/private/protocol.html#fieldTypeLong	FieldType.fieldTypeLong	
+fieldTypeFloat	amysql/private/protocol.html#fieldTypeFloat	FieldType.fieldTypeFloat	
+fieldTypeDouble	amysql/private/protocol.html#fieldTypeDouble	FieldType.fieldTypeDouble	
+fieldTypeNull	amysql/private/protocol.html#fieldTypeNull	FieldType.fieldTypeNull	
+fieldTypeTimestamp	amysql/private/protocol.html#fieldTypeTimestamp	FieldType.fieldTypeTimestamp	
+fieldTypeLongLong	amysql/private/protocol.html#fieldTypeLongLong	FieldType.fieldTypeLongLong	
+fieldTypeInt24	amysql/private/protocol.html#fieldTypeInt24	FieldType.fieldTypeInt24	
+fieldTypeDate	amysql/private/protocol.html#fieldTypeDate	FieldType.fieldTypeDate	
+fieldTypeTime	amysql/private/protocol.html#fieldTypeTime	FieldType.fieldTypeTime	
+fieldTypeDateTime	amysql/private/protocol.html#fieldTypeDateTime	FieldType.fieldTypeDateTime	
+fieldTypeYear	amysql/private/protocol.html#fieldTypeYear	FieldType.fieldTypeYear	
+fieldTypeVarchar	amysql/private/protocol.html#fieldTypeVarchar	FieldType.fieldTypeVarchar	
+fieldTypeBit	amysql/private/protocol.html#fieldTypeBit	FieldType.fieldTypeBit	
+fieldTypeJson	amysql/private/protocol.html#fieldTypeJson	FieldType.fieldTypeJson	
+fieldTypeNewDecimal	amysql/private/protocol.html#fieldTypeNewDecimal	FieldType.fieldTypeNewDecimal	
+fieldTypeEnum	amysql/private/protocol.html#fieldTypeEnum	FieldType.fieldTypeEnum	
+fieldTypeSet	amysql/private/protocol.html#fieldTypeSet	FieldType.fieldTypeSet	
+fieldTypeTinyBlob	amysql/private/protocol.html#fieldTypeTinyBlob	FieldType.fieldTypeTinyBlob	
+fieldTypeMediumBlob	amysql/private/protocol.html#fieldTypeMediumBlob	FieldType.fieldTypeMediumBlob	
+fieldTypeLongBlob	amysql/private/protocol.html#fieldTypeLongBlob	FieldType.fieldTypeLongBlob	
+fieldTypeBlob	amysql/private/protocol.html#fieldTypeBlob	FieldType.fieldTypeBlob	
+fieldTypeVarString	amysql/private/protocol.html#fieldTypeVarString	FieldType.fieldTypeVarString	
+fieldTypeString	amysql/private/protocol.html#fieldTypeString	FieldType.fieldTypeString	
+fieldTypeGeometry	amysql/private/protocol.html#fieldTypeGeometry	FieldType.fieldTypeGeometry	
+FieldType	amysql/private/protocol.html#FieldType	protocol: FieldType	
+CursorType	amysql/private/protocol.html#CursorType	protocol: CursorType	
+ResponseOK	amysql/private/protocol.html#ResponseOK	protocol: ResponseOK	
+ResponseAuthSwitch	amysql/private/protocol.html#ResponseAuthSwitch	protocol: ResponseAuthSwitch	
+ResponseAuthMore	amysql/private/protocol.html#ResponseAuthMore	protocol: ResponseAuthMore	
+ResponseERR	amysql/private/protocol.html#ResponseERR	protocol: ResponseERR	
+HandshakePacket	amysql/private/protocol.html#HandshakePacket	protocol: HandshakePacket	
+ColumnDefinition	amysql/private/protocol.html#ColumnDefinition	protocol: ColumnDefinition	
+ResultSet	amysql/private/protocol.html#ResultSet	protocol: ResultSet	
+putU8	amysql/private/protocol.html#putU8,string,range[]	protocol: putU8(buf: var string; val: range[0 .. 255])	
+scanU16	amysql/private/protocol.html#scanU16,string,int	protocol: scanU16(buf: string; pos: int): uint16	
+putU16	amysql/private/protocol.html#putU16,string,uint16	protocol: putU16(buf: var string; val: uint16)	
+scanU32	amysql/private/protocol.html#scanU32,string,int	protocol: scanU32(buf: string; pos: int): uint32	
+putU32	amysql/private/protocol.html#putU32,string,uint32	protocol: putU32(buf: var string; val: uint32)	
+putFloat	amysql/private/protocol.html#putFloat,string,float32	protocol: putFloat(buf: var string; val: float32)	
+putDouble	amysql/private/protocol.html#putDouble,string,float64	protocol: putDouble(buf: var string; val: float64)	
+scanFloat	amysql/private/protocol.html#scanFloat,string,int	protocol: scanFloat(buf: string; pos: int): float32	
+scanDouble	amysql/private/protocol.html#scanDouble,string,int	protocol: scanDouble(buf: string; pos: int): float64	
+scanU64	amysql/private/protocol.html#scanU64,string,int	protocol: scanU64(buf: string; pos: int): uint64	
+putS64	amysql/private/protocol.html#putS64,string,int64	protocol: putS64(buf: var string; val: int64)	
+putU64	amysql/private/protocol.html#putU64,string,uint64	protocol: putU64(buf: var string; val: uint64)	
+readLenInt	amysql/private/protocol.html#readLenInt,string,int	protocol: readLenInt(buf: string; pos: var int): int	
+putLenInt	amysql/private/protocol.html#putLenInt,string,	protocol: putLenInt(buf: var string; val: int | uint | int32 | uint32): int	
+readNulString	amysql/private/protocol.html#readNulString,string,int	protocol: readNulString(buf: string; pos: var int): string	
+readNulStringX	amysql/private/protocol.html#readNulStringX,string,int	protocol: readNulStringX(buf: string; pos: var int): string	
+putNulString	amysql/private/protocol.html#putNulString,string,string	protocol: putNulString(buf: var string; val: string)	
+readLenStr	amysql/private/protocol.html#readLenStr,string,int	protocol: readLenStr(buf: string; pos: var int): string	
+putLenStr	amysql/private/protocol.html#putLenStr,string,string	protocol: putLenStr(buf: var string; val: string)	
+writeTypeAndFlag	amysql/private/protocol.html#writeTypeAndFlag,string,int64	protocol: writeTypeAndFlag(buf: var string; intVal: int64)	
+writeTypeAndFlag	amysql/private/protocol.html#writeTypeAndFlag,string,uint64	protocol: writeTypeAndFlag(buf: var string; intVal: uint64)	
+putValue	amysql/private/protocol.html#putValue,string,int64	protocol: putValue(buf: var string; intVal: int64)	
+putValue	amysql/private/protocol.html#putValue,string,uint64	protocol: putValue(buf: var string; intVal: uint64)	
+writeTypeAndFlag	amysql/private/protocol.html#writeTypeAndFlag,string,FieldType	protocol: writeTypeAndFlag(buf: var string; fieldType: FieldType)	
+isEOFPacket	amysql/private/protocol.html#isEOFPacket,string	protocol: isEOFPacket(pkt: string): bool	
+isERRPacket	amysql/private/protocol.html#isERRPacket,string	protocol: isERRPacket(pkt: string): bool	
+isOKPacket	amysql/private/protocol.html#isOKPacket,string	protocol: isOKPacket(pkt: string): bool	
+isAuthSwitchRequestPacket	amysql/private/protocol.html#isAuthSwitchRequestPacket,string	protocol: isAuthSwitchRequestPacket(pkt: string): bool	
+isExtraAuthDataPacket	amysql/private/protocol.html#isExtraAuthDataPacket,string	protocol: isExtraAuthDataPacket(pkt: string): bool	
+parseErrorPacket	amysql/private/protocol.html#parseErrorPacket,string	protocol: parseErrorPacket(pkt: string): ref ResponseERR	
+parseHandshakePacket	amysql/private/protocol.html#parseHandshakePacket,Connection,string	protocol: parseHandshakePacket(conn: Connection; buf: string): HandshakePacket	
+parseAuthSwitchPacket	amysql/private/protocol.html#parseAuthSwitchPacket,Connection,string	protocol: parseAuthSwitchPacket(conn: Connection; pkt: string): ref ResponseAuthSwitch	
+parseResponseAuthMorePacket	amysql/private/protocol.html#parseResponseAuthMorePacket,Connection,string	protocol: parseResponseAuthMorePacket(conn: Connection; pkt: string): ref ResponseAuthMore	
+parseOKPacket	amysql/private/protocol.html#parseOKPacket,Connection,string	protocol: parseOKPacket(conn: Connection; pkt: string): ResponseOK	
+parseEOFPacket	amysql/private/protocol.html#parseEOFPacket,string	protocol: parseEOFPacket(pkt: string): ResponseOK	
+sendPacket	amysql/private/protocol.html#sendPacket,Connection,string	protocol: sendPacket(conn: Connection; buf: var string; resetSeqId = false): Future[void]	
+writeHandshakeResponse	amysql/private/protocol.html#writeHandshakeResponse,Connection,string,string,string,string	protocol: writeHandshakeResponse(conn: Connection; username: string; auth_response: string;\n                       database: string; auth_plugin: string): Future[void]	
+putTime	amysql/private/protocol.html#putTime,string,Duration	protocol: putTime(buf: var string; val: Duration): int	
+readTime	amysql/private/protocol.html#readTime,string,int	protocol: readTime(buf: string; pos: var int): Duration	
+putDate	amysql/private/protocol.html#putDate,string,DateTime	protocol: putDate(buf: var string; val: DateTime): int	
+putDateTime	amysql/private/protocol.html#putDateTime,string,DateTime	protocol: putDateTime(buf: var string; val: DateTime): int	
+readDateTime	amysql/private/protocol.html#readDateTime,string,int,Timezone	protocol: readDateTime(buf: string; pos: var int; zone: Timezone = utc()): DateTime	
+putTimestamp	amysql/private/protocol.html#putTimestamp,string,DateTime	protocol: putTimestamp(buf: var string; val: DateTime): int	
+hexdump	amysql/private/protocol.html#hexdump,openArray[char],File	protocol: hexdump(buf: openArray[char]; fp: File)	
+sendQuery	amysql/private/protocol.html#sendQuery,Connection,string	protocol: sendQuery(conn: Connection; query: string): Future[void]	
+receivePacket	amysql/private/protocol.html#receivePacket,Connection,bool	protocol: receivePacket(conn: Connection; drop_ok: bool = false): Future[string]	
+roundtrip	amysql/private/protocol.html#roundtrip,Connection,string	protocol: roundtrip(conn: Connection; data: string): Future[string]	
+receiveMetadata	amysql/private/protocol.html#receiveMetadata,Connection,Positive	protocol: receiveMetadata(conn: Connection; count: Positive): Future[seq[ColumnDefinition]]	

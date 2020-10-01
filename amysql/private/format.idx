@@ -1,0 +1,1 @@
+dbFormat	amysql/private/format.html#dbFormat,SqlQuery,varargs[string]	format: dbFormat(formatstr: SqlQuery; args: varargs[string]): string	

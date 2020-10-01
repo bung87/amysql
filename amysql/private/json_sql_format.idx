@@ -1,0 +1,1 @@
+sqlFormat	amysql/private/json_sql_format.html#sqlFormat,Connection,JsonNode	json_sql_format: sqlFormat(conn: Connection; node: JsonNode): string	

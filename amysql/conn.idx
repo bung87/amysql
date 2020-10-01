@@ -1,0 +1,12 @@
+Version	amysql/conn.html#Version	conn: Version	
+Connection	amysql/conn.html#Connection	conn: Connection	
+ConnectionObj	amysql/conn.html#ConnectionObj	conn: ConnectionObj	
+`$`	amysql/conn.html#$,Version	conn: `$`(ver: Version): string	
+toBoolean	amysql/conn.html#toBoolean.c,Version	conn: toBoolean(ver: Version): bool	
+`&lt;`	amysql/conn.html#<,Version,Version	conn: `&lt;`(ver: Version; ver2: Version): bool	
+`==`	amysql/conn.html#==,Version,Version	conn: `==`(ver: Version; ver2: Version): bool	
+`&gt;`	amysql/conn.html#>,Version,Version	conn: `&gt;`(ver: Version; ver2: Version): bool	
+`&lt;=`	amysql/conn.html#<=,Version,Version	conn: `&lt;=`(ver: Version; ver2: Version): bool	
+getDatabaseVersion	amysql/conn.html#getDatabaseVersion,Connection	conn: getDatabaseVersion(self: Connection): Version	
+isMaria	amysql/conn.html#isMaria,Connection	conn: isMaria(self: Connection): bool	
+`$`	amysql/conn.html#$,Connection	conn: `$`(conn: Connection): string	
