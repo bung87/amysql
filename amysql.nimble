@@ -7,8 +7,7 @@ license       = "MIT"
 srcDir        = "src"
 
 task docs,"":
-  exec "nim doc --project src/amysql.nim"
-  exec "mv src/htmldocs/amysql.html src/htmldocs/index.html"
+  exec "nim doc --project src/amysql/index.nim"
 
 task ghpage,"gh page":
   cd "src/htmldocs" 

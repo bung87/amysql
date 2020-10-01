@@ -31,12 +31,14 @@ import asyncdispatch
 import macros except floatVal
 import net  # needed for the SslContext type
 import db_common
+export db_common
 import strutils
 
 import uri
 import times
 import json
 import amysql/async_pool_macros
+
 import logging
 
 
