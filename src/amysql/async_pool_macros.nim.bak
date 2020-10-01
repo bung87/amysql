@@ -1,30 +1,39 @@
 import macros
 import ./async_pool
+export async_pool
+import asyncdispatch
 
 macro asyncPooled*(prc:untyped):untyped =
+  result = nnkStmtList.newTree
+  result.add prc
   let tyAsyncPool = bindSym"AsyncPool" 
-  let oldBody = prc.body
-  result = prc
+  let getFreeConnIdx = bindSym"getFreeConnIdx"
+  let oldBody = prc.body.copy
+  var awaitDefinition = quote:
+    template await(f: typed): untyped {.used.} =
+      static:
+        error "await expects Future[T], got " & $typeof(f)
+
+    template await[T](f: Future[T]): auto {.used.} =
+      var internalTmpFuture: FutureBase = f
+      yield internalTmpFuture
+      (cast[type(f)](internalTmpFuture)).read()
+  result.add awaitDefinition
+  var newPrc = prc.copy
+  
   let conIdx = ident"conIdx"
   let conn = prc.params[1][0]
-  let getConn = nnkWhenStmt.newTree(
-    nnkElifBranch.newTree(
-      nnkInfix.newTree(
-        newIdentNode("is"),
-        conn,
-        tyAsyncPool
-      ),
-      nnkStmtList.newTree(
+  let getConn = nnkStmtList.newTree(
         nnkLetSection.newTree(
           nnkIdentDefs.newTree(
             conIdx,
             newEmptyNode(),
             nnkCommand.newTree(
-              newIdentNode("await"),
+              ident"await",
               nnkCall.newTree(
                 nnkDotExpr.newTree(
                   conn,
-                  newIdentNode("getFreeConnIdx")
+                  getFreeConnIdx
                 )
               )
             )
@@ -44,18 +53,13 @@ macro asyncPooled*(prc:untyped):untyped =
           )
         )
       )
-    )
-  )
-  result.body = nnkStmtList.newTree(
+  newPrc.body = nnkStmtList.newTree(
     getConn,
     oldBody
   )
-  result.params[1] = nnkIdentDefs.newTree(
+  newPrc.params[1] = nnkIdentDefs.newTree(
     conn,
-    nnkInfix.newTree(
-    newIdentNode("|"),
-    prc.params[1][1],
-    tyAsyncPool
-  ),
+    tyAsyncPool,
     newEmptyNode()
   )
+  result.add newPrc
