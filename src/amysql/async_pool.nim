@@ -16,22 +16,22 @@ proc newAsyncPool*(
     password,
     database: string,
     num: int
-  ): AsyncPool =
+  ): Future[AsyncPool] {.async.} =
   ## Create a new async pool of num connections.
   result = AsyncPool()
   for i in 0..<num:
-    let conn = waitFor open(host, user, password, database)
+    let conn = await open(host, user, password, database)
     result.conns.add conn
     result.busy.add false
 
 proc newAsyncPool*(
     uriStr: string | Uri,
     num: int
-  ): AsyncPool =
+  ): Future[AsyncPool] {.async.} =
   ## Create a new async pool of num connections.
   result = AsyncPool()
   for i in 0..<num:
-    let conn = waitFor open(uriStr)
+    let conn = await open(uriStr)
     result.conns.add conn
     result.busy.add false
 
@@ -47,3 +47,7 @@ proc getFreeConnIdx*(pool: AsyncPool): Future[int] {.async.} =
 proc returnConn*(pool: AsyncPool, conIdx: int) =
   ## Make the connection as free after using it and getting results.
   pool.busy[conIdx] = false
+
+proc close*(pool: AsyncPool) {.async.} = 
+  for conn in pool.conns:
+    await conn.close()

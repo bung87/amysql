@@ -10,7 +10,7 @@ task docs,"":
   exec "nim doc --project src/amysql/index.nim"
 
 task ghpage,"gh page":
-  cd "src/htmldocs" 
+  cd "src/amysql/htmldocs" 
   exec "git init"
   exec "git add ."
   exec "git config user.name \"bung87\""

@@ -26,3 +26,4 @@ dnimcache/
 *.out
 src/htmldocs
 *.nims
+htmldocs
