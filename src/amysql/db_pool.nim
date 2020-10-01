@@ -1,5 +1,10 @@
 
-{.experimental: "dotOperators".}
+##
+## This module implements a threaded connection pool
+##
+## This is currently very experimental.
+##
+## Copyright (c) 2020 Bung
 
 import ./conn
 import locks
@@ -13,6 +18,9 @@ import strformat
 import asyncnet
 import sets,hashes
 import times
+import cpuinfo
+import db_common
+import ./private/format
 
 type 
   DBPool* = ref DBPoolObj
@@ -35,7 +43,7 @@ type
     binary,
     command
   InterfaceKind {.pure.} = enum
-    none,query,prepare,finalize,reset,exec,close
+    none,query,rawQuery,prepare,finalize,reset,exec,close
   DBStmt {.pure.} = object
     case kind:StmtKind
     of text:
@@ -46,6 +54,8 @@ type
       discard
     
     case met:InterfaceKind
+    of InterfaceKind.rawQuery:
+      onlyFirst:bool
     of InterfaceKind.query:
       params:seq[SqlParam]
     of InterfaceKind.none,InterfaceKind.close:
@@ -119,8 +129,8 @@ proc workerProcess(ctx: sink Context): Future[void] {.async.} =
       case st.kind
       of StmtKind.text: 
         case st.met:
-        of InterfaceKind.query:
-          let r = await ctx.dbConn.conn[].rawQuery(st.textVal )
+        of InterfaceKind.rawQuery:
+          let r = await ctx.dbConn.conn[].rawQuery(st.textVal,onlyFirst = st.onlyFirst )
           let p = DBResult(kind:DBResultKind.resultsetText,textVal:r)
           discard ctx.dbConn.writer[].trySend(p)
         of InterfaceKind.exec:
@@ -192,7 +202,8 @@ proc newDBPool*(uriStr: string | Uri): Future[DBPool] {.async.} =
   ## max lifetime exceed then close,affected freeConns,numOpen
   new result
   var uri:Uri = when uriStr is string: parseUri(uriStr) else: uriStr
-  var minPoolSize,maxPoolSize:int
+  var minPoolSize = countProcessors() * 2 + 1
+  var maxPoolSize:int
   uri.query = handleParams(uri.query,minPoolSize,maxPoolSize)
   debugEcho fmt"minPoolSize:{$minPoolSize},maxPoolSize:{$maxPoolSize}"
   result.freeConn.init(minPoolSize)
@@ -270,7 +281,7 @@ proc fetchConn*(self: DBPool): Future[DBConn] {.async.} =
 proc rawQuery*(self: DBPool, query: string, onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
                async.} =
   let conn = await self.fetchConn()
-  conn.reader[].send(DBStmt(met:InterfaceKind.query,kind:StmtKind.text,textVal:query))
+  conn.reader[].send(DBStmt(met:InterfaceKind.rawQuery,kind:StmtKind.text,textVal:query,onlyFirst:onlyFirst))
   let msg = conn.writer[].recv()
   self.freeConn.incl conn
   return msg.textVal
@@ -308,3 +319,79 @@ proc finalize*(self: DBPool, pstmt: DBSqlPrepared): Future[void] {.async.} =
 proc reset*(self: DBPool, pstmt: DBSqlPrepared): Future[void] {.async.} =
   pstmt.dbConn.reader[].send(DBStmt(met:InterfaceKind.reset,kind:StmtKind.binary,pstmt:pstmt.pstmt))
   discard pstmt.dbConn.writer[].recv()
+
+proc exec*(conn: DBPool, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
+            async, #[tags: [ReadDbEffect]]#.} =
+  var q = dbFormat(query, args)
+  result = await conn.rawExec(q)
+
+proc query*(conn: DBPool, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
+            async, #[tags: [ReadDbEffect]]#.} =
+  var q = dbFormat(query, args)
+  result = await conn.rawQuery(q, onlyFirst)
+
+proc tryQuery*(conn: DBPool, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
+               async, #[tags: [ReadDbEffect]]#.} =
+  ## tries to execute the query and returns true if successful, false otherwise.
+  result = true
+  try:
+    discard await conn.exec(query, args)
+  except:
+    result = false
+  return result
+
+proc getRow*(conn: DBPool, query: SqlQuery,
+             args: varargs[string, `$`]): Future[Row] {.async, #[tags: [ReadDbEffect]]#.} =
+  ## Retrieves a single row. If the query doesn't return any rows, this proc
+  ## will return a Row with empty strings for each column.
+  let resultSet = await conn.query(query, args, onlyFirst = true)
+  if resultSet.rows.len == 0:
+    let cols = resultSet.columns.len
+    result = newSeq[string](cols)
+  else:
+    result = resultSet.rows[0]
+
+proc getAllRows*(conn: DBPool, query: SqlQuery,
+                 args: varargs[string, `$`]): Future[seq[Row]] {.async, #[tags: [ReadDbEffect]]#.} =
+  ## executes the query and returns the whole result dataset.
+  let resultSet = await conn.query(query, args)
+  result = resultSet.rows
+
+proc getValue*(conn: DBPool, query: SqlQuery,
+               args: varargs[string, `$`]): Future[string] {.async, #[tags: [ReadDbEffect]]#.} =
+  ## executes the query and returns the first column of the first row of the
+  ## result dataset. Returns "" if the dataset contains no rows or the database
+  ## value is NULL.
+  let row = await getRow(conn, query, args)
+  result = row[0]
+
+proc tryInsertId*(conn: DBPool, query: SqlQuery,
+                  args: varargs[string, `$`]): Future[int64] {.async, #[raises: [], tags: [WriteDbEffect]]#.} =
+  ## executes the query (typically "INSERT") and returns the
+  ## generated ID for the row or -1 in case of an error.
+  var resultSet:ResultSet[string]
+  try:
+    resultSet = await conn.exec(query, args)
+  except:
+    result = -1'i64
+    return result
+  result = resultSet.status.last_insert_id.int64
+
+proc insertId*(conn: DBPool, query: SqlQuery,
+               args: varargs[string, `$`]): Future[int64] {.async, #[tags: [WriteDbEffect]]#.} =
+  ## executes the query (typically "INSERT") and returns the
+  ## generated ID for the row.
+  let resultSet = await conn.exec(query, args)
+  result = resultSet.status.last_insert_id.int64
+
+proc tryInsert*(conn: DBPool, query: SqlQuery, pkName: string,
+                args: varargs[string, `$`]): Future[int64] {.async,#[raises: [], tags: [WriteDbEffect]]#.} =
+  ## same as tryInsertID
+  result = await tryInsertID(conn, query, args)
+
+proc insert*(conn: DBPool, query: SqlQuery, pkName: string,
+             args: varargs[string, `$`]): Future[int64]
+            {.async, #[tags: [WriteDbEffect]]#.} =
+  ## same as insertId
+  let resultSet = await conn.exec(query, args)
+  result = resultSet.status.last_insert_id.int64
