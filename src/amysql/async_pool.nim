@@ -163,6 +163,7 @@ proc tryInsertId*(pool: AsyncPool, query: SqlQuery,
     resultSet = await conn.exec(query, args)
   except:
     result = -1'i64
+    pool.returnConn(conIdx)
     return result
   result = resultSet.status.last_insert_id.int64
   pool.returnConn(conIdx)
