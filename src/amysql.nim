@@ -11,12 +11,11 @@
 ## Copyright (c) 2020 Bung
 
 import amysql/private/protocol
-import amysql/private/cap
-import amysql/private/auth
-import amysql/private/conn_auth
+export protocol
 import amysql/conn
 export conn
-
+import amysql/conn_connection
+export conn_connection
 import amysql/private/json_sql_format
 export json_sql_format
 
@@ -34,11 +33,13 @@ import macros except floatVal
 import net  # needed for the SslContext type
 import db_common
 import strutils
-import asyncnet
+
 import uri
 import times
 import json
+import amysql/async_pool_macros
 import logging
+
 
 var consoleLog = newConsoleLogger()
 addHandler(consoleLog)
@@ -120,22 +121,7 @@ type
         datetimeVal: DateTime
       of paramTime:
         durVal: Duration
-  ColumnDefinition* {.final.} = object 
-    catalog*     : string
-    schema*      : string
-    table*       : string
-    orig_table*  : string
-    name*        : string
-    orig_name*   : string
-    charset      : int16
-    length*      : uint32
-    column_type* : FieldType
-    flags*       : set[FieldFlag]
-    decimals*    : int
-  ResultSet*[T] {.final.} = object 
-    status*     : ResponseOK
-    columns*    : seq[ColumnDefinition]
-    rows*       : seq[seq[T]]
+ 
   SqlPrepared* = ref SqlPreparedObj
   SqlPreparedObj = object
     statement_id: array[4, char]
@@ -419,33 +405,6 @@ proc parseTextRow(pkt: string): seq[string] =
     else:
       result.add(pkt.readLenStr(pos))
 
-proc receiveMetadata(conn: Connection, count: Positive): Future[seq[ColumnDefinition]] {.async.}  =
-  var received = 0
-  result = newSeq[ColumnDefinition](count)
-  while received < count:
-    let pkt = await conn.receivePacket()
-    if uint8(pkt[0]) == ResponseCode_ERR or uint8(pkt[0]) == ResponseCode_EOF:
-      raise newException(ProtocolError, "TODO")
-    var pos = 0
-    result[received].catalog = readLenStr(pkt, pos)
-    result[received].schema = readLenStr(pkt, pos)
-    result[received].table = readLenStr(pkt, pos)
-    result[received].orig_table = readLenStr(pkt, pos)
-    result[received].name = readLenStr(pkt, pos)
-    result[received].orig_name = readLenStr(pkt, pos)
-    let extras_len = readLenInt(pkt, pos)
-    if extras_len < 10 or (pos+extras_len > len(pkt)):
-      raise newException(ProtocolError, "truncated column packet")
-    result[received].charset = int16(scanU16(pkt, pos))
-    result[received].length = scanU32(pkt, pos+2)
-    result[received].column_type = FieldType(uint8(pkt[pos+6]))
-    result[received].flags = cast[set[FieldFlag]](scanU16(pkt, pos+7))
-    result[received].decimals = int(pkt[pos+9])
-    inc(received)
-  let endPacket = await conn.receivePacket()
-  if uint8(endPacket[0]) != ResponseCode_EOF:
-    raise newException(ProtocolError, "Expected EOF after column defs, got something else")
-
 proc prepare*(conn: Connection, query: string): Future[SqlPrepared] {.async.} =
   var buf: string = newStringOfCap(4 + 1 + len(query))
   buf.setLen(4)
@@ -609,104 +568,7 @@ proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlPa
   var pkt = conn.formatBoundParams(pstmt, params)
   return conn.sendPacket(pkt, resetSeqId=true)
 
-when defined(ssl):
-  proc startTls(conn: Connection, ssl: SslContext): Future[void] {.async.} =
-    # MySQL's equivalent of STARTTLS: we send a sort of stub response
-    # here, do SSL setup, and continue afterwards with the encrypted connection
-    if Cap.ssl notin conn.serverCaps:
-      raise newException(ProtocolError, "Server does not support SSL")
-    var buf: string = newStringOfCap(32)
-    buf.setLen(4)
-    var caps: set[Cap] = { Cap.longPassword, Cap.protocol41, Cap.secureConnection, Cap.ssl }
-    putU32(buf, cast[uint32](caps))
-    putU32(buf, 65536'u32)  # max packet size, TODO: what should I put here?
-    buf.add( char(Charset_utf8_ci) )
-    # 23 bytes of filler
-    for i in 1 .. 23:
-      buf.add( char(0) )
-    await conn.sendPacket(buf)
-    # The server will respond with the SSL SERVER_HELLO packet.
-    wrapConnectedSocket(ssl, conn.socket, handshake=SslHandshakeType.handshakeAsClient)
-    # and, once the encryption is negotiated, we will continue
-    # with the real handshake response.
-
-proc finishEstablishingConnection(conn: Connection,
-                                  username, password, database: string,
-                                  handshakePacket: HandshakePacket): Future[void] {.async.} =
-  # password authentication
-  # https://dev.mysql.com/doc/internals/en/determining-authentication-method.html
-  # In MySQL 5.7, the default authentication plugin is mysql_native_password.
-  # As of MySQL 8.0, the default authentication plugin is changed to caching_sha2_password. 
-  # https://dev.mysql.com/doc/refman/5.7/en/authentication-plugins.html
-  # https://dev.mysql.com/doc/refman/8.0/en/authentication-plugins.html
-
-  var authResponse = plugin_auth(handshakePacket.plugin, handshakePacket.scrambleBuff, password)
-
-  await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
-  # await confirmation from the server
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
-    return
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
-  elif isAuthSwitchRequestPacket(pkt):
-    debug "isAuthSwitchRequestPacket"
-    let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
-    if Cap.pluginAuth in conn.serverCaps  and responseAuthSwitch.pluginName.len > 0:
-      debug "plugin auth handshake:" & responseAuthSwitch.pluginName
-      debug "pluginData:" & responseAuthSwitch.pluginData
-      let authData = plugin_auth(responseAuthSwitch.pluginName,responseAuthSwitch.pluginData, password)
-      var buf: string = newStringOfCap(32)
-      buf.setLen(4)
-      case responseAuthSwitch.pluginName
-        of "mysql_old_password", "mysql_clear_password":
-          putNulString(buf,authData)
-        else:
-          buf.add authData
-      await conn.sendPacket(buf)
-      let pkt = await conn.receivePacket()
-      if isERRPacket(pkt):
-        raise parseErrorPacket(pkt)
-      
-      return
-    else:
-      debug "legacy handshake"
-      var buf: string = newStringOfCap(32)
-      buf.setLen(4)
-      var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
-      putNulString(buf,data)
-      await conn.sendPacket(buf)
-      discard await conn.receivePacket()
-  elif isExtraAuthDataPacket(pkt):
-    debug "isExtraAuthDataPacket"
-    # https://dev.mysql.com/doc/internals/en/successful-authentication.html
-    if handshakePacket.plugin == "caching_sha2_password":
-        discard await caching_sha2_password_auth(conn, pkt, password, handshakePacket.scrambleBuff)
-    # elif handshakePacket.plugin == "sha256_password":
-    #     discard await = sha256_password_auth(conn, auth_packet, password)
-    else:
-        raise newException(ProtocolError,"Received extra packet for auth method " & handshakePacket.plugin )
-  else:
-    raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
-
-proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
-  let pkt = await conn.receivePacket()
-  result = conn.parseHandshakePacket(pkt)
-
-when declared(SslContext) and declared(startTls):
-  proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", ssl: SslContext): Future[Connection] {.async.} =
-    result = Connection(socket: sock)
-    let handshakePacket = await connect(result)
-    # Negotiate encryption
-    await result.startTls(ssl)
-    await result.finishEstablishingConnection(username, password, database, handshakePacket)
-
-proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = ""): Future[Connection] {.async.} =
-  result = Connection(socket: sock)
-  let handshakePacket = await connect(result)
-  await result.finishEstablishingConnection(username, password, database, handshakePacket)
-
-template fetchResultset(conn:typed, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped =
+template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped =
   var p = 0
   let column_count = readLenInt(pkt, p)
   result.columns = await conn.receiveMetadata(column_count)
@@ -727,7 +589,7 @@ template fetchResultset(conn:typed, pkt:typed, result:typed, onlyFirst:typed, is
 
 {.push warning[ObservableStores]: off.}
 proc rawExec*(conn: Connection, query: string): Future[ResultSet[string]] {.
-               async#[, tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
+               async,asyncPooled,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -739,7 +601,7 @@ proc rawExec*(conn: Connection, query: string): Future[ResultSet[string]] {.
     conn.fetchResultset(pkt, result, onlyFirst = false, isTextMode = true): discard
 
 proc rawQuery*(conn: Connection, query: string, onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
-               async#[, tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
+               async,asyncPooled,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(query)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
@@ -764,7 +626,7 @@ proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void]
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
-            #[tags: [ReadDbEffect, WriteDbEffect]]#.} =
+            asyncPooled,#[tags: [ReadDbEffect, WriteDbEffect]]#.} =
   var pkt = conn.formatBoundParams(pstmt, params)
   var sent = conn.sendPacket(pkt, resetSeqId=true)
   return performPreparedQuery(conn, pstmt, sent)
@@ -794,17 +656,17 @@ proc dbFormat(formatstr: SqlQuery, args: varargs[string]): string =
       add(result, c)
 
 proc exec*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
-            async, #[tags: [ReadDbEffect]]#.} =
+            async, asyncPooled, #[tags: [ReadDbEffect]]#.} =
   var q = dbFormat(query, args)
   result = await conn.rawExec(q)
 
 proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
-            async, #[tags: [ReadDbEffect]]#.} =
+            async, asyncPooled, #[tags: [ReadDbEffect]]#.} =
   var q = dbFormat(query, args)
   result = await conn.rawQuery(q, onlyFirst)
 
 proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
-               async, #[tags: [ReadDbEffect]]#.} =
+               async,asyncPooled, #[tags: [ReadDbEffect]]#.} =
   ## tries to execute the query and returns true if successful, false otherwise.
   result = true
   try:
@@ -814,7 +676,7 @@ proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): F
   return result
 
 proc getRow*(conn: Connection, query: SqlQuery,
-             args: varargs[string, `$`]): Future[Row] {.async, #[tags: [ReadDbEffect]]#.} =
+             args: varargs[string, `$`]): Future[Row] {.async, asyncPooled, #[tags: [ReadDbEffect]]#.} =
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
   let resultSet = await conn.query(query, args, onlyFirst = true)
@@ -825,13 +687,13 @@ proc getRow*(conn: Connection, query: SqlQuery,
     result = resultSet.rows[0]
 
 proc getAllRows*(conn: Connection, query: SqlQuery,
-                 args: varargs[string, `$`]): Future[seq[Row]] {.async, #[tags: [ReadDbEffect]]#.} =
+                 args: varargs[string, `$`]): Future[seq[Row]] {.async, asyncPooled, #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the whole result dataset.
   let resultSet = await conn.query(query, args)
   result = resultSet.rows
 
 proc getValue*(conn: Connection, query: SqlQuery,
-               args: varargs[string, `$`]): Future[string] {.async, #[tags: [ReadDbEffect]]#.} =
+               args: varargs[string, `$`]): Future[string] {.async, asyncPooled, #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the first column of the first row of the
   ## result dataset. Returns "" if the dataset contains no rows or the database
   ## value is NULL.
@@ -839,7 +701,7 @@ proc getValue*(conn: Connection, query: SqlQuery,
   result = row[0]
 
 proc tryInsertId*(conn: Connection, query: SqlQuery,
-                  args: varargs[string, `$`]): Future[int64] {.async, #[raises: [], tags: [WriteDbEffect]]#.} =
+                  args: varargs[string, `$`]): Future[int64] {.async, asyncPooled,#[raises: [], tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row or -1 in case of an error.
   var resultSet:ResultSet[string]
@@ -851,88 +713,28 @@ proc tryInsertId*(conn: Connection, query: SqlQuery,
   result = resultSet.status.last_insert_id.int64
 
 proc insertId*(conn: Connection, query: SqlQuery,
-               args: varargs[string, `$`]): Future[int64] {.async, #[tags: [WriteDbEffect]]#.} =
+               args: varargs[string, `$`]): Future[int64] {.async, asyncPooled, #[tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
   let resultSet = await conn.exec(query, args)
   result = resultSet.status.last_insert_id.int64
 
 proc tryInsert*(conn: Connection, query: SqlQuery, pkName: string,
-                args: varargs[string, `$`]): Future[int64] {.async,#[raises: [], tags: [WriteDbEffect]]#.} =
+                args: varargs[string, `$`]): Future[int64] {.async, asyncPooled,#[raises: [], tags: [WriteDbEffect]]#.} =
   ## same as tryInsertID
   result = await tryInsertID(conn, query, args)
 
 proc insert*(conn: Connection, query: SqlQuery, pkName: string,
              args: varargs[string, `$`]): Future[int64]
-            {.async, #[tags: [WriteDbEffect]]#.} =
+            {.async, asyncPooled, #[tags: [WriteDbEffect]]#.} =
   ## same as insertId
   let resultSet = await conn.exec(query, args)
   result = resultSet.status.last_insert_id.int64
 
-proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async, #[raises: [], tags: [DbEffect]]#.} =
+proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async, asyncPooled, #[raises: [], tags: [DbEffect]]#.} =
   ## sets the encoding of a database connection, returns true for
   ## success, false for failure.
   result = await conn.tryQuery(sql"SET NAMES ?",encoding)
-
-proc handleParams(conn: Connection, q: string) {.async.} =
-  ## SHOW VARIABLES;
-  ## https://dev.mysql.com/doc/refman/8.0/en/using-system-variables.html
-  var key, val: string
-  var cmd = "SET "
-  var pos = 0
-  for item in split(q,"&"):
-    (key, val) = item.split("=")
-    case key
-    of "charset":
-      let charsets = val.split(",")
-      for charset in charsets:
-        try:
-          discard await conn.rawQuery("SET NAMES " & charset)
-        except:
-          discard
-    else:
-      if pos != 0:
-        cmd.add ','
-      cmd.add key & '=' & val
-      inc pos
-  discard await conn.rawQuery cmd
-
-proc open*(uriStr: string | Uri): Future[Connection] {.async.} =
-  ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
-  let uri:Uri = when uriStr is string: parseUri(uriStr) else: uriStr
-  let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
-  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
-  await connect(sock, uri.hostname, Port(port))
-  result = await establishConnection(sock, uri.username, uri.password, uri.path[ 1 .. uri.path.high ] )
-  if uri.query.len > 0:
-    await result.handleParams(uri.query)
-
-proc open*(connection, user, password:string; database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
-  var isPath = false
-  var sock:AsyncSocket
-  when defined(posix):
-    isPath = connection[0] == '/'
-  if isPath:
-    sock = newAsyncSocket(AF_UNIX, SOCK_STREAM)
-    await connectUnix(sock,connection)
-  else:
-    let
-      colonPos = connection.find(':')
-      host = if colonPos < 0: connection
-            else: substr(connection, 0, colonPos-1)
-      port: int32 = if colonPos < 0: 3306'i32
-                    else: substr(connection, colonPos+1).parseInt.int32
-    sock = newAsyncSocket(AF_INET, SOCK_STREAM)
-    await connect(sock, host, Port(port))
-  return await establishConnection(sock, user, password, database)
-
-proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
-  var buf: string = newStringOfCap(5)
-  buf.setLen(4)
-  buf.add( char(Command.quit) )
-  await conn.sendPacket(buf, resetSeqId=true)
-  discard await conn.receivePacket(drop_ok=true)
-  conn.socket.close()
 
 proc startTransaction*(conn: Connection) {.async, inline.} =
   discard await conn.rawExec("START TRANSACTION")

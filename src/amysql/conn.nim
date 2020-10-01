@@ -7,6 +7,9 @@ import strutils, parseutils
 import options
 import tables
 
+import asyncnet
+
+
 type
   Version* = distinct string
   Connection* = ref ConnectionObj

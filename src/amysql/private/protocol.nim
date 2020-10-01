@@ -1,11 +1,9 @@
 
 include ./protocol_basic
-
 import ./cap
 import asyncnet,asyncdispatch
 import ../conn
 import times
-
 
 # EOF is signaled by a packet that starts with 0xFE, which is
 # also a valid length-encoded-integer. In order to distinguish
@@ -331,3 +329,30 @@ proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IO
   if isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   return pkt
+
+proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefinition]] {.async.} =
+  var received = 0
+  result = newSeq[ColumnDefinition](count)
+  while received < count:
+    let pkt = await conn.receivePacket()
+    if uint8(pkt[0]) == ResponseCode_ERR or uint8(pkt[0]) == ResponseCode_EOF:
+      raise newException(ProtocolError, "TODO")
+    var pos = 0
+    result[received].catalog = readLenStr(pkt, pos)
+    result[received].schema = readLenStr(pkt, pos)
+    result[received].table = readLenStr(pkt, pos)
+    result[received].orig_table = readLenStr(pkt, pos)
+    result[received].name = readLenStr(pkt, pos)
+    result[received].orig_name = readLenStr(pkt, pos)
+    let extras_len = readLenInt(pkt, pos)
+    if extras_len < 10 or (pos+extras_len > len(pkt)):
+      raise newException(ProtocolError, "truncated column packet")
+    result[received].charset = int16(scanU16(pkt, pos))
+    result[received].length = scanU32(pkt, pos+2)
+    result[received].column_type = FieldType(uint8(pkt[pos+6]))
+    result[received].flags = cast[set[FieldFlag]](scanU16(pkt, pos+7))
+    result[received].decimals = int(pkt[pos+9])
+    inc(received)
+  let endPacket = await conn.receivePacket()
+  if uint8(endPacket[0]) != ResponseCode_EOF:
+    raise newException(ProtocolError, "Expected EOF after column defs, got something else")

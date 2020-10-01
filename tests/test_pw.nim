@@ -1,5 +1,5 @@
 import unittest
-include amysql
+import amysql/private/auth
 include ./utils
 proc mysql_native_password(s: string,p: string): string = hexstr(scramble_native_password(s,p))
 

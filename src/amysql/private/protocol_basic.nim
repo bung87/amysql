@@ -189,7 +189,24 @@ type
     scrambleBuff*: string      # 8 + [12]
     plugin*: string            # NullTerminatedString 
     protocol41*: bool
-
+type 
+  ColumnDefinition* {.final.} = object 
+    catalog*     : string
+    schema*      : string
+    table*       : string
+    orig_table*  : string
+    name*        : string
+    orig_name*   : string
+    charset*      : int16
+    length*      : uint32
+    column_type* : FieldType
+    flags*       : set[FieldFlag]
+    decimals*    : int
+  
+  ResultSet*[T] {.final.} = object 
+    status*     : ResponseOK
+    columns*    : seq[ColumnDefinition]
+    rows*       : seq[seq[T]]
 ## Basic datatype packers/unpackers
 ## little endian
 # Integers

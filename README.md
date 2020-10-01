@@ -28,7 +28,6 @@ mariadb: 10
 
 - [ ] Finish caching_sha2_password_auth.  
 - [ ] Testing ssl mode unix socket mode.  
-- [ ] thread pool.  
 - [ ] mutiple statements and mutilple resultsets.
 - [ ] compression mode  
 - [ ] handle connection options  
