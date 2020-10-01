@@ -37,7 +37,6 @@ import strutils
 import uri
 import times
 import json
-# import amysql/async_pool_macros
 
 import logging
 
@@ -47,44 +46,6 @@ addHandler(consoleLog)
 when defined(release):  setLogFilter(lvlInfo)
 
 type
-  Row* = seq[string] 
-  ResultValueType = enum
-    rvtNull,
-    rvtInteger,
-    rvtLong,
-    rvtULong,
-    rvtFloat, # float32
-    rvtDouble,
-    rvtDate,
-    rvtTime,
-    rvtDateTime,
-    rvtTimestamp,
-    rvtString,
-    rvtBlob,
-    rvtJson,
-    rvtGeometry
-  Date* = object of DateTime
-  ResultValue* = object
-    case typ: ResultValueType
-      of rvtInteger:
-        intVal: int
-      of rvtLong:
-        longVal: int64
-      of rvtULong:
-        uLongVal: uint64
-      of rvtString, rvtBlob,rvtJson,rvtGeometry:
-        strVal: string
-      of rvtNull:
-        discard
-      of rvtFloat:
-        floatVal: float32
-      of rvtDouble:
-        doubleVal: float64
-      of rvtTime:
-        durVal: Duration
-      of rvtDate, rvtDateTime,rvtTimestamp:
-        # https://dev.mysql.com/doc/internals/en/date-and-time-data-type-representation.html
-        datetimeVal: DateTime
   ParamBindingType = enum
     paramNull,
     paramString,
@@ -130,6 +91,44 @@ type
     columns: seq[ColumnDefinition]
     warnings: Natural
     conn: Connection
+  Row* = seq[string] 
+  ResultValueType = enum
+    rvtNull,
+    rvtInteger,
+    rvtLong,
+    rvtULong,
+    rvtFloat, # float32
+    rvtDouble,
+    rvtDate,
+    rvtTime,
+    rvtDateTime,
+    rvtTimestamp,
+    rvtString,
+    rvtBlob,
+    rvtJson,
+    rvtGeometry
+  Date* = object of DateTime
+  ResultValue* = object
+    case typ: ResultValueType
+      of rvtInteger:
+        intVal: int
+      of rvtLong:
+        longVal: int64
+      of rvtULong:
+        uLongVal: uint64
+      of rvtString, rvtBlob,rvtJson,rvtGeometry:
+        strVal: string
+      of rvtNull:
+        discard
+      of rvtFloat:
+        floatVal: float32
+      of rvtDouble:
+        doubleVal: float64
+      of rvtTime:
+        durVal: Duration
+      of rvtDate, rvtDateTime,rvtTimestamp:
+        # https://dev.mysql.com/doc/internals/en/date-and-time-data-type-representation.html
+        datetimeVal: DateTime
 
 # Parameter and result packers/unpackers
 
@@ -448,7 +447,7 @@ proc reset*(conn: Connection, pstmt: SqlPrepared): Future[void] =
   pstmt.prepare(buf, Command.statementReset)
   return conn.sendPacket(buf, resetSeqId=true)
 
-proc formatBoundParams(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): string =
+proc formatBoundParams*(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): string =
   ## see https://mariadb.com/kb/en/com_stmt_execute/
   if len(params) != len(pstmt.parameters):
     raise newException(ValueError, "Wrong number of parameters supplied to prepared statement (got " & $len(params) & ", statement expects " & $len(pstmt.parameters) & ")")
@@ -614,7 +613,7 @@ proc rawQuery*(conn: Connection, query: string, onlyFirst:bool = false): Future[
   else:
     conn.fetchResultset(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt)))
 
-proc performPreparedQuery(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
+proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =
   await st
   let pkt = await conn.receivePacket()

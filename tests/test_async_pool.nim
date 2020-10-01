@@ -1,5 +1,5 @@
 import unittest
-import amysql, asyncdispatch
+import asyncdispatch
 import amysql/async_pool
 
 test "async pool":
@@ -14,3 +14,4 @@ test "async pool":
     pass_word,
     database_name,2)
   let rslt = waitFor pool.rawQuery("select database()")
+  waitFor pool.close()
