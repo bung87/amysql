@@ -3,7 +3,7 @@ import asyncdispatch
 import macros
 import uri
 import ../amysql
-import amysql/private/format
+import ../amysql/private/format
 
 type
   ## db pool

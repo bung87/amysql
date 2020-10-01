@@ -7,10 +7,10 @@ license       = "MIT"
 srcDir        = "src"
 
 task docs,"":
-  exec "nim doc --project src/amysql/index.nim"
+  exec "nim doc --project src/index.nim"
 
 task ghpage,"gh page":
-  cd "src/amysql/htmldocs" 
+  cd "src/htmldocs" 
   exec "git init"
   exec "git add ."
   exec "git config user.name \"bung87\""
