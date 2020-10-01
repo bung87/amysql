@@ -628,7 +628,7 @@ proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
             #[tags: [ReadDbEffect, WriteDbEffect]]#.} =
-  var pkt = conn.formatBoundParams(pstmt, params)
+  var pkt = conn.formatBoundParams(pstmt, @params)
   var sent = conn.sendPacket(pkt, resetSeqId=true)
   return performPreparedQuery(conn, pstmt, sent)
 

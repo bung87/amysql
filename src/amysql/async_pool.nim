@@ -79,7 +79,7 @@ proc query*(pool: AsyncPool, pstmt: SqlPrepared, params: varargs[SqlParam, asPar
             async#[tags: [ReadDbEffect, WriteDbEffect]]#.} =
   let conIdx = await pool.getFreeConnIdx()
   let conn = pool.conns[conIdx]
-  var pkt = conn.formatBoundParams(pstmt, params)
+  var pkt = conn.formatBoundParams(pstmt, @params)
   var sent = conn.sendPacket(pkt, resetSeqId=true)
   result = await performPreparedQuery(conn, pstmt, sent)
   pool.returnConn(conIdx)
