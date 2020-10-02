@@ -2,6 +2,7 @@ AsyncPool	amysql/async_pool.html#AsyncPool	async_pool: AsyncPool
 newAsyncPool	amysql/async_pool.html#newAsyncPool,string,string,string,string,int	async_pool: newAsyncPool(host, user, password, database: string; num: int): Future[AsyncPool]	
 newAsyncPool	amysql/async_pool.html#newAsyncPool,,int	async_pool: newAsyncPool(uriStr: string | Uri; num: int): Future[AsyncPool]	
 getFreeConnIdx	amysql/async_pool.html#getFreeConnIdx,AsyncPool	async_pool: getFreeConnIdx(pool: AsyncPool): Future[int]	
+getFreeConn	amysql/async_pool.html#getFreeConn,AsyncPool,int	async_pool: getFreeConn(pool: AsyncPool; conIdx: int): Connection	
 returnConn	amysql/async_pool.html#returnConn,AsyncPool,int	async_pool: returnConn(pool: AsyncPool; conIdx: int)	
 close	amysql/async_pool.html#close,AsyncPool	async_pool: close(pool: AsyncPool): owned(Future[void])	
 query	amysql/async_pool.html#query,AsyncPool,SqlPrepared,openArray[static[SqlParam]]	async_pool: query(pool: AsyncPool; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[\n    void]	
@@ -13,6 +14,7 @@ exec	amysql/async_pool.html#exec,AsyncPool,SqlQuery,varargs[string,]	async_pool:
 query	amysql/async_pool.html#query,AsyncPool,SqlQuery,varargs[string,],static[bool]	async_pool: query(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`];\n      onlyFirst: static[bool] = false): Future[ResultSet[string]]	
 tryQuery	amysql/async_pool.html#tryQuery,AsyncPool,SqlQuery,varargs[string,]	async_pool: tryQuery(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]	
 getRow	amysql/async_pool.html#getRow,AsyncPool,SqlQuery,varargs[string,]	async_pool: getRow(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]	
+getAllRows	amysql/async_pool.html#getAllRows,AsyncPool,SqlQuery,seq[string]	async_pool: getAllRows(pool: AsyncPool; query: SqlQuery; args: seq[string]): Future[seq[Row]]	
 getAllRows	amysql/async_pool.html#getAllRows,AsyncPool,SqlQuery,varargs[string,]	async_pool: getAllRows(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[\n    seq[Row]]	
 getValue	amysql/async_pool.html#getValue,AsyncPool,SqlQuery,varargs[string,]	async_pool: getValue(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[string]	
 tryInsertId	amysql/async_pool.html#tryInsertId,AsyncPool,SqlQuery,varargs[string,]	async_pool: tryInsertId(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]	

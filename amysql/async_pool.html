@@ -125,6 +125,8 @@ function main() {
     title="newAsyncPool(uriStr: string | Uri; num: int): Future[AsyncPool]"><wbr />new<wbr />Async<wbr />Pool<span class="attachedType">AsyncPool</span></a></li>
   <li><a class="reference" href="#getFreeConnIdx%2CAsyncPool"
     title="getFreeConnIdx(pool: AsyncPool): Future[int]"><wbr />get<wbr />Free<wbr />Conn<wbr />Idx<span class="attachedType">AsyncPool</span></a></li>
+  <li><a class="reference" href="#getFreeConn%2CAsyncPool%2Cint"
+    title="getFreeConn(pool: AsyncPool; conIdx: int): Connection"><wbr />get<wbr />Free<wbr />Conn<span class="attachedType">AsyncPool</span></a></li>
   <li><a class="reference" href="#returnConn%2CAsyncPool%2Cint"
     title="returnConn(pool: AsyncPool; conIdx: int)"><wbr />return<wbr />Conn<span class="attachedType">AsyncPool</span></a></li>
   <li><a class="reference" href="#close%2CAsyncPool"
@@ -152,6 +154,8 @@ function main() {
     title="tryQuery(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]"><wbr />try<wbr />Query<span class="attachedType">AsyncPool</span></a></li>
   <li><a class="reference" href="#getRow%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="getRow(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]"><wbr />get<wbr />Row<span class="attachedType">AsyncPool</span></a></li>
+  <li><a class="reference" href="#getAllRows%2CAsyncPool%2CSqlQuery%2Cseq%5Bstring%5D"
+    title="getAllRows(pool: AsyncPool; query: SqlQuery; args: seq[string]): Future[seq[Row]]"><wbr />get<wbr />All<wbr />Rows<span class="attachedType">AsyncPool</span></a></li>
   <li><a class="reference" href="#getAllRows%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="getAllRows(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[
     seq[Row]]"><wbr />get<wbr />All<wbr />Rows<span class="attachedType">AsyncPool</span></a></li>
@@ -222,6 +226,13 @@ Create a new async pool of num connections.
 <dd>
 
 Wait for a free connection and return it.
+
+</dd>
+<a id="getFreeConn,AsyncPool,int"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#getFreeConn%2CAsyncPool%2Cint"><span class="Identifier">getFreeConn</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">conIdx</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
 
 </dd>
 <a id="returnConn,AsyncPool,int"></a>
@@ -317,6 +328,15 @@ tries to execute the query and returns true if successful, false otherwise.
 Retrieves a single row. If the query doesn't return any rows, this proc will return a Row with empty strings for each column.
 
 </dd>
+<a id="getAllRows,AsyncPool,SqlQuery,seq[string]"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#getAllRows%2CAsyncPool%2CSqlQuery%2Cseq%5Bstring%5D"><span class="Identifier">getAllRows</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">seq</span><span class="Other">[</span><a href="../amysql.html#Row"><span class="Identifier">Row</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+executes the query and returns the whole result dataset.
+
+</dd>
 <a id="getAllRows,AsyncPool,SqlQuery,varargs[string,]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#getAllRows%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getAllRows</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
     <span class="Identifier">seq</span><span class="Other">[</span><a href="../amysql.html#Row"><span class="Identifier">Row</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
@@ -383,7 +403,7 @@ same as insertId
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-01 13:51:45 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 04:53:06 UTC</small>
       </div>
     </div>
   </div>
