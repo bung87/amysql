@@ -33,6 +33,7 @@ import net  # needed for the SslContext type
 import db_common
 export db_common
 import strutils
+import amysql/async_varargs
 
 import uri
 import times
@@ -655,13 +656,9 @@ proc exec*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Futur
            #[tags: [DbEffect]]#.} =
   result = conn.exec(query, @args)
 
-proc query(conn: Connection, query: SqlQuery, args: seq[string], onlyFirst: static[bool] = false): Future[ResultSet[string]] {.async.} =
+proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst: static[bool] = false): Future[ResultSet[string]] {.asyncVarargs.} =
   var q = dbFormat(query, args)
   result = await conn.rawQuery(q, onlyFirst)
-
-proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst: static[bool] = false): Future[ResultSet[string]] {.
-            #[tags: [DbEffect]]#.} =
-  result = conn.query(query, @args, onlyFirst)
 
 proc tryQuery(conn: Connection, query: SqlQuery, args: seq[string]): Future[bool] {.
                async, #[tags: [ReadDbEffect]]#.} =
