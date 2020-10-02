@@ -1,7 +1,7 @@
 import db_common
 import ./quote
 
-proc dbFormat*(formatstr: SqlQuery, args: varargs[string]): string =
+proc dbFormat*(formatstr: SqlQuery, args: varargs[string] | seq[string]): string =
   result = ""
   var a = 0
   for c in items(string(formatstr)):
