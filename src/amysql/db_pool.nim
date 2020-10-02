@@ -299,8 +299,7 @@ proc query(self: DBPool, pstmt: DBSqlPrepared, params: seq[SqlParam]): Future[Re
   return msg.binVal
 
 proc query*(self: DBPool, pstmt: DBSqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] =
-  let p:seq[SqlParam] = @params
-  self.query(pstmt,p)
+  result = self.query(pstmt, @params)
 
 proc rawExec*(self: DBPool, query: string): Future[ResultSet[string]] {.
                async.} =
