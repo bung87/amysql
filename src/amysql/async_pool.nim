@@ -101,13 +101,15 @@ proc exec*(pool: AsyncPool, query: SqlQuery, args: varargs[string, `$`]): Future
   result = await conn.rawExec(q)
   pool.returnConn(conIdx)
 
-proc query*(pool: AsyncPool, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
-            async,  #[tags: [ReadDbEffect]]#.} =
+proc query(pool: AsyncPool, query: SqlQuery, args: seq[string], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.async.} =
   let conIdx = await pool.getFreeConnIdx()
   let conn = pool.conns[conIdx]
-  var q = dbFormat(query, @args)
+  var q = dbFormat(query, args)
   result = await conn.rawQuery(q, onlyFirst)
   pool.returnConn(conIdx)
+
+proc query*(pool: AsyncPool, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] =
+  result = pool.query(query, @args, onlyFirst)
 
 proc tryQuery*(pool: AsyncPool, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
                async, #[tags: [ReadDbEffect]]#.} =
