@@ -648,12 +648,12 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
 
 proc exec*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
             async,  #[tags: [ReadDbEffect]]#.} =
-  var q = dbFormat(query, args)
+  var q = dbFormat(query, @args)
   result = await conn.rawExec(q)
 
 proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
             async,  #[tags: [ReadDbEffect]]#.} =
-  var q = dbFormat(query, args)
+  var q = dbFormat(query, @args)
   result = await conn.rawQuery(q, onlyFirst)
 
 proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
