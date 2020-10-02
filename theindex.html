@@ -72,7 +72,7 @@ function main() {
 <div class="document" id="documentId">
   <div class="container">
     <h1 class="title">Index</h1>
-    Modules: <a href="amysql.html">amysql</a>, <a href="amysql/async_pool.html">amysql/async_pool</a>, <a href="amysql/conn.html">amysql/conn</a>, <a href="amysql/conn_connection.html">amysql/conn_connection</a>, <a href="amysql/db_pool.html">amysql/db_pool</a>, <a href="amysql/private/auth.html">amysql/private/auth</a>, <a href="amysql/private/cap.html">amysql/private/cap</a>, <a href="amysql/private/conn_auth.html">amysql/private/conn_auth</a>, <a href="amysql/private/errors.html">amysql/private/errors</a>, <a href="amysql/private/format.html">amysql/private/format</a>, <a href="amysql/private/json_sql_format.html">amysql/private/json_sql_format</a>, <a href="amysql/private/my_geometry.html">amysql/private/my_geometry</a>, <a href="amysql/private/protocol.html">amysql/private/protocol</a>, <a href="amysql/private/quote.html">amysql/private/quote</a>, <a href="amysql/private/utils.html">amysql/private/utils</a>.<br/><p /><h2>API symbols</h2>
+    Modules: <a href="amysql.html">amysql</a>, <a href="amysql/async_pool.html">amysql/async_pool</a>, <a href="amysql/async_varargs.html">amysql/async_varargs</a>, <a href="amysql/conn.html">amysql/conn</a>, <a href="amysql/conn_connection.html">amysql/conn_connection</a>, <a href="amysql/db_pool.html">amysql/db_pool</a>, <a href="amysql/private/auth.html">amysql/private/auth</a>, <a href="amysql/private/cap.html">amysql/private/cap</a>, <a href="amysql/private/conn_auth.html">amysql/private/conn_auth</a>, <a href="amysql/private/errors.html">amysql/private/errors</a>, <a href="amysql/private/format.html">amysql/private/format</a>, <a href="amysql/private/json_sql_format.html">amysql/private/json_sql_format</a>, <a href="amysql/private/my_geometry.html">amysql/private/my_geometry</a>, <a href="amysql/private/protocol.html">amysql/private/protocol</a>, <a href="amysql/private/quote.html">amysql/private/quote</a>, <a href="amysql/private/utils.html">amysql/private/utils</a>.<br/><p /><h2>API symbols</h2>
 <dl><dt><a name="%60%24%60" href="#%60%24%60"><span>`$`:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="amysql: `$`(v: ResultValue): string" href="amysql.html#%24%2CResultValue">amysql: `$`(v: ResultValue): string</a></li>
@@ -195,6 +195,10 @@ function main() {
 <li><a class="reference external"
           data-doc-search-tag="async_pool: AsyncPool" href="amysql/async_pool.html#AsyncPool">async_pool: AsyncPool</a></li>
           </ul></dd>
+<dt><a name="asyncVarargs" href="#asyncVarargs"><span>asyncVarargs:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="async_varargs: asyncVarargs(prc: untyped): untyped" href="amysql/async_varargs.html#asyncVarargs.m%2Cuntyped">async_varargs: asyncVarargs(prc: untyped): untyped</a></li>
+          </ul></dd>
 <dt><a name="cachedProperty" href="#cachedProperty"><span>cachedProperty:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="utils: cachedProperty(s: string; prc: untyped): untyped" href="amysql/private/utils.html#cachedProperty.m%2Cstring%2Cuntyped">utils: cachedProperty(s: string; prc: untyped): untyped</a></li>
@@ -283,12 +287,12 @@ function main() {
           </ul></dd>
 <dt><a name="exec" href="#exec"><span>exec:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: exec(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[
-    ResultSet[string]]" href="amysql.html#exec%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: exec(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[
+          data-doc-search-tag="amysql: exec(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[
+    ResultSet[string]]" href="amysql.html#exec%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: exec(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[
     ResultSet[string]]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: exec(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    ResultSet[string]]" href="amysql/async_pool.html#exec%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: exec(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[
+          data-doc-search-tag="async_pool: exec(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[
+    ResultSet[string]]" href="amysql/async_pool.html#exec%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: exec(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[
     ResultSet[string]]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: exec(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
@@ -435,15 +439,9 @@ function main() {
           </ul></dd>
 <dt><a name="getAllRows" href="#getAllRows"><span>getAllRows:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: getAllRows(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[
-    seq[Row]]" href="amysql.html#getAllRows%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: getAllRows(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[
-    seq[Row]]</a></li>
+          data-doc-search-tag="amysql: getAllRows(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]" href="amysql.html#getAllRows%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: getAllRows(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: getAllRows(pool: AsyncPool; query: SqlQuery; args: seq[string]): Future[seq[Row]]" href="amysql/async_pool.html#getAllRows%2CAsyncPool%2CSqlQuery%2Cseq%5Bstring%5D">async_pool: getAllRows(pool: AsyncPool; query: SqlQuery; args: seq[string]): Future[seq[Row]]</a></li>
-          <li><a class="reference external"
-          data-doc-search-tag="async_pool: getAllRows(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    seq[Row]]" href="amysql/async_pool.html#getAllRows%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: getAllRows(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    seq[Row]]</a></li>
+          data-doc-search-tag="async_pool: getAllRows(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]" href="amysql/async_pool.html#getAllRows%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: getAllRows(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: getAllRows(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]" href="amysql/db_pool.html#getAllRows%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">db_pool: getAllRows(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]</a></li>
           </ul></dd>
@@ -461,19 +459,17 @@ function main() {
           </ul></dd>
 <dt><a name="getRow" href="#getRow"><span>getRow:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: getRow(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[Row]" href="amysql.html#getRow%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: getRow(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[Row]</a></li>
+          data-doc-search-tag="amysql: getRow(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]" href="amysql.html#getRow%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: getRow(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: getRow(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]" href="amysql/async_pool.html#getRow%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: getRow(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]</a></li>
+          data-doc-search-tag="async_pool: getRow(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]" href="amysql/async_pool.html#getRow%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: getRow(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: getRow(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]" href="amysql/db_pool.html#getRow%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">db_pool: getRow(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]</a></li>
           </ul></dd>
 <dt><a name="getValue" href="#getValue"><span>getValue:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: getValue(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[string]" href="amysql.html#getValue%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: getValue(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[string]</a></li>
+          data-doc-search-tag="amysql: getValue(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[string]" href="amysql.html#getValue%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: getValue(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[string]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: getValue(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[string]" href="amysql/async_pool.html#getValue%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: getValue(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[string]</a></li>
-          <li><a class="reference external"
-          data-doc-search-tag="db_pool: getValue(conn: DBPool; query: SqlQuery; args: seq[string]): Future[string]" href="amysql/db_pool.html#getValue%2CDBPool%2CSqlQuery%2Cseq%5Bstring%5D">db_pool: getValue(conn: DBPool; query: SqlQuery; args: seq[string]): Future[string]</a></li>
+          data-doc-search-tag="async_pool: getValue(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[string]" href="amysql/async_pool.html#getValue%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: getValue(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[string]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: getValue(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[string]" href="amysql/db_pool.html#getValue%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">db_pool: getValue(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[string]</a></li>
           </ul></dd>
@@ -491,12 +487,12 @@ function main() {
           </ul></dd>
 <dt><a name="insert" href="#insert"><span>insert:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: insert(conn: Connection; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
-    int64]" href="amysql.html#insert%2CConnection%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D">amysql: insert(conn: Connection; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
+          data-doc-search-tag="amysql: insert(conn: Connection; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
+    int64]" href="amysql.html#insert%2CConnection%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D">amysql: insert(conn: Connection; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
     int64]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: insert(pool: AsyncPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
-    int64]" href="amysql/async_pool.html#insert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D">async_pool: insert(pool: AsyncPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
+          data-doc-search-tag="async_pool: insert(pool: AsyncPool; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
+    int64]" href="amysql/async_pool.html#insert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D">async_pool: insert(pool: AsyncPool; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
     int64]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: insert(conn: DBPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
@@ -505,9 +501,9 @@ function main() {
           </ul></dd>
 <dt><a name="insertId" href="#insertId"><span>insertId:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: insertId(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql.html#insertId%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: insertId(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
+          data-doc-search-tag="amysql: insertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql.html#insertId%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: insertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: insertId(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql/async_pool.html#insertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: insertId(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
+          data-doc-search-tag="async_pool: insertId(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql/async_pool.html#insertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: insertId(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: insertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql/db_pool.html#insertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">db_pool: insertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
           </ul></dd>
@@ -607,7 +603,7 @@ function main() {
           </ul></dd>
 <dt><a name="prepare" href="#prepare"><span>prepare:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: prepare(conn: Connection; query: string): Future[SqlPrepared]" href="amysql.html#prepare%2CConnection%2Cstring">amysql: prepare(conn: Connection; query: string): Future[SqlPrepared]</a></li>
+          data-doc-search-tag="amysql: prepare(conn: Connection; qs: string): Future[SqlPrepared]" href="amysql.html#prepare%2CConnection%2Cstring">amysql: prepare(conn: Connection; qs: string): Future[SqlPrepared]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: prepare(self: DBPool; query: string): Future[DBSqlPrepared]" href="amysql/db_pool.html#prepare%2CDBPool%2Cstring">db_pool: prepare(self: DBPool; query: string): Future[DBSqlPrepared]</a></li>
           </ul></dd>
@@ -687,8 +683,8 @@ function main() {
     ResultSet[ResultValue]]" href="amysql.html#query%2CConnection%2CSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D">amysql: query(conn: Connection; pstmt: SqlPrepared; params: varargs[SqlParam, asParam]): Future[
     ResultSet[ResultValue]]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="amysql: query(conn: Connection; query: SqlQuery; args: varargs[string, `$`];
-      onlyFirst: static[bool] = false): Future[ResultSet[string]]" href="amysql.html#query%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D">amysql: query(conn: Connection; query: SqlQuery; args: varargs[string, `$`];
+          data-doc-search-tag="amysql: query(conn: Connection; qs: SqlQuery; args: varargs[string, `$`];
+      onlyFirst: static[bool] = false): Future[ResultSet[string]]" href="amysql.html#query%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D">amysql: query(conn: Connection; qs: SqlQuery; args: varargs[string, `$`];
       onlyFirst: static[bool] = false): Future[ResultSet[string]]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="async_pool: query(pool: AsyncPool; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[
@@ -699,8 +695,8 @@ function main() {
     ResultSet[ResultValue]]" href="amysql/async_pool.html#query%2CAsyncPool%2CSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D">async_pool: query(pool: AsyncPool; pstmt: SqlPrepared; params: varargs[SqlParam, asParam]): Future[
     ResultSet[ResultValue]]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: query(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`];
-      onlyFirst: static[bool] = false): Future[ResultSet[string]]" href="amysql/async_pool.html#query%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D">async_pool: query(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`];
+          data-doc-search-tag="async_pool: query(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`];
+      onlyFirst: static[bool] = false): Future[ResultSet[string]]" href="amysql/async_pool.html#query%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D">async_pool: query(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`];
       onlyFirst: static[bool] = false): Future[ResultSet[string]]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: query(self: DBPool; pstmt: DBSqlPrepared; params: varargs[SqlParam, asParam]): Future[
@@ -713,21 +709,19 @@ function main() {
           </ul></dd>
 <dt><a name="rawExec" href="#rawExec"><span>rawExec:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: rawExec(conn: Connection; query: string): Future[ResultSet[string]]" href="amysql.html#rawExec%2CConnection%2Cstring">amysql: rawExec(conn: Connection; query: string): Future[ResultSet[string]]</a></li>
+          data-doc-search-tag="amysql: rawExec(conn: Connection; qs: string): Future[ResultSet[string]]" href="amysql.html#rawExec%2CConnection%2Cstring">amysql: rawExec(conn: Connection; qs: string): Future[ResultSet[string]]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: rawExec(pool: AsyncPool; query: string): Future[ResultSet[string]]" href="amysql/async_pool.html#rawExec%2CAsyncPool%2Cstring">async_pool: rawExec(pool: AsyncPool; query: string): Future[ResultSet[string]]</a></li>
+          data-doc-search-tag="async_pool: rawExec(pool: AsyncPool; qs: string): Future[ResultSet[string]]" href="amysql/async_pool.html#rawExec%2CAsyncPool%2Cstring">async_pool: rawExec(pool: AsyncPool; qs: string): Future[ResultSet[string]]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: rawExec(self: DBPool; query: string): Future[ResultSet[string]]" href="amysql/db_pool.html#rawExec%2CDBPool%2Cstring">db_pool: rawExec(self: DBPool; query: string): Future[ResultSet[string]]</a></li>
           </ul></dd>
 <dt><a name="rawQuery" href="#rawQuery"><span>rawQuery:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: rawQuery(conn: Connection; query: string; onlyFirst: bool = false): Future[
-    ResultSet[string]]" href="amysql.html#rawQuery%2CConnection%2Cstring%2Cbool">amysql: rawQuery(conn: Connection; query: string; onlyFirst: bool = false): Future[
+          data-doc-search-tag="amysql: rawQuery(conn: Connection; qs: string; onlyFirst: bool = false): Future[
+    ResultSet[string]]" href="amysql.html#rawQuery%2CConnection%2Cstring%2Cbool">amysql: rawQuery(conn: Connection; qs: string; onlyFirst: bool = false): Future[
     ResultSet[string]]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: rawQuery(pool: AsyncPool; query: string; onlyFirst: bool = false): Future[
-    ResultSet[string]]" href="amysql/async_pool.html#rawQuery%2CAsyncPool%2Cstring%2Cbool">async_pool: rawQuery(pool: AsyncPool; query: string; onlyFirst: bool = false): Future[
-    ResultSet[string]]</a></li>
+          data-doc-search-tag="async_pool: rawQuery(pool: AsyncPool; qs: string; onlyFirst: bool = false): Future[ResultSet[string]]" href="amysql/async_pool.html#rawQuery%2CAsyncPool%2Cstring%2Cbool">async_pool: rawQuery(pool: AsyncPool; qs: string; onlyFirst: bool = false): Future[ResultSet[string]]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: rawQuery(self: DBPool; query: string; onlyFirst: static[bool] = false): Future[
     ResultSet[string]]" href="amysql/db_pool.html#rawQuery%2CDBPool%2Cstring%2Cstatic%5Bbool%5D">db_pool: rawQuery(self: DBPool; query: string; onlyFirst: static[bool] = false): Future[
@@ -915,12 +909,12 @@ function main() {
           </ul></dd>
 <dt><a name="tryInsert" href="#tryInsert"><span>tryInsert:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: tryInsert(conn: Connection; query: SqlQuery; pkName: string;
-          args: varargs[string, `$`]): Future[int64]" href="amysql.html#tryInsert%2CConnection%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D">amysql: tryInsert(conn: Connection; query: SqlQuery; pkName: string;
-          args: varargs[string, `$`]): Future[int64]</a></li>
+          data-doc-search-tag="amysql: tryInsert(conn: Connection; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
+    int64]" href="amysql.html#tryInsert%2CConnection%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D">amysql: tryInsert(conn: Connection; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
+    int64]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: tryInsert(pool: AsyncPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
-    int64]" href="amysql/async_pool.html#tryInsert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D">async_pool: tryInsert(pool: AsyncPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
+          data-doc-search-tag="async_pool: tryInsert(pool: AsyncPool; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
+    int64]" href="amysql/async_pool.html#tryInsert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D">async_pool: tryInsert(pool: AsyncPool; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
     int64]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: tryInsert(conn: DBPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
@@ -929,21 +923,17 @@ function main() {
           </ul></dd>
 <dt><a name="tryInsertId" href="#tryInsertId"><span>tryInsertId:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: tryInsertId(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[
-    int64]" href="amysql.html#tryInsertId%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: tryInsertId(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[
-    int64]</a></li>
+          data-doc-search-tag="amysql: tryInsertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql.html#tryInsertId%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: tryInsertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: tryInsertId(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql/async_pool.html#tryInsertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: tryInsertId(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
-          <li><a class="reference external"
-          data-doc-search-tag="db_pool: tryInsertId(conn: DBPool; query: SqlQuery; args: seq[string]): Future[int64]" href="amysql/db_pool.html#tryInsertId%2CDBPool%2CSqlQuery%2Cseq%5Bstring%5D">db_pool: tryInsertId(conn: DBPool; query: SqlQuery; args: seq[string]): Future[int64]</a></li>
+          data-doc-search-tag="async_pool: tryInsertId(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql/async_pool.html#tryInsertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: tryInsertId(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: tryInsertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]" href="amysql/db_pool.html#tryInsertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">db_pool: tryInsertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]</a></li>
           </ul></dd>
 <dt><a name="tryQuery" href="#tryQuery"><span>tryQuery:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="amysql: tryQuery(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[bool]" href="amysql.html#tryQuery%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: tryQuery(conn: Connection; query: SqlQuery; args: varargs[string, `$`]): Future[bool]</a></li>
+          data-doc-search-tag="amysql: tryQuery(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[bool]" href="amysql.html#tryQuery%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">amysql: tryQuery(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[bool]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="async_pool: tryQuery(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]" href="amysql/async_pool.html#tryQuery%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: tryQuery(pool: AsyncPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]</a></li>
+          data-doc-search-tag="async_pool: tryQuery(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[bool]" href="amysql/async_pool.html#tryQuery%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">async_pool: tryQuery(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[bool]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: tryQuery(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]" href="amysql/db_pool.html#tryQuery%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D">db_pool: tryQuery(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]</a></li>
           </ul></dd>
@@ -974,7 +964,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 04:53:06 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 09:42:52 UTC</small>
       </div>
     </div>
   </div>

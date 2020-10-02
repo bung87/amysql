@@ -161,12 +161,8 @@ function main() {
     title="getRow(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]"><wbr />get<wbr />Row<span class="attachedType">DBPool</span></a></li>
   <li><a class="reference" href="#getAllRows%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="getAllRows(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]"><wbr />get<wbr />All<wbr />Rows<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#getValue%2CDBPool%2CSqlQuery%2Cseq%5Bstring%5D"
-    title="getValue(conn: DBPool; query: SqlQuery; args: seq[string]): Future[string]"><wbr />get<wbr />Value<span class="attachedType">DBPool</span></a></li>
   <li><a class="reference" href="#getValue%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="getValue(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[string]"><wbr />get<wbr />Value<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#tryInsertId%2CDBPool%2CSqlQuery%2Cseq%5Bstring%5D"
-    title="tryInsertId(conn: DBPool; query: SqlQuery; args: seq[string]): Future[int64]"><wbr />try<wbr />Insert<wbr />Id<span class="attachedType">DBPool</span></a></li>
   <li><a class="reference" href="#tryInsertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="tryInsertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]"><wbr />try<wbr />Insert<wbr />Id<span class="attachedType">DBPool</span></a></li>
   <li><a class="reference" href="#insertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
@@ -367,15 +363,6 @@ Retrieves a single row. If the query doesn't return any rows, this proc will ret
 executes the query and returns the whole result dataset.
 
 </dd>
-<a id="getValue,DBPool,SqlQuery,seq[string]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#getValue%2CDBPool%2CSqlQuery%2Cseq%5Bstring%5D"><span class="Identifier">getValue</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-executes the query and returns the first column of the first row of the result dataset. Returns &quot;&quot; if the dataset contains no rows or the database value is NULL.
-
-</dd>
 <a id="getValue,DBPool,SqlQuery,varargs[string,]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#getValue%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getValue</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
     <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
@@ -383,15 +370,6 @@ executes the query and returns the first column of the first row of the result d
 <dd>
 
 executes the query and returns the first column of the first row of the result dataset. Returns &quot;&quot; if the dataset contains no rows or the database value is NULL.
-
-</dd>
-<a id="tryInsertId,DBPool,SqlQuery,seq[string]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#tryInsertId%2CDBPool%2CSqlQuery%2Cseq%5Bstring%5D"><span class="Identifier">tryInsertId</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-executes the query (typically &quot;INSERT&quot;) and returns the generated ID for the row or -1 in case of an error.
 
 </dd>
 <a id="tryInsertId,DBPool,SqlQuery,varargs[string,]"></a>
@@ -441,7 +419,7 @@ same as insertId
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 04:53:06 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 09:42:52 UTC</small>
       </div>
     </div>
   </div>
