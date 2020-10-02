@@ -407,11 +407,11 @@ proc parseTextRow(pkt: string): seq[string] =
     else:
       result.add(pkt.readLenStr(pos))
 
-proc prepare*(conn: Connection, query: string): Future[SqlPrepared] {.async.} =
-  var buf: string = newStringOfCap(4 + 1 + len(query))
+proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
+  var buf: string = newStringOfCap(4 + 1 + len(qs))
   buf.setLen(4)
   buf.add( char(Command.statementPrepare) )
-  buf.add(query)
+  buf.add(qs)
   await conn.sendPacket(buf, resetSeqId=true)
   let pkt = await conn.receivePacket()
   if isERRPacket(pkt):
@@ -590,9 +590,9 @@ template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:type
         continue
 
 {.push warning[ObservableStores]: off.}
-proc rawExec*(conn: Connection, query: string): Future[ResultSet[string]] {.
+proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
-  await conn.sendQuery(query)
+  await conn.sendQuery(qs)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
     # Success, but no rows returned.
@@ -602,9 +602,9 @@ proc rawExec*(conn: Connection, query: string): Future[ResultSet[string]] {.
   else: 
     conn.fetchResultset(pkt, result, onlyFirst = false, isTextMode = true): discard
 
-proc rawQuery*(conn: Connection, query: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
+proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
-  await conn.sendQuery(query)
+  await conn.sendQuery(qs)
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
     # Success, but no rows returned.
@@ -656,70 +656,70 @@ proc query*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`], onlyFirs
   var q = dbFormat(qs, args)
   result = await conn.rawQuery(q, onlyFirst)
 
-proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
+proc tryQuery*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
                asyncVarargs, #[tags: [ReadDbEffect]]#.} =
   ## tries to execute the query and returns true if successful, false otherwise.
   result = true
   try:
-    discard await conn.exec(query, args)
+    discard await conn.exec(qs, args)
   except:
     result = false
   return result
 
-proc getRow*(conn: Connection, query: SqlQuery,
+proc getRow*(conn: Connection, qs: SqlQuery,
              args: varargs[string, `$`]): Future[Row] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
-  let resultSet = await conn.query(query, args, onlyFirst = true)
+  let resultSet = await conn.query(qs, args, onlyFirst = true)
   if resultSet.rows.len == 0:
     let cols = resultSet.columns.len
     result = newSeq[string](cols)
   else:
     result = resultSet.rows[0]
 
-proc getAllRows*(conn: Connection, query: SqlQuery,
+proc getAllRows*(conn: Connection, qs: SqlQuery,
                  args: varargs[string, `$`]): Future[seq[Row]] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the whole result dataset.
-  let resultSet = await conn.query(query, args)
+  let resultSet = await conn.query(qs, args)
   result = resultSet.rows
 
-proc getValue*(conn: Connection, query: SqlQuery,
+proc getValue*(conn: Connection, qs: SqlQuery,
                args: varargs[string, `$`]): Future[string] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the first column of the first row of the
   ## result dataset. Returns "" if the dataset contains no rows or the database
   ## value is NULL.
-  let row = await getRow(conn, query, args)
+  let row = await getRow(conn, qs, args)
   result = row[0]
 
-proc tryInsertId*(conn: Connection, query: SqlQuery,
+proc tryInsertId*(conn: Connection, qs: SqlQuery,
                   args: varargs[string, `$`]): Future[int64] {.asyncVarargs, #[raises: [], tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row or -1 in case of an error.
   var resultSet:ResultSet[string]
   try:
-    resultSet = await conn.exec(query, args)
+    resultSet = await conn.exec(qs, args)
   except:
     result = -1'i64
     return result
   result = resultSet.status.last_insert_id.int64
 
-proc insertId*(conn: Connection, query: SqlQuery,
+proc insertId*(conn: Connection, qs: SqlQuery,
                args: varargs[string, `$`]): Future[int64] {.asyncVarargs,  #[tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
-  let resultSet = await conn.exec(query, args)
+  let resultSet = await conn.exec(qs, args)
   result = resultSet.status.last_insert_id.int64
 
-proc tryInsert*(conn: Connection, query: SqlQuery, pkName: string,
+proc tryInsert*(conn: Connection, qs: SqlQuery, pkName: string,
                 args: varargs[string, `$`]): Future[int64] {.asyncVarargs, #[raises: [], tags: [WriteDbEffect]]#.} =
   ## same as tryInsertID
-  result = await tryInsertID(conn, query, args)
+  result = await tryInsertID(conn, qs, args)
 
-proc insert*(conn: Connection, query: SqlQuery, pkName: string,
+proc insert*(conn: Connection, qs: SqlQuery, pkName: string,
              args: varargs[string, `$`]): Future[int64]
             {.asyncVarargs,  #[tags: [WriteDbEffect]]#.} =
   ## same as insertId
-  let resultSet = await conn.exec(query, args)
+  let resultSet = await conn.exec(qs, args)
   result = resultSet.status.last_insert_id.int64
 
 proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async,  #[raises: [], tags: [DbEffect]]#.} =
