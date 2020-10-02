@@ -45,6 +45,9 @@ proc getFreeConnIdx*(pool: AsyncPool): Future[int] {.async.} =
         return conIdx
     await sleepAsync(1)
 
+proc getFreeConn*(pool: AsyncPool, conIdx: int):Connection =
+  result = pool.conns[conIdx]
+
 proc returnConn*(pool: AsyncPool, conIdx: int) =
   ## Make the connection as free after using it and getting results.
   pool.busy[conIdx] = false
