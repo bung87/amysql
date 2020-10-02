@@ -651,10 +651,13 @@ proc exec*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Futur
   var q = dbFormat(query, @args)
   result = await conn.rawExec(q)
 
-proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
-            async,  #[tags: [ReadDbEffect]]#.} =
-  var q = dbFormat(query, @args)
+proc query(conn: Connection, query: SqlQuery, args:seq[string], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.async.} =
+  var q = dbFormat(query, args)
   result = await conn.rawQuery(q, onlyFirst)
+
+proc query*(conn: Connection, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
+            #[tags: [ReadDbEffect]]#.} =
+  result = conn.query(query, @args, onlyFirst)
 
 proc tryQuery*(conn: Connection, query: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
                async, #[tags: [ReadDbEffect]]#.} =
