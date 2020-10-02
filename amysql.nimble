@@ -5,6 +5,7 @@ author        = "bung87"
 description   = "Async MySQL Connector write in pure Nim."
 license       = "MIT"
 srcDir        = "src"
+skipFiles = @["index.nim"]
 
 task docs,"":
   exec "nim doc --project src/index.nim"
