@@ -383,7 +383,7 @@ proc getAllRows*(conn: DBPool, query: SqlQuery,
   ## executes the query and returns the whole result dataset.
   result = conn.getAllRows(query, @args)
 
-proc getValue*(conn: DBPool, query: SqlQuery,
+proc getValue(conn: DBPool, query: SqlQuery,
                args: seq[string]): Future[string] {.async, #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the first column of the first row of the
   ## result dataset. Returns "" if the dataset contains no rows or the database
@@ -398,7 +398,7 @@ proc getValue*(conn: DBPool, query: SqlQuery,
   ## value is NULL.
   result = conn.getValue(query, @args)
 
-proc tryInsertId*(conn: DBPool, query: SqlQuery,
+proc tryInsertId(conn: DBPool, query: SqlQuery,
                   args: seq[string]): Future[int64] {.async, #[raises: [], tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row or -1 in case of an error.
