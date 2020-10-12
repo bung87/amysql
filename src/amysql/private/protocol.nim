@@ -134,7 +134,7 @@ proc writeHandshakeResponse*(conn: Connection,
   var buf: string = newStringOfCap(128)
   buf.setLen(4)
 
-  var caps: set[Cap] = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
+  var caps: set[Cap] = BasicClientCaps
   if Cap.longFlag in conn.serverCaps:
     incl(caps, Cap.longFlag)
   if auth_response.len > 0 and Cap.pluginAuthLenencClientData in conn.serverCaps:

@@ -9,6 +9,7 @@ import tables
 
 import asyncnet
 
+const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
 
 type
   Version* = distinct string
