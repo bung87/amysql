@@ -25,3 +25,6 @@ task ghpage,"gh page":
 requires "nim >= 1.3.1" # await inside template needs
 requires "nimcrypto"
 requires "regex"
+
+# Optional dependencies:
+# https://github.com/bung87/nim_zstd
