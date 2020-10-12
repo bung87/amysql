@@ -122,6 +122,6 @@ install:
   - nimble install -d -y
 
 script:
-  - nimble test -d:test
+  - nimble test --silent
   
   
