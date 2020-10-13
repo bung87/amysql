@@ -5,6 +5,12 @@ import asyncnet,asyncdispatch
 import ../conn
 import times
 
+when defined(mysqlx_compression_mode):
+  # he default compression levels are initially set to 3 for zstd, 2 for LZ4, and 3 for Deflate. 
+  # https://dev.mysql.com/doc/refman/8.0/en/x-plugin-connection-compression.html#x-plugin-connection-compression-monitoring
+  const mysqlx_zstd_default_client_compression_level {.intdefine.}: int = 3
+  import zstd
+
 # EOF is signaled by a packet that starts with 0xFE, which is
 # also a valid length-encoded-integer. In order to distinguish
 # between the two cases, we check the length of the packet: EOFs
@@ -124,7 +130,14 @@ proc sendPacket*(conn: Connection, buf: var string, resetSeqId = false): Future[
     conn.sequenceId = 0
   buf[3] = char( conn.sequenceId )
   inc(conn.sequenceId)
-  conn.socket.send(buf)
+  when defined(mysqlx_compression_mode):
+    if conn.zstdAvailable and conn.authenticated:
+      var compressed = compress(buf,mysqlx_zstd_default_client_compression_level)
+      conn.socket.send(compressed.addr, compressed.len)
+    else:
+      conn.socket.send(buf)
+  else:
+    conn.socket.send(buf)
 
 proc writeHandshakeResponse*(conn: Connection,
                             username: string,
@@ -319,6 +332,9 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.as
     raise newException(ProtocolError, "Connection closed unexpectedly")
   if len(result) != packet_length:
     raise newException(ProtocolError, "TODO finish this part")
+  when defined(mysqlx_compression_mode):
+    if conn.zstdAvailable and conn.authenticated:
+      result = cast[string](decompress(result))
 
 proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)

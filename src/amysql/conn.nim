@@ -9,7 +9,10 @@ import tables
 
 import asyncnet
 
-const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
+when defined(mysqlx_compression_mode):
+  const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection, Cap.compress, Cap.zstdCompressionAlgorithm }
+else:
+  const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
 
 type
   Version* = distinct string
@@ -28,6 +31,7 @@ type
 
     databaseVersion: Option[Version]
     priv_isMaria: Option[bool]
+    authenticated*: bool
 
 proc `$`*(ver: Version): string {.borrow.}
 
@@ -83,6 +87,12 @@ proc `$`*(conn: Connection): string =
   tbl["databaseVersion"] = $conn.getDatabaseVersion()
   tbl["isMaria"] = $conn.isMaria
   $tbl
+
+proc zstdAvailable*(conn: Connection): bool =
+  const compress_zstd = { Cap.compress, Cap.zstdCompressionAlgorithm }
+  return compress_zstd <= conn.serverCaps and compress_zstd <= conn.clientCaps
+
+proc use_zstd*(conn: Connection): bool = conn.zstdAvailable and conn.authenticated
 
 when isMainModule:
   echo Version("8.0.21") >= Version("8.0")

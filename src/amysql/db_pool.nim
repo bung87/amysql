@@ -23,8 +23,6 @@ import db_common
 import ./private/format
 import logging
 
-var consoleLog = newConsoleLogger()
-addHandler(consoleLog)
 when defined(release):  setLogFilter(lvlInfo)
 
 type 
@@ -245,7 +243,6 @@ proc fetchConn*(self: DBPool): Future[DBConn] {.async.} =
   if self.closed:
     raise newException(IOError,"Connection closed.")
     # return nil, errDBClosed
-  debug fmt"self.freeConn:{$self.freeConn.len},self.numOpen:{$self.numOpen},self.maxPoolSize:{$self.maxPoolSize}"
   ## Out of free connections or we were asked not to use one. If we're not
   ## allowed to open any more connections, make a request and wait.
   while len(self.freeConn) == 0 and self.numOpen >= self.maxPoolSize:

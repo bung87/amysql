@@ -28,7 +28,7 @@ matrix:
           -e MYSQL_ROOT_PASSWORD='' 
           -e MYSQL_ALLOW_EMPTY_PASSWORD=yes
           mysql:8.0 --innodb_log_file_size=256MB --innodb_buffer_pool_size=512MB --max_allowed_packet=16MB --local-infile=1 --default-authentication-plugin=mysql_native_password
-        - apt-get install -y zstd
+        - sudo apt-get install -y zstd
 
     # Build and test against the master (stable) and devel branches of Nim
     - os: linux
@@ -38,7 +38,7 @@ matrix:
       services:
         mysql # mysql  Ver 14.14 Distrib 5.7.30, for Linux (x86_64) using  EditLine wrapper
       before_install:
-        - apt-get install -y zstd
+        - sudo apt-get install -y zstd
 
     - os: linux
       name: linux with mariadb(10.4)
@@ -47,7 +47,7 @@ matrix:
       addons:
         mariadb: '10.4'
       before_install:
-        - apt-get install -y zstd
+        - sudo apt-get install -y zstd
 
     # On OSX we only test against clang (gcc is mapped to clang by default)
     - os: osx
@@ -126,7 +126,7 @@ install:
   - export PATH=~/.nimble/bin:$PATH
   - echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile
   - choosenim $CHANNEL
-  - nimble install https://github.com/bung87/nim_zstd
+  - nimble install https://github.com/bung87/zstd
   - nimble install -d -y
 
 script:

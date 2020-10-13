@@ -3,6 +3,9 @@ import ./errors
 import ./auth
 import ./protocol
 import asyncdispatch
+import logging
+
+when defined(release):  setLogFilter(lvlInfo)
 
 proc caching_sha2_password_auth*(conn:Connection, pkt, scrambleBuff, password: string): Future[string] {.async.} =
   # pkt 
@@ -32,7 +35,7 @@ proc caching_sha2_password_auth*(conn:Connection, pkt, scrambleBuff, password: s
   if n != 4:
     raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & $n)
   # full path
-  debugEcho "full path magic number:" & $n
+  debug "full path magic number:" & $n
   # raise newException(CatchableError, "Unimplemented")
   # if conn.secure # Sending plain password via secure connection (Localhost via UNIX socket or ssl)
   return await conn.roundtrip(password & char(0))

@@ -12,8 +12,6 @@ import asyncnet
 
 import logging
 
-var consoleLog = newConsoleLogger()
-addHandler(consoleLog)
 when defined(release):  setLogFilter(lvlInfo)
 
 when defined(ssl):
@@ -53,6 +51,7 @@ proc finishEstablishingConnection(conn: Connection,
   # await confirmation from the server
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
+    conn.authenticated = true
     return
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
@@ -74,7 +73,7 @@ proc finishEstablishingConnection(conn: Connection,
       let pkt = await conn.receivePacket()
       if isERRPacket(pkt):
         raise parseErrorPacket(pkt)
-      
+      conn.authenticated = true
       return
     else:
       debug "legacy handshake"
@@ -84,6 +83,7 @@ proc finishEstablishingConnection(conn: Connection,
       putNulString(buf,data)
       await conn.sendPacket(buf)
       discard await conn.receivePacket()
+      conn.authenticated = true
   elif isExtraAuthDataPacket(pkt):
     debug "isExtraAuthDataPacket"
     # https://dev.mysql.com/doc/internals/en/successful-authentication.html
@@ -93,6 +93,7 @@ proc finishEstablishingConnection(conn: Connection,
     #     discard await = sha256_password_auth(conn, auth_packet, password)
     else:
         raise newException(ProtocolError,"Received extra packet for auth method " & handshakePacket.plugin )
+    conn.authenticated = true
   else:
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 
