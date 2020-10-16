@@ -244,11 +244,12 @@ proc writeHandshakeResponse*(conn: Connection,
 
   if Cap.pluginAuth in caps:
     putNulString(buf, auth_plugin)
-  if Cap.zstdCompressionAlgorithm in caps:
-    # For zlib compression method, the default compression level will be set to 6
-    # and for zstd it is 3. Valid compression levels for zstd is between 1 to 22 
-    # inclusive.
-    putU8(buf, ZstdCompressionLevel)
+  when defined(mysql_compression_mode):
+    if Cap.zstdCompressionAlgorithm in caps:
+      # For zlib compression method, the default compression level will be set to 6
+      # and for zstd it is 3. Valid compression levels for zstd is between 1 to 22 
+      # inclusive.
+      putU8(buf, ZstdCompressionLevel)
 
   await conn.sendPacket(buf)
 
