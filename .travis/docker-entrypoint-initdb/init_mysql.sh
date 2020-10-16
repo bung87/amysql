@@ -1,4 +1,4 @@
-sudo mysql -u root -e "set global protocol_compression_algorithms='zstd,uncompressed'"
+# sudo mysql -u root -e "set global protocol_compression_algorithms='zstd,uncompressed'"
 # sudo mysql -u root -e "create database if not exists test;"
 # sudo mysql -u root -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
 # sudo mysql -u root -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED WITH caching_sha2_password BY '123456';"
