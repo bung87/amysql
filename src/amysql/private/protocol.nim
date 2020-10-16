@@ -127,7 +127,8 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
   # Caller must have left the first four bytes of the buffer available for
   # us to write the packet header.
   # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
-  # https://github.com/mysql/mysql-connector-cpp/blob/6b2fc1020534b908f90610f5ebdcf36a7df67cfd/cdk/protocol/mysqlx/protocol.cc#L371
+  const TimeoutErrorMsg = "Timeout when send packet"
+  const WriteTimeOut = 60_000
   let bodylen = len(buf) - 4
   buf[0] = char( (bodylen and 0xFF) )
   buf[1] = char( ((bodylen shr 8) and 0xFF) )
@@ -139,7 +140,10 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
   when not defined(mysqlx_compression_mode):
     buf[3] = char( conn.sequenceId )
     inc(conn.sequenceId)
-    await conn.socket.send(buf)
+    let send = conn.socket.send(buf)
+    let success = await withTimeout(send, WriteTimeOut)
+    if not success:
+      raise newException(TimeoutError, TimeoutErrorMsg)
   else:
     # set global protocol_compression_algorithms='zstd,uncompressed';
     # default value: zlib,zstd,uncompressed
@@ -174,19 +178,23 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
         header.add cast[ptr UncheckedArray[char]](buf[0].addr).toOpenArray(4,buf.high)
       debug repr buf
       debug repr header
-      header.add char(0)
-      await conn.socket.send(header[0].addr,header.len)
+      let send = conn.socket.send(header[0].addr,header.len)
+      let success = await withTimeout(send, WriteTimeOut)
+      if not success:
+        raise newException(TimeoutError, TimeoutErrorMsg)
     else:
       buf[3] = char( conn.sequenceId )
       inc(conn.sequenceId)
-      await conn.socket.send(buf)
-    
+      let send = conn.socket.send(buf)
+      let success = await withTimeout(send, WriteTimeOut)
+      if not success:
+        raise newException(TimeoutError, TimeoutErrorMsg)
 
 proc writeHandshakeResponse*(conn: Connection,
                             username: string,
                             auth_response: string,
                             database: string,
-                            auth_plugin: string): Future[void] =
+                            auth_plugin: string): Future[void] {.async.} =
   # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_response.html
   var buf: string = newStringOfCap(128)
   buf.setLen(4)
@@ -242,7 +250,7 @@ proc writeHandshakeResponse*(conn: Connection,
     const zstdCompressionLevel = 3
     putU8(buf, zstdCompressionLevel)
 
-  return conn.sendPacket(buf)
+  await conn.sendPacket(buf)
 
 proc putTime*(buf: var string, val: Duration):int {.discardable.}  =
   let dp = toParts(val)
