@@ -7,7 +7,7 @@ const database_name = "test"
 const port: int = 3306
 const host_name = "localhost"
 const user_name = "test_user"
-const pass_word = "123456"
+const pass_word = "12345678"
 const ssl: bool = false
 const verbose: bool = false
 
@@ -94,11 +94,10 @@ proc numberTests(pool: AsyncPool): Future[void] {.async.} =
   discard await pool.rawQuery("drop table `num_tests`")
 
 proc runTests(): Future[void] {.async.} =
-  var pool = waitFor newAsyncPool(host_name,
+  var pool = await newAsyncPool(host_name,
     user_name,
     pass_word,
     database_name,2)
-  
   await pool.numberTests()
   await pool.close()
 

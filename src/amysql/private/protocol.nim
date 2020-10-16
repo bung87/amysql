@@ -4,11 +4,15 @@ import ./cap
 import asyncnet,asyncdispatch
 import ../conn
 import times
+import strutils
+import net
+import logging
 
 when defined(mysqlx_compression_mode):
   # he default compression levels are initially set to 3 for zstd, 2 for LZ4, and 3 for Deflate. 
   # https://dev.mysql.com/doc/refman/8.0/en/x-plugin-connection-compression.html#x-plugin-connection-compression-monitoring
   const mysqlx_zstd_default_client_compression_level {.intdefine.}: int = 3
+  const MIN_COMPRESS_LENGTH = 50
   import zstd
 
 # EOF is signaled by a packet that starts with 0xFE, which is
@@ -119,31 +123,79 @@ proc parseEOFPacket*(pkt: string): ResponseOK =
   result.warning_count = scanU16(pkt, 1)
   result.status_flags = cast[set[Status]]( scanU16(pkt, 3) )
 
-proc sendPacket*(conn: Connection, buf: var string, resetSeqId = false): Future[void] =
+proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future[void] {.async.} =
   # Caller must have left the first four bytes of the buffer available for
   # us to write the packet header.
+  # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
+  const TimeoutErrorMsg = "Timeout when send packet"
+  const WriteTimeOut = 60_000
   let bodylen = len(buf) - 4
   buf[0] = char( (bodylen and 0xFF) )
   buf[1] = char( ((bodylen shr 8) and 0xFF) )
   buf[2] = char( ((bodylen shr 16) and 0xFF) )
   if resetSeqId:
     conn.sequenceId = 0
-  buf[3] = char( conn.sequenceId )
-  inc(conn.sequenceId)
-  when defined(mysqlx_compression_mode):
-    if conn.zstdAvailable and conn.authenticated:
-      var compressed = compress(buf,mysqlx_zstd_default_client_compression_level)
-      conn.socket.send(compressed.addr, compressed.len)
-    else:
-      conn.socket.send(buf)
+    when defined(mysqlx_compression_mode):
+      conn.compressedSequenceId = 0
+  when not defined(mysqlx_compression_mode):
+    buf[3] = char( conn.sequenceId )
+    inc(conn.sequenceId)
+    let send = conn.socket.send(buf)
+    let success = await withTimeout(send, WriteTimeOut)
+    if not success:
+      raise newException(TimeoutError, TimeoutErrorMsg)
   else:
-    conn.socket.send(buf)
+    # set global protocol_compression_algorithms='zstd,uncompressed';
+    # default value: zlib,zstd,uncompressed
+    if conn.use_zstd():
+      var header = newSeqOfCap[char](7)
+      header.setLen(7)
+      var compressed:seq[byte]
+      if bodylen >= MIN_COMPRESS_LENGTH:
+        # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
+        compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(4,buf.high),mysqlx_zstd_default_client_compression_level)
+        let compressedLen = compressed.len
+        header[0] = char( (compressedLen and 0xFF) )
+        header[1] = char( ((compressedLen shr 8) and 0xFF) )
+        header[2] = char( ((compressedLen shr 16) and 0xFF) )
+        header[4] = char( (bodylen and 0xFF) )
+        header[5] = char( ((bodylen shr 8) and 0xFF) )
+        header[6] = char( ((bodylen shr 16) and 0xFF) )
+        debug "bodylen >= MIN_COMPRESS_LENGTH"
+      else:
+        debug "bodylen < MIN_COMPRESS_LENGTH"
+        header[0] = char( (bodylen and 0xFF) )
+        header[1] = char( ((bodylen shr 8) and 0xFF) )
+        header[2] = char( ((bodylen shr 16) and 0xFF) )
+        header[4] = char(0)
+        header[5] = char(0)
+        header[6] = char(0)
+      header[3] = char( conn.compressedSequenceId )
+      inc(conn.compressedSequenceId)
+      if bodylen >= MIN_COMPRESS_LENGTH:
+        header.add cast[ptr UncheckedArray[char]](compressed[0].addr).toOpenArray(0,compressed.high)
+      else:
+        header.add cast[ptr UncheckedArray[char]](buf[0].addr).toOpenArray(4,buf.high)
+      debug repr buf
+      debug repr header
+      let send = conn.socket.send(header[0].addr,header.len)
+      let success = await withTimeout(send, WriteTimeOut)
+      if not success:
+        raise newException(TimeoutError, TimeoutErrorMsg)
+    else:
+      buf[3] = char( conn.sequenceId )
+      inc(conn.sequenceId)
+      let send = conn.socket.send(buf)
+      let success = await withTimeout(send, WriteTimeOut)
+      if not success:
+        raise newException(TimeoutError, TimeoutErrorMsg)
 
 proc writeHandshakeResponse*(conn: Connection,
                             username: string,
                             auth_response: string,
                             database: string,
-                            auth_plugin: string): Future[void] =
+                            auth_plugin: string): Future[void] {.async.} =
+  # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_response.html
   var buf: string = newStringOfCap(128)
   buf.setLen(4)
 
@@ -157,6 +209,9 @@ proc writeHandshakeResponse*(conn: Connection,
     incl(caps, Cap.connectWithDb)
   if auth_plugin.len > 0:
     incl(caps, Cap.pluginAuth)
+  when defined(mysqlx_compression_mode):
+    if Cap.zstdCompressionAlgorithm in conn.serverCaps:
+      incl(caps, Cap.zstdCompressionAlgorithm)
 
   conn.clientCaps = caps
 
@@ -188,8 +243,14 @@ proc writeHandshakeResponse*(conn: Connection,
 
   if Cap.pluginAuth in caps:
     putNulString(buf, auth_plugin)
+  if Cap.zstdCompressionAlgorithm in caps:
+    # For zlib compression method, the default compression level will be set to 6
+    # and for zstd it is 3. Valid compression levels for zstd is between 1 to 22 
+    # inclusive.
+    const zstdCompressionLevel = 3
+    putU8(buf, zstdCompressionLevel)
 
-  return conn.sendPacket(buf)
+  await conn.sendPacket(buf)
 
 proc putTime*(buf: var string, val: Duration):int {.discardable.}  =
   let dp = toParts(val)
@@ -306,35 +367,82 @@ proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEf
 
 ## MySQL packet packers/unpackers
 
-proc processHeader(c: Connection, hdr: array[4, char]): nat24 =
-  result = int32(hdr[0]) + int32(hdr[1])*256 + int32(hdr[2])*65536
-  let pnum = uint8(hdr[3])
-  if pnum != c.sequenceId:
-    raise newException(ProtocolError, "Bad packet number (got sequence number " & $(pnum) & ", expected " & $(c.sequenceId) & ")")
-  c.sequenceId += 1
+proc processHeader(c: Connection, header: string): nat24 =
+  result = int32( uint32(header[0]) or (uint32(header[1]) shl 8) or (uint32(header[2]) shl 16) )
+  const errMsg = "Bad packet id (got sequence id $1, expected $2)"
+  const errMsg2 = "Bad packet id (got compressed sequence id $1, expected $2)"
+  let pnum = uint8(header[3])
+  when defined(mysqlx_compression_mode):
+    if c.use_zstd():
+      if pnum != c.compressedSequenceId:
+        raise newException(ProtocolError, errMsg2.format(pnum,c.compressedSequenceId ) )
+      c.compressedSequenceId += 1
+    else:
+      if pnum != c.sequenceId:
+        raise newException(ProtocolError, errMsg.format(pnum,c.sequenceId) )
+      c.sequenceId += 1
+  else:
+    if pnum != c.sequenceId:
+      raise newException(ProtocolError, errMsg.format(pnum,c.sequenceId) )
+    c.sequenceId += 1
 
 proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
   # drop_ok used when close
-  let hdr = await conn.socket.recv(4)
-  if len(hdr) == 0:
+  # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
+  const TimeoutErrorMsg = "Timeout when receive packet"
+  const ReadTimeOut = 30_000
+  var header:string
+  when not defined(mysqlx_compression_mode):
+    let rec = conn.socket.recv(4)
+    let success = await withTimeout(rec, ReadTimeOut)
+    if not success:
+      raise newException(TimeoutError, TimeoutErrorMsg)
+    header = rec.read
+  else:
+    if conn.use_zstd():
+      # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_compression_packet.html#sect_protocol_basic_compression_packet_header
+      # raw packet length                      -> 41
+      # (3)compressed payload length   = 22 00 00 -> 34 (41 - 7)
+      # (1)sequence id                 = 00       ->  0
+      # (3)uncompressed payload length = 32 00 00 -> 50
+      let rec = conn.socket.recv(7)
+      let success = await withTimeout(rec, ReadTimeOut)
+      if not success:
+        raise newException(TimeoutError, TimeoutErrorMsg)
+      header = rec.read
+    else:
+      let rec = conn.socket.recv(4)
+      let success = await withTimeout(rec, ReadTimeOut)
+      if not success:
+        raise newException(TimeoutError, TimeoutErrorMsg)
+      header = rec.read
+  if len(header) == 0:
     if drop_ok:
       return ""
     else:
       raise newException(ProtocolError, "Connection closed")
-  if len(hdr) != 4:
+  if len(header) != 4 and len(header) != 7:
     raise newException(ProtocolError, "Connection closed unexpectedly")
-  let b = cast[ptr array[4,char]](cstring(hdr))
-  let packet_length = conn.processHeader(b[])
-  if packet_length == 0:
+  let payloadLen = conn.processHeader(header)
+  if payloadLen == 0:
     return ""
-  result = await conn.socket.recv(packet_length)
+  let payload = conn.socket.recv(payloadLen)
+  let payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
+  if not payloadRecvSuccess:
+    raise newException(TimeoutError, TimeoutErrorMsg)
+  result = payload.read
   if len(result) == 0:
     raise newException(ProtocolError, "Connection closed unexpectedly")
-  if len(result) != packet_length:
+  if len(result) != payloadLen:
     raise newException(ProtocolError, "TODO finish this part")
   when defined(mysqlx_compression_mode):
-    if conn.zstdAvailable and conn.authenticated:
-      result = cast[string](decompress(result))
+    if conn.use_zstd():
+      let uncompressedLen = int32(uint32(header[4]) or uint32(header[5]) shl 8 or uint32(header[6]) shl 16)
+      let isUncompressed = uncompressedLen == 0
+      if isUncompressed:
+        discard
+      else:
+        result = cast[string](decompress(result))
 
 proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)

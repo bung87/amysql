@@ -34,7 +34,6 @@ import db_common
 export db_common
 import strutils
 import amysql/async_varargs
-
 import uri
 import times
 import json
@@ -645,7 +644,7 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   elif isOKPacket(pkt):
     return parseOKPacket(conn, pkt)
   else:
-    raise newException(ProtocolError, "unexpected response to COM_INIT_DB")
+    raise newException(ProtocolError, "unexpected response to COM_INIT_DB:" & pkt)
 
 proc exec*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
             asyncVarargs.} =

@@ -13,7 +13,7 @@ const database_name = "test"
 const port: int = 3306
 const host_name = findSocketPath()
 const user_name = "test_user"
-const pass_word = "123456"
+const pass_word = "12345678"
 const ssl: bool = false
 const verbose: bool = false
 

@@ -34,7 +34,7 @@ when defined(ssl):
     wrapConnectedSocket(ssl, conn.socket, handshake=SslHandshakeType.handshakeAsClient)
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
-
+  
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
                                   handshakePacket: HandshakePacket): Future[void] {.async.} =
@@ -71,10 +71,11 @@ proc finishEstablishingConnection(conn: Connection,
           buf.add authData
       await conn.sendPacket(buf)
       let pkt = await conn.receivePacket()
-      if isERRPacket(pkt):
+      if isOKPacket(pkt):
+        conn.authenticated = true
+        return
+      elif isERRPacket(pkt):
         raise parseErrorPacket(pkt)
-      conn.authenticated = true
-      return
     else:
       debug "legacy handshake"
       var buf: string = newStringOfCap(32)
@@ -82,8 +83,12 @@ proc finishEstablishingConnection(conn: Connection,
       var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
       putNulString(buf,data)
       await conn.sendPacket(buf)
-      discard await conn.receivePacket()
-      conn.authenticated = true
+      let pkt = await conn.receivePacket()
+      if isOKPacket(pkt):
+        conn.authenticated = true
+        return
+      elif isERRPacket(pkt):
+        raise parseErrorPacket(pkt)
   elif isExtraAuthDataPacket(pkt):
     debug "isExtraAuthDataPacket"
     # https://dev.mysql.com/doc/internals/en/successful-authentication.html
