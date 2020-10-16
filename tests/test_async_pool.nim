@@ -21,7 +21,7 @@ proc numberTests(pool: AsyncPool): Future[void] {.async.} =
 
   # Insert values using the binary protocol
   let conIdx = await pool.getFreeConnIdx()
-  let conn = pool.getFreeConn(conIdx)
+  let conn = await pool.getFreeConn(conIdx)
   let insrow = await conn.prepare("insert into `num_tests` (s, u8, s8, u, i, b) values (?, ?, ?, ?, ?, ?)")
   discard await conn.query(insrow, "one", 1, 1, 1, 1, 1)
   discard await conn.query(insrow, "max", 255, 127, 4294967295, 2147483647, 9223372036854775807'u64)
@@ -50,7 +50,7 @@ proc numberTests(pool: AsyncPool): Future[void] {.async.} =
 
   # Now read them back using the binary protocol
   let conIdx2 = await pool.getFreeConnIdx()
-  let conn2 = pool.getFreeConn(conIdx)
+  let conn2 = await pool.getFreeConn(conIdx)
   let rdtab = await conn2.prepare("select b, i, u, s, u8, s8 from num_tests order by i desc")
   let r2 = await conn2.query(rdtab)
   assertEq(int, r2.columns.len(), 6, "column count")
