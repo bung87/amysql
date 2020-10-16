@@ -6,6 +6,14 @@
 
 `amysql` implements async connection pool(`amysql/async_pool`) and a threaded pool(`amysql/db_pool`).  
 
+## Usage  
+
+### Compile flags  
+
+```
+const ReadTimeOut {.intdefine.} = 30_000
+const WriteTimeOut {.intdefine.} = 60_000
+```
 ## Goals
 
 The goals of this project are:

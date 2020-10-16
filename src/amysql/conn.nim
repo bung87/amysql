@@ -9,7 +9,7 @@ import tables
 
 import asyncnet
 
-when defined(mysqlx_compression_mode):
+when defined(mysql_compression_mode):
   const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection, Cap.compress, Cap.zstdCompressionAlgorithm }
 else:
   const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
@@ -20,7 +20,7 @@ type
   ConnectionObj* = object of RootObj
     socket*: AsyncSocket               # Bytestream connection
     sequenceId*: uint8              # Next expected seq number (mod-256)
-    when defined(mysqlx_compression_mode):
+    when defined(mysql_compression_mode):
       compressedSequenceId*: uint8
     # Information from the connection setup
     serverVersion*: string
@@ -102,7 +102,7 @@ proc zstdAvailable*(conn: Connection): bool =
 proc use_zstd*(conn: Connection): bool = conn.zstdAvailable() and conn.authenticated
 
 proc headerLen*(conn: Connection): int =
-  when defined(mysqlx_compression_mode):
+  when defined(mysql_compression_mode):
     if conn.use_zstd():
       result = 7
     else:
