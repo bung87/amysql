@@ -18,9 +18,9 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
 
   # Insert values using the binary protocol
   let insrow = await conn.prepare("INSERT INTO test_dt (col) VALUES (?),(?),(?)")
-  let d1 = initDateTime(1,1.Month,2020,10,10,10)
-  let d2 = initDateTime(1,1.Month,2020,4,40,10)
-  let d3 = initDateTime(1,1.Month,2020,18,10,10)
+  let d1 = initDateTime(1,1.Month,2020,10,10,10,utc())
+  let d2 = initDateTime(1,1.Month,2020,4,40,10,utc())
+  let d3 = initDateTime(1,1.Month,2020,18,10,10,utc())
   discard await conn.query(insrow, d1, d2, d3)
   await conn.finalize(insrow)
 

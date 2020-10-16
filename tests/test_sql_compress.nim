@@ -5,8 +5,7 @@ import strformat
 import logging
 
 const database_name = "test"
-const port: int = 3306
-const host_name = "localhost"
+const host_name = "127.0.0.1:3306"
 const user_name = "test_user"
 const pass_word = "12345678"
 const ssl: bool = false
@@ -18,9 +17,7 @@ template assertEq(T: typedesc, got: untyped, expect: untyped, msg: string = "inc
 proc numberTests(conn: Connection): Future[void] {.async.} =
   debug $conn
   debug fmt"use_zstd:{$conn.use_zstd()}"
-  if not conn.use_zstd():
-    await conn.close()
-    return
+  
   discard await conn.selectDatabase(database_name)
   discard await conn.rawExec("drop table if exists num_tests")
   discard await conn.rawExec("create table num_tests (s text, u8 tinyint unsigned, s8 tinyint, u int unsigned, i int, b bigint)")

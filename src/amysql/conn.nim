@@ -87,7 +87,13 @@ proc `$`*(conn: Connection): string =
   $tbl
 
 proc zstdAvailable*(conn: Connection): bool =
-  const compress_zstd = { Cap.compress, Cap.zstdCompressionAlgorithm }
+  # https://dev.mysql.com/worklog/task/?id=12475
+  # If compression method is set to "zlib" then CLIENT_COMPRESS capability flag
+  # will be enabled else if set to "zstd" then new capability flag
+  # CLIENT_ZSTD_COMPRESSION_ALGORITHM will be enabled.
+  # Note: When --compression-algorithms is set without --compress option then 
+  # protocol is still enabled with compression.
+  const compress_zstd = { Cap.zstdCompressionAlgorithm }
   return compress_zstd <= conn.serverCaps and compress_zstd <= conn.clientCaps
 
 proc use_zstd*(conn: Connection): bool = conn.zstdAvailable() and conn.authenticated
