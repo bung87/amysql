@@ -1,6 +1,8 @@
 import amysql, asyncdispatch, os
 import unittest
 import net
+import strformat
+import logging
 
 const database_name = "test"
 const port: int = 3306
@@ -14,6 +16,11 @@ template assertEq(T: typedesc, got: untyped, expect: untyped, msg: string = "inc
   check got == expect
 
 proc numberTests(conn: Connection): Future[void] {.async.} =
+  debug $conn
+  debug fmt"use_zstd:{$conn.use_zstd()}"
+  if not conn.use_zstd():
+    await conn.close()
+    return
   discard await conn.selectDatabase(database_name)
   discard await conn.rawExec("drop table if exists num_tests")
   discard await conn.rawExec("create table num_tests (s text, u8 tinyint unsigned, s8 tinyint, u int unsigned, i int, b bigint)")
@@ -85,11 +92,12 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
 
   await conn.finalize(rdtab)
   discard await conn.rawQuery("drop table `num_tests`")
+  await conn.close()
 
 proc runTests(): Future[void] {.async.} =
   let conn = await open(host_name,user_name,pass_word,database_name)
   await conn.numberTests()
-  await conn.close()
+  
 
-test "sql":
+test "sql compress":
   waitFor(runTests())

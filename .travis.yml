@@ -24,10 +24,10 @@ matrix:
           --name  mysqld  
           -e MYSQL_DATABASE=test 
           -e MYSQL_USER=test_user 
-          -e MYSQL_PASSWORD=123456 
+          -e MYSQL_PASSWORD=12345678 
           -e MYSQL_ROOT_PASSWORD='' 
           -e MYSQL_ALLOW_EMPTY_PASSWORD=yes
-          mysql:8.0 --innodb_log_file_size=256MB --innodb_buffer_pool_size=512MB --max_allowed_packet=16MB --local-infile=1 --default-authentication-plugin=mysql_native_password
+          mysql:8.0 --innodb_log_file_size=256MB  --innodb_buffer_pool_size=512MB --max_allowed_packet=16MB --local-infile=1 --default-authentication-plugin=mysql_native_password
 
     # Build and test against the master (stable) and devel branches of Nim
     - os: linux
@@ -45,26 +45,26 @@ matrix:
         mariadb: '10.4'
 
     # On OSX we only test against clang (gcc is mapped to clang by default)
-    - os: osx
-      name: osx with mysql(8.0.21)
-      env: CHANNEL=devel
-      compiler: clang
-      # env: USE_SHA2=true
-      before_install:
-        - brew install ccache
-        - export PATH="/usr/local/opt/ccache/libexec:$PATH"
-        - brew install mysql # mysql-8.0.21
-        - mysql.server start
-    - os: osx
-      name: osx with mariadb(10.5.5)
-      compiler: clang
-      # mariadb-10.5.5.high_sierra.bottle.tar.gz
-      env: CHANNEL=devel TRAVIS_MARIADB_VERSION=10.5.5
-      before_install:
-        - brew install ccache
-        - rm -f /etc/my.cnf
-        - brew install mariadb
-        - brew services start mariadb
+    # - os: osx
+    #   name: osx with mysql(8.0.21)
+    #   env: CHANNEL=devel
+    #   compiler: clang
+    #   # env: USE_SHA2=true
+    #   before_install:
+    #     - brew install ccache
+    #     - export PATH="/usr/local/opt/ccache/libexec:$PATH"
+    #     - brew install mysql # mysql-8.0.21
+    #     - mysql.server start
+    # - os: osx
+    #   name: osx with mariadb(10.5.5)
+    #   compiler: clang
+    #   # mariadb-10.5.5.high_sierra.bottle.tar.gz
+    #   env: CHANNEL=devel TRAVIS_MARIADB_VERSION=10.5.5
+    #   before_install:
+    #     - brew install ccache
+    #     - rm -f /etc/my.cnf
+    #     - brew install mariadb
+    #     - brew services start mariadb
 
   allow_failures:
     # Ignore failures when building against the devel Nim branch
@@ -95,7 +95,7 @@ before_script:
       sudo mysql -u root -e "create database if not exists test;"
       if [ -z "$TRAVIS_MARIADB_VERSION" ] 
       then
-        sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '123456';"
+        sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '12345678';"
         
         if [ "$USE_SHA2" == "true" ]
         then
@@ -103,9 +103,9 @@ before_script:
           sudo mysql -u root  -e "grant all on *.* to 'sha2user'@'localhost';"
         fi
       else
-        sudo mysql -u root  -e "create user 'test_user'@'localhost' identified VIA mysql_native_password USING PASSWORD('123456');"
+        sudo mysql -u root  -e "create user 'test_user'@'localhost' identified VIA mysql_native_password USING PASSWORD('12345678');"
         # mariadb not well support https://mariadb.com/kb/en/authentication-plugin-sha-256/#client-authentication-plugins
-        # sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('123456');"
+        # sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('12345678');"
       fi
       sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
     fi
@@ -119,9 +119,10 @@ install:
   - export PATH=~/.nimble/bin:$PATH
   - echo "export PATH=~/.nimble/bin:$PATH" >> ~/.profile
   - choosenim $CHANNEL
+  - nimble install https://github.com/bung87/zstd
   - nimble install -d -y
 
 script:
-  - nimble test -d:test
+  - nimble test --silent
   
   
