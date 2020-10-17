@@ -2,6 +2,7 @@ import unittest
 import asyncdispatch
 import amysql/async_pool
 import amysql
+import logging
 
 const database_name = "test"
 const port: int = 3306
@@ -22,6 +23,7 @@ proc numberTests(pool: AsyncPool): Future[void] {.async.} =
   # Insert values using the binary protocol
   let conIdx = await pool.getFreeConnIdx()
   let conn = pool.getFreeConn(conIdx)
+  debug $conn
   let insrow = await conn.prepare("insert into `num_tests` (s, u8, s8, u, i, b) values (?, ?, ?, ?, ?, ?)")
   discard await conn.query(insrow, "one", 1, 1, 1, 1, 1)
   discard await conn.query(insrow, "max", 255, 127, 4294967295, 2147483647, 9223372036854775807'u64)
