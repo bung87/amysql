@@ -11,8 +11,13 @@
 ### Compile flags  
 
 ```
+socket io:
 const ReadTimeOut {.intdefine.} = 30_000
 const WriteTimeOut {.intdefine.} = 60_000
+idle check:
+const TestWhileIdle* {.booldefine.} = true
+const MinEvictableIdleTime {.intdefine.} = 60_0000
+const TimeBetweenEvictionRuns {.intdefine.} = 30_000
 ```
 ## Goals
 

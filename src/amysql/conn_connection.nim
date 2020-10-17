@@ -9,7 +9,7 @@ import uri
 import strutils
 import asyncdispatch
 import asyncnet
-
+import times
 import logging
 
 when defined(release):  setLogFilter(lvlInfo)
@@ -35,6 +35,24 @@ when defined(ssl):
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
   
+template addIdleCheck(conn: Connection) =
+  const MinEvictableIdleTime {.intdefine.} = 60_0000
+  const TimeBetweenEvictionRuns {.intdefine.} = 30_000
+  const ValidationQuery = "SELECT 1"
+  when TestWhileIdle:
+    let fd = AsyncFD(conn.socket.getFd())
+    let assignNow = proc(fd:AsyncFD): bool {.closure, gcsafe.} = 
+      conn.lastOperationTime = now()
+      return true
+    addRead(fd, assignNow )
+    addWrite(fd, assignNow )
+    let idleCheck = proc (fd:AsyncFD): bool  {.closure, gcsafe.} =
+      if conn.lastOperationTime - now() >= initDuration(milliseconds=MinEvictableIdleTimeMillis):
+        let q = char(Command.query) & ValidationQuery
+        asyncCheck conn.roundtrip(q)
+      return true
+    addTimer(TimeBetweenEvictionRuns,oneshot=false,idleCheck)
+  
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
                                   handshakePacket: HandshakePacket): Future[void] {.async.} =
@@ -52,6 +70,7 @@ proc finishEstablishingConnection(conn: Connection,
   let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
     conn.authenticated = true
+    conn.addIdleCheck()
     return
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
@@ -73,6 +92,7 @@ proc finishEstablishingConnection(conn: Connection,
       let pkt = await conn.receivePacket()
       if isOKPacket(pkt):
         conn.authenticated = true
+        conn.addIdleCheck()
         return
       elif isERRPacket(pkt):
         raise parseErrorPacket(pkt)
@@ -86,6 +106,7 @@ proc finishEstablishingConnection(conn: Connection,
       let pkt = await conn.receivePacket()
       if isOKPacket(pkt):
         conn.authenticated = true
+        conn.addIdleCheck()
         return
       elif isERRPacket(pkt):
         raise parseErrorPacket(pkt)
@@ -99,6 +120,7 @@ proc finishEstablishingConnection(conn: Connection,
     else:
         raise newException(ProtocolError,"Received extra packet for auth method " & handshakePacket.plugin )
     conn.authenticated = true
+    conn.addIdleCheck()
   else:
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 

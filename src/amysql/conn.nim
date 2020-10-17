@@ -6,13 +6,11 @@ import ./private/utils
 import strutils, parseutils
 import options
 import tables
-
+import times
 import asyncnet
 
-when defined(mysql_compression_mode):
-  const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection, Cap.compress, Cap.zstdCompressionAlgorithm }
-else:
-  const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
+const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
+const TestWhileIdle* {.booldefine.} = true
 
 type
   Version* = distinct string
@@ -33,6 +31,8 @@ type
     databaseVersion: Option[Version]
     priv_isMaria: Option[bool]
     authenticated*: bool
+    when TestWhileIdle:
+      lastOperationTime*: DateTime
 
 proc `$`*(ver: Version): string {.borrow.}
 
