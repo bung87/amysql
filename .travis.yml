@@ -27,12 +27,7 @@ matrix:
           -e MYSQL_PASSWORD=12345678 
           -e MYSQL_ROOT_PASSWORD='' 
           -e MYSQL_ALLOW_EMPTY_PASSWORD=yes
-<<<<<<< HEAD
-          mysql:8.0 --innodb_log_file_size=256MB --innodb_buffer_pool_size=512MB --max_allowed_packet=16MB --local-infile=1 --default-authentication-plugin=mysql_native_password
-        - sudo apt-get install -y zstd
-=======
           mysql:8.0 --innodb_log_file_size=256MB  --innodb_buffer_pool_size=512MB --max_allowed_packet=16MB --local-infile=1 --default-authentication-plugin=mysql_native_password
->>>>>>> zstd
 
     # Build and test against the master (stable) and devel branches of Nim
     - os: linux
@@ -41,8 +36,6 @@ matrix:
       compiler: gcc
       services:
         mysql # mysql  Ver 14.14 Distrib 5.7.30, for Linux (x86_64) using  EditLine wrapper
-      before_install:
-        - sudo apt-get install -y zstd
 
     - os: linux
       name: linux with mariadb(10.4)
@@ -50,34 +43,8 @@ matrix:
       compiler: gcc
       addons:
         mariadb: '10.4'
-      before_install:
-        - sudo apt-get install -y zstd
 
     # On OSX we only test against clang (gcc is mapped to clang by default)
-<<<<<<< HEAD
-    - os: osx
-      name: osx with mysql(8.0.21)
-      env: CHANNEL=devel
-      compiler: clang
-      # env: USE_SHA2=true
-      before_install:
-        - brew install ccache
-        - export PATH="/usr/local/opt/ccache/libexec:$PATH"
-        - brew install mysql # mysql-8.0.21
-        - mysql.server start
-        - brew install zstd
-    - os: osx
-      name: osx with mariadb(10.5.5)
-      compiler: clang
-      # mariadb-10.5.5.high_sierra.bottle.tar.gz
-      env: CHANNEL=devel TRAVIS_MARIADB_VERSION=10.5.5
-      before_install:
-        - brew install ccache
-        - rm -f /etc/my.cnf
-        - brew install mariadb
-        - brew services start mariadb
-        - brew install zstd
-=======
     # - os: osx
     #   name: osx with mysql(8.0.21)
     #   env: CHANNEL=devel
@@ -98,7 +65,6 @@ matrix:
     #     - rm -f /etc/my.cnf
     #     - brew install mariadb
     #     - brew services start mariadb
->>>>>>> zstd
 
   allow_failures:
     # Ignore failures when building against the devel Nim branch
