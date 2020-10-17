@@ -129,6 +129,8 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
   # Caller must have left the first four bytes of the buffer available for
   # us to write the packet header.
   # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
+  when TestWhileIdle:
+    conn.lastOperationTime = now()
   const TimeoutErrorMsg = "Timeout when send packet"
   let bodylen = len(buf) - 4
   buf[0] = char( (bodylen and 0xFF) )
@@ -390,6 +392,8 @@ proc processHeader(c: Connection, header: string): nat24 =
 proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
   # drop_ok used when close
   # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
+  when TestWhileIdle:
+    conn.lastOperationTime = now()
   const TimeoutErrorMsg = "Timeout when receive packet"
   var header:string
   when not defined(mysql_compression_mode):

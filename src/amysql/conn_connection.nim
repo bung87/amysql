@@ -40,17 +40,11 @@ template addIdleCheck(conn: Connection) =
   const TimeBetweenEvictionRuns {.intdefine.} = 30_000
   const ValidationQuery = "SELECT 1"
   when TestWhileIdle:
-    let fd = AsyncFD(conn.socket.getFd())
-    let assignNow = proc(fd:AsyncFD): bool {.closure, gcsafe.} = 
-      conn.lastOperationTime = now()
-      return true
-    addRead(fd, assignNow )
-    addWrite(fd, assignNow )
     let idleCheck = proc (fd:AsyncFD): bool  {.closure, gcsafe.} =
-      if conn.lastOperationTime - now() >= initDuration(milliseconds=MinEvictableIdleTimeMillis):
+      if conn.lastOperationTime - now() >= initDuration(milliseconds=MinEvictableIdleTime):
         let q = char(Command.query) & ValidationQuery
         asyncCheck conn.roundtrip(q)
-      return true
+      return false
     addTimer(TimeBetweenEvictionRuns,oneshot=false,idleCheck)
   
 proc finishEstablishingConnection(conn: Connection,
