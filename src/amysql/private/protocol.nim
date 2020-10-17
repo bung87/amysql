@@ -154,7 +154,7 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
       var compressed:seq[byte]
       if bodylen >= MinCompressLength:
         # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
-        compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(4,buf.high),mysqlx_zstd_default_client_compression_level)
+        compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(4,buf.high),ZstdCompressionLevel)
         let compressedLen = compressed.len
         header[0] = char( (compressedLen and 0xFF) )
         header[1] = char( ((compressedLen shr 8) and 0xFF) )
