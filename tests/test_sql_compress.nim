@@ -17,7 +17,7 @@ template assertEq(T: typedesc, got: untyped, expect: untyped, msg: string = "inc
 proc numberTests(conn: Connection): Future[void] {.async.} =
   debug $conn
   debug fmt"use_zstd:{$conn.use_zstd()}"
-  
+  # discard await conn.rawQuery("SELECT 1")
   discard await conn.selectDatabase(database_name)
   discard await conn.rawExec("drop table if exists num_tests")
   discard await conn.rawExec("create table num_tests (s text, u8 tinyint unsigned, s8 tinyint, u int unsigned, i int, b bigint)")
@@ -94,7 +94,6 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
 proc runTests(): Future[void] {.async.} =
   let conn = await open(host_name,user_name,pass_word,database_name)
   await conn.numberTests()
-  
 
 test "sql compress":
   waitFor(runTests())

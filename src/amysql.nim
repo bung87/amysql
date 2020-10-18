@@ -413,6 +413,7 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   buf.add(qs)
   await conn.sendPacket(buf, resetSeqId=true)
   let pkt = await conn.receivePacket()
+  debug "prepare receivePacket"
   if isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   if pkt[0] != char(ResponseCode_OK) or len(pkt) < 12:
@@ -425,11 +426,14 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   result.warnings = num_warnings
   for b in 0 .. 3: result.statement_id[b] = pkt[1+b]
   if num_params > 0'u16:
+    debug "prepare receiveMetadata num_params:" & $num_params
     result.parameters = await conn.receiveMetadata(int(num_params))
   else:
     result.parameters = newSeq[ColumnDefinition](0)
   if num_columns > 0'u16:
+    debug "prepare receiveMetadata num_columns:" & $num_columns
     result.columns = await conn.receiveMetadata(int(num_columns))
+  debug "prepare end"
 
 proc prepare(pstmt: SqlPrepared, buf: var string, cmd: Command, cap: int = 9) =
   buf = newStringOfCap(cap)
@@ -572,7 +576,9 @@ proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlPa
 template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped =
   var p = 0
   let column_count = readLenInt(pkt, p)
+  debug "column_count" & $column_count
   result.columns = await conn.receiveMetadata(column_count)
+  debug $result.columns
   while true:
     let pkt = await conn.receivePacket()
     if isEOFPacket(pkt):
@@ -610,6 +616,8 @@ proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[Res
     result.status = parseOKPacket(conn, pkt)
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
+  elif isEOFPacket(pkt):
+    result.status = parseEOFPacket(pkt)
   else:
     conn.fetchResultset(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt)))
 
@@ -643,6 +651,8 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
     raise parseErrorPacket(pkt)
   elif isOKPacket(pkt):
     return parseOKPacket(conn, pkt)
+  elif isEOFPacket(pkt):
+    return parseEOFPacket(pkt)
   else:
     raise newException(ProtocolError, "unexpected response to COM_INIT_DB:" & pkt)
 

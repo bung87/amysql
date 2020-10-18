@@ -155,21 +155,24 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
       header.setLen(7)
       var compressed:seq[byte]
       if bodylen >= MinCompressLength:
-        # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
-        compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(4,buf.high),ZstdCompressionLevel)
+        # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
+        compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(0,buf.high),ZstdCompressionLevel)
         let compressedLen = compressed.len
+        let bufLen = bodylen + 4
         header[0] = char( (compressedLen and 0xFF) )
         header[1] = char( ((compressedLen shr 8) and 0xFF) )
         header[2] = char( ((compressedLen shr 16) and 0xFF) )
-        header[4] = char( (bodylen and 0xFF) )
-        header[5] = char( ((bodylen shr 8) and 0xFF) )
-        header[6] = char( ((bodylen shr 16) and 0xFF) )
+        header[4] = char( (bufLen and 0xFF) )
+        header[5] = char( ((bufLen shr 8) and 0xFF) )
+        header[6] = char( ((bufLen shr 16) and 0xFF) )
         debug "bodylen >= MinCompressLength"
       else:
+        # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
         debug "bodylen < MinCompressLength"
-        header[0] = char( (bodylen and 0xFF) )
-        header[1] = char( ((bodylen shr 8) and 0xFF) )
-        header[2] = char( ((bodylen shr 16) and 0xFF) )
+        let bufLen = bodylen + 4
+        header[0] = char( (bufLen and 0xFF) )
+        header[1] = char( ((bufLen shr 8) and 0xFF) )
+        header[2] = char( ((bufLen shr 16) and 0xFF) )
         header[4] = char(0)
         header[5] = char(0)
         header[6] = char(0)
@@ -178,10 +181,14 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
       if bodylen >= MinCompressLength:
         header.add cast[ptr UncheckedArray[char]](compressed[0].addr).toOpenArray(0,compressed.high)
       else:
-        header.add cast[ptr UncheckedArray[char]](buf[0].addr).toOpenArray(4,buf.high)
-      debug repr buf
-      debug repr header
-      let send = conn.socket.send(header[0].addr,header.len)
+        buf[3] = char( conn.compressedSequenceId )
+        header.add buf
+      debug buf.toHex
+      debug toHex(cast[string](header))
+      # 0D 00 00 00 00 00 00 09 00 00 00 03 53 45 4C 45 43 54 20 31
+      # 0d 00 00 00 00 00 00 09 00 00 00 03 53 45 4c 45 43 54 20 31
+      let headerLen = header.len
+      let send = conn.socket.send(header[0].addr,headerLen)
       let success = await withTimeout(send, WriteTimeOut)
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
@@ -435,6 +442,9 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.as
   if not payloadRecvSuccess:
     raise newException(TimeoutError, TimeoutErrorMsg)
   result = payload.read
+  debug "receive header" & repr header
+  debug "receive payload" & result
+  debug "receive payload" & repr result
   if len(result) == 0:
     raise newException(ProtocolError, "Connection closed unexpectedly")
   if len(result) != payloadLen:
@@ -444,9 +454,17 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.as
       let uncompressedLen = int32(uint32(header[4]) or uint32(header[5]) shl 8 or uint32(header[6]) shl 16)
       let isUncompressed = uncompressedLen == 0
       if isUncompressed:
-        discard
+        # 07 00 00 02  00                      00                          00                02   00            00 00
+        # header(4)    affected rows(lenenc)   last_insert_id(lenenc)     AUTOCOMMIT enabled status_flags(2)    warnning(2)
+        debug "result is uncompressed" 
+        debug repr result.substr(4)
+        result = result.substr(4)
       else:
-        result = cast[string](decompress(result))
+        var decompressed = decompress(result)
+        result = cast[string](decompressed[4 .. ^1])
+        debug "result is compressed" 
+        debug repr decompressed
+        debug repr result
 
 proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
