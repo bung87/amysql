@@ -619,8 +619,9 @@ template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:type
     debug "fetchResultset receivePacket"
     debug $pktLen
     debug $pos
-    if pos == pktLen:
-      break
+    if conn.use_zstd:
+      if pos == pktLen:
+        break
     if pos < pktLen - 1:
       let pkt = pkt.substr(pos)
       pos = pos + pkt.len
