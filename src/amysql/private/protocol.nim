@@ -151,44 +151,44 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
     # set global protocol_compression_algorithms='zstd,uncompressed';
     # default value: zlib,zstd,uncompressed
     if conn.use_zstd():
-      var header = newSeqOfCap[char](7)
-      header.setLen(7)
+      var packet = newSeqOfCap[char](7)
+      packet.setLen(7)
       var compressed:seq[byte]
       if bodylen >= MinCompressLength:
         # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
+        # https://dev.mysql.com/doc/internals/en/example-one-mysql-packet.html
         compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(0,buf.high),ZstdCompressionLevel)
         let compressedLen = compressed.len
         let bufLen = bodylen + 4
-        header[0] = char( (compressedLen and 0xFF) )
-        header[1] = char( ((compressedLen shr 8) and 0xFF) )
-        header[2] = char( ((compressedLen shr 16) and 0xFF) )
-        header[4] = char( (bufLen and 0xFF) )
-        header[5] = char( ((bufLen shr 8) and 0xFF) )
-        header[6] = char( ((bufLen shr 16) and 0xFF) )
+        packet[0] = char( (compressedLen and 0xFF) )
+        packet[1] = char( ((compressedLen shr 8) and 0xFF) )
+        packet[2] = char( ((compressedLen shr 16) and 0xFF) )
+        packet[4] = char( (bufLen and 0xFF) )
+        packet[5] = char( ((bufLen shr 8) and 0xFF) )
+        packet[6] = char( ((bufLen shr 16) and 0xFF) )
         debug "bodylen >= MinCompressLength"
       else:
         # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
         debug "bodylen < MinCompressLength"
         let bufLen = bodylen + 4
-        header[0] = char( (bufLen and 0xFF) )
-        header[1] = char( ((bufLen shr 8) and 0xFF) )
-        header[2] = char( ((bufLen shr 16) and 0xFF) )
-        header[4] = char(0)
-        header[5] = char(0)
-        header[6] = char(0)
-      header[3] = char( conn.compressedSequenceId )
+        packet[0] = char( (bufLen and 0xFF) )
+        packet[1] = char( ((bufLen shr 8) and 0xFF) )
+        packet[2] = char( ((bufLen shr 16) and 0xFF) )
+        packet[4] = char(0)
+        packet[5] = char(0)
+        packet[6] = char(0)
+      packet[3] = char( conn.compressedSequenceId )
       inc(conn.compressedSequenceId)
       if bodylen >= MinCompressLength:
-        header.add cast[ptr UncheckedArray[char]](compressed[0].addr).toOpenArray(0,compressed.high)
+        packet.add cast[ptr UncheckedArray[char]](compressed[0].addr).toOpenArray(0,compressed.high)
       else:
-        buf[3] = char( conn.compressedSequenceId )
-        header.add buf
+        packet.add buf
       debug buf.toHex
-      debug toHex(cast[string](header))
+      debug toHex(cast[string](packet))
       # 0D 00 00 00 00 00 00 09 00 00 00 03 53 45 4C 45 43 54 20 31
       # 0d 00 00 00 00 00 00 09 00 00 00 03 53 45 4c 45 43 54 20 31
-      let headerLen = header.len
-      let send = conn.socket.send(header[0].addr,headerLen)
+      let packetLen = packet.len
+      let send = conn.socket.send(packet[0].addr,packetLen)
       let success = await withTimeout(send, WriteTimeOut)
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
@@ -476,6 +476,22 @@ proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IO
     raise parseErrorPacket(pkt)
   return pkt
 
+proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: string, pos:var int) =
+  meta[index].catalog = readLenStr(pkt, pos)
+  meta[index].schema = readLenStr(pkt, pos)
+  meta[index].table = readLenStr(pkt, pos)
+  meta[index].orig_table = readLenStr(pkt, pos)
+  meta[index].name = readLenStr(pkt, pos)
+  meta[index].orig_name = readLenStr(pkt, pos)
+  let extras_len = readLenInt(pkt, pos)
+  if extras_len < 10 or (pos+extras_len > len(pkt)):
+    raise newException(ProtocolError, "truncated column packet")
+  meta[index].charset = int16(scanU16(pkt, pos))
+  meta[index].length = scanU32(pkt, pos+2)
+  meta[index].column_type = FieldType(uint8(pkt[pos+6]))
+  meta[index].flags = cast[set[FieldFlag]](scanU16(pkt, pos+7))
+  meta[index].decimals = int(pkt[pos+9])
+
 proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefinition]] {.async.} =
   var received = 0
   result = newSeq[ColumnDefinition](count)
@@ -484,20 +500,7 @@ proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefin
     if uint8(pkt[0]) == ResponseCode_ERR or uint8(pkt[0]) == ResponseCode_EOF:
       raise newException(ProtocolError, "TODO")
     var pos = 0
-    result[received].catalog = readLenStr(pkt, pos)
-    result[received].schema = readLenStr(pkt, pos)
-    result[received].table = readLenStr(pkt, pos)
-    result[received].orig_table = readLenStr(pkt, pos)
-    result[received].name = readLenStr(pkt, pos)
-    result[received].orig_name = readLenStr(pkt, pos)
-    let extras_len = readLenInt(pkt, pos)
-    if extras_len < 10 or (pos+extras_len > len(pkt)):
-      raise newException(ProtocolError, "truncated column packet")
-    result[received].charset = int16(scanU16(pkt, pos))
-    result[received].length = scanU32(pkt, pos+2)
-    result[received].column_type = FieldType(uint8(pkt[pos+6]))
-    result[received].flags = cast[set[FieldFlag]](scanU16(pkt, pos+7))
-    result[received].decimals = int(pkt[pos+9])
+    processMetadata(result,received,pkt,pos)
     inc(received)
   let endPacket = await conn.receivePacket()
   if uint8(endPacket[0]) != ResponseCode_EOF:

@@ -425,14 +425,38 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   new(result)
   result.warnings = num_warnings
   for b in 0 .. 3: result.statement_id[b] = pkt[1+b]
+  var pos = 12
+  let pktLen = pkt.len()
   if num_params > 0'u16:
     debug "prepare receiveMetadata num_params:" & $num_params
-    result.parameters = await conn.receiveMetadata(int(num_params))
+    if pktLen > pos:
+      var index = 0
+      result.parameters = newSeq[ColumnDefinition](num_params)
+      while index < num_params.int:
+        inc(pos,4)
+        debug $index
+        debug $pos
+        processMetadata(result.parameters, index, pkt, pos)
+        inc(pos,10 + 2)
+        inc index
+    else:
+      result.parameters = await conn.receiveMetadata(int(num_params))
   else:
     result.parameters = newSeq[ColumnDefinition](0)
   if num_columns > 0'u16:
     debug "prepare receiveMetadata num_columns:" & $num_columns
-    result.columns = await conn.receiveMetadata(int(num_columns))
+    if pktLen > pos:
+      var index = 0
+      result.columns = newSeq[ColumnDefinition](num_columns)
+      while index < num_columns.int:
+        inc(pos,4)
+        debug $index
+        debug $pos
+        processMetadata(result.columns, index, pkt, pos)
+        inc(pos,10 + 2)
+        inc index
+    else:
+      result.columns = await conn.receiveMetadata(int(num_columns))
   debug "prepare end"
 
 proc prepare(pstmt: SqlPrepared, buf: var string, cmd: Command, cap: int = 9) =
@@ -574,13 +598,35 @@ proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlPa
   return conn.sendPacket(pkt, resetSeqId=true)
 
 template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped =
-  var p = 0
-  let column_count = readLenInt(pkt, p)
+  var pos = 0
+  let columnCount = readLenInt(pkt, pos)
   debug "column_count" & $column_count
-  result.columns = await conn.receiveMetadata(column_count)
-  debug $result.columns
+  debug "result.columns len" &  $result.columns.len
+  let pktLen = pkt.len
+  if pktLen >= 12:
+    var index = 0
+    result.columns = newSeq[ColumnDefinition](columnCount)
+    while index < columnCount.int:
+      inc(pos,4)
+      debug $index
+      debug $pos
+      processMetadata(result.columns, index, pkt, pos)
+      inc(pos,10 + 2)
+      inc index
+  else:
+    result.columns = await conn.receiveMetadata(columnCount)
   while true:
-    let pkt = await conn.receivePacket()
+    debug "fetchResultset receivePacket"
+    debug $pktLen
+    debug $pos
+    if pos == pktLen:
+      break
+    if pos < pktLen - 1:
+      let pkt = pkt.substr(pos)
+      pos = pos + pkt.len
+      debug repr pkt
+    else:
+      let pkt = await conn.receivePacket()
     if isEOFPacket(pkt):
       result.status = parseEOFPacket(pkt)
       break
