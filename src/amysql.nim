@@ -412,8 +412,7 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   buf.add( char(Command.statementPrepare) )
   buf.add(qs)
   await conn.sendPacket(buf, resetSeqId=true)
-  let pkt = await conn.receivePacket()
-  debug "prepare receivePacket"
+  let (pkt,_) = await conn.receivePacket()
   if isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   if pkt[0] != char(ResponseCode_OK) or len(pkt) < 12:
@@ -434,8 +433,6 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
       result.parameters = newSeq[ColumnDefinition](num_params)
       while index < num_params.int:
         inc(pos,4)
-        debug $index
-        debug $pos
         processMetadata(result.parameters, index, pkt, pos)
         inc index
     else:
@@ -449,13 +446,10 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
       result.columns = newSeq[ColumnDefinition](num_columns)
       while index < num_columns.int:
         inc(pos,4)
-        debug $index
-        debug $pos
         processMetadata(result.columns, index, pkt, pos)
         inc index
     else:
       result.columns = await conn.receiveMetadata(int(num_columns))
-  debug "prepare end"
 
 proc prepare(pstmt: SqlPrepared, buf: var string, cmd: Command, cap: int = 9) =
   buf = newStringOfCap(cap)
@@ -595,52 +589,42 @@ proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlPa
   var pkt = conn.formatBoundParams(pstmt, params)
   return conn.sendPacket(pkt, resetSeqId=true)
 
-template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
-  var pos = 0
+template processResultset(conn: Connection, pkt:string, pos:var int, result: typed,isFirst:static[bool],onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
+  when not isFirst:
+    inc(pos,4)
   let columnCount = readLenInt(pkt, pos)
-  debug "column_count" & $column_count
   debug "result.columns len" &  $result.columns.len
-  let pktLen = pkt.len
-  if pktLen >= 12:
+  if conn.use_zstd():
     var index = 0
     result.columns = newSeq[ColumnDefinition](columnCount)
     while index < columnCount.int:
       inc(pos,4)
-      debug $index
-      debug $pos
       processMetadata(result.columns, index, pkt, pos)
       inc index
   else:
     result.columns = await conn.receiveMetadata(columnCount)
   debug $result
+  var pkt1:string
+  var pkt1Len:int
+  let fullLen = pkt.len
   while true:
-    debug "fetchResultset receivePacket"
-    debug $pktLen
-    debug $pos
-    var pkt1:string
-    if conn.use_zstd:
-      if pos == pktLen:
+    if conn.use_zstd():
+      if pos >= fullLen:
         break
-    if pos < pktLen - 1:
+      pkt1Len = int32( uint32(pkt[pos]) or (uint32(pkt[pos + 1]) shl 8) or (uint32(pkt[pos + 2]) shl 16) )
       inc(pos,4)
-      let nowPos = (pos + 8)
-      var len:int 
-      try:
-        len = int32(pkt[nowPos])# int32( uint32(pkt[nowPos]) or (uint32(pkt[nowPos+1]) shl 8) or (uint32(pkt[nowPos+2]) shl 16) )
-        debug len
-        pkt1 = pkt[nowPos  ..< pktLen]
-      except:
-        break
-      inc(pos,  len)
-      debug repr pkt1
+      pkt1 = pkt[pos ..< pos + pkt1Len]
+      inc(pos,pkt1Len)
     else:
-      pkt1 = await conn.receivePacket()
+      (pkt1,pkt1Len) = await conn.receivePacket()
     if isEOFPacket(pkt1):
-      result.status = parseEOFPacket(pkt1)
-      debug result.status.status_flags
-      break
+        result.status = parseEOFPacket(pkt1)
+        debug result.status.status_flags
+        if conn.use_zstd():
+          discard
+        else:
+          break
     elif isTextMode and isOKPacket(pkt1):
-      debug "text ok"
       result.status = parseOKPacket(conn, pkt1)
       break
     elif isERRPacket(pkt1):
@@ -650,44 +634,51 @@ template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:type
       if onlyFirst:
         continue
 
+template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
+  var pos = 0
+  let pktLenA = pkt.len
+  processResultset(conn,pkt,pos,result,true,onlyFirst,isTextMode,process)
+  while pos < pktLenA - 1:
+    processResultset(conn,pkt,pos,result,false,onlyFirst,isTextMode,process)
+
 {.push warning[ObservableStores]: off.}
 proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
+  let r = await conn.receivePacket()
+  if isOKPacket(r.payload):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, pkt)
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
+    result.status = parseOKPacket(conn, r.payload)
+  elif isERRPacket(r.payload):
+    raise parseErrorPacket(r.payload)
   else: 
-    conn.fetchResultset(pkt, result, onlyFirst = false, isTextMode = true): discard
+    conn.fetchResultset(r.payload, result, onlyFirst = false, isTextMode = true): discard
 
 proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
+  let r = await conn.receivePacket()
+  if isOKPacket(r.payload):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, pkt)
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
-  elif isEOFPacket(pkt):
-    result.status = parseEOFPacket(pkt)
+    result.status = parseOKPacket(conn, r.payload)
+  elif isERRPacket(r.payload):
+    raise parseErrorPacket(r.payload)
+  elif isEOFPacket(r.payload):
+    result.status = parseEOFPacket(r.payload)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt1)))
+    conn.fetchResultset(r.payload, result, onlyFirst, true, result.rows.add(parseTextRow(pkt1)))
 
 proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =
   await st
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
+  let r = await conn.receivePacket()
+  if isOKPacket(r.payload):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, pkt)
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
+    result.status = parseOKPacket(conn, r.payload)
+  elif isERRPacket(r.payload):
+    raise parseErrorPacket(r.payload)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst,false, result.rows.add(parseBinaryRow(result.columns, pkt1)))
+    conn.fetchResultset(r.payload, result, onlyFirst,false, result.rows.add(parseBinaryRow(result.columns, pkt1)))
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
@@ -702,7 +693,7 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   buf.add( Command.initDb.char )
   buf.add(database)
   await conn.sendPacket(buf, resetSeqId=true)
-  let pkt = await conn.receivePacket()
+  let (pkt,_) = await conn.receivePacket()
   if isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   elif isOKPacket(pkt):

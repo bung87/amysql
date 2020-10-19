@@ -14,6 +14,7 @@ proc caching_sha2_password_auth*(conn:Connection, pkt, scrambleBuff, password: s
   if password.len == 0:
     return await conn.roundtrip("")
   var pkt = pkt
+  var pktLen:int
   if pkt.isAuthSwitchRequestPacket():
     let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
     let authData = scramble_caching_sha2(responseAuthSwitch.pluginData, password)
@@ -28,7 +29,7 @@ proc caching_sha2_password_auth*(conn:Connection, pkt, scrambleBuff, password: s
   # var pos: int = 1
   let n = int(pkt[1])
   if n == 3:
-    pkt = await conn.receivePacket()
+    (pkt, pktLen) = await conn.receivePacket()
     if isERRPacket(pkt):
       raise parseErrorPacket(pkt)
     return pkt
