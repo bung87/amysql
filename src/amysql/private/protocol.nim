@@ -122,8 +122,9 @@ proc parseOKPacket*(conn: Connection, pkt: string): ResponseOK =
 
 proc parseEOFPacket*(pkt: string): ResponseOK =
   result.eof = true
-  result.warning_count = scanU16(pkt, 1)
-  result.status_flags = cast[set[Status]]( scanU16(pkt, 3) )
+  if len(pkt) > 1:
+    result.warning_count = scanU16(pkt, 1)
+    result.status_flags = cast[set[Status]]( scanU16(pkt, 3) )
 
 proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future[void] {.async.} =
   # Caller must have left the first four bytes of the buffer available for
@@ -477,6 +478,7 @@ proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IO
   return pkt
 
 proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: string, pos:var int) =
+  # https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition41
   meta[index].catalog = readLenStr(pkt, pos)
   meta[index].schema = readLenStr(pkt, pos)
   meta[index].table = readLenStr(pkt, pos)
@@ -484,6 +486,7 @@ proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: string, 
   meta[index].name = readLenStr(pkt, pos)
   meta[index].orig_name = readLenStr(pkt, pos)
   let extras_len = readLenInt(pkt, pos)
+  # length of the following fields (always 0x0c)
   if extras_len < 10 or (pos+extras_len > len(pkt)):
     raise newException(ProtocolError, "truncated column packet")
   meta[index].charset = int16(scanU16(pkt, pos))
@@ -491,6 +494,7 @@ proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: string, 
   meta[index].column_type = FieldType(uint8(pkt[pos+6]))
   meta[index].flags = cast[set[FieldFlag]](scanU16(pkt, pos+7))
   meta[index].decimals = int(pkt[pos+9])
+  inc(pos, 12) # filter
 
 proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefinition]] {.async.} =
   var received = 0

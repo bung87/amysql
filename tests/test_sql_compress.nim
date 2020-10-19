@@ -34,21 +34,21 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   let r3 = await conn.rawExec("select s, u8, s8, u, i, b from num_tests order by u8 asc")
   let r4 = await conn.query(sql"select s, u8, s8, u, i, b from num_tests order by u8 asc")
   let r1 = await conn.rawQuery("select s, u8, s8, u, i, b from num_tests order by u8 asc")
-  # assertEq(int, r1.columns.len(), 6, "column count")
-  # assertEq(int, r1.rows.len(), 4, "row count")
-  # assertEq(string, r1.columns[0].name, "s")
-  # assertEq(string, r1.columns[5].name, "b")
+  assertEq(int, r1.columns.len(), 6, "column count")
+  assertEq(int, r1.rows.len(), 4, "row count")
+  assertEq(string, r1.columns[0].name, "s")
+  assertEq(string, r1.columns[5].name, "b")
 
-  # assertEq(seq[string], r1.rows[0],
-  #   @[ "min", "0", "-128", "0", "-2147483648", "-9223372036854775808" ])
-  # assertEq(seq[string], r1.rows[1],
-  #   @[ "one", "1", "1", "1", "1", "1" ])
-  # assertEq(seq[string], r1.rows[2],
-  #   @[ "foo", "128", "-127", "256", "-32767", "-32768" ])
-  # assertEq(seq[string], r1.rows[3],
-  #   @[ "max", "255", "127", "4294967295", "2147483647", "9223372036854775807" ])
+  assertEq(seq[string], r1.rows[0],
+    @[ "min", "0", "-128", "0", "-2147483648", "-9223372036854775808" ])
+  assertEq(seq[string], r1.rows[1],
+    @[ "one", "1", "1", "1", "1", "1" ])
+  assertEq(seq[string], r1.rows[2],
+    @[ "foo", "128", "-127", "256", "-32767", "-32768" ])
+  assertEq(seq[string], r1.rows[3],
+    @[ "max", "255", "127", "4294967295", "2147483647", "9223372036854775807" ])
 
-  # # Now read them back using the binary protocol
+  # Now read them back using the binary protocol
   # let rdtab = await conn.prepare("select b, i, u, s, u8, s8 from num_tests order by i desc")
   # let r2 = await conn.query(rdtab)
   # assertEq(int, r2.columns.len(), 6, "column count")
@@ -88,7 +88,7 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   # assertEq(int64,  r2.rows[3][4], 0'i64)
 
   # await conn.finalize(rdtab)
-  # discard await conn.rawQuery("drop table `num_tests`")
+  discard await conn.rawQuery("drop table `num_tests`")
   await conn.close()
 
 proc runTests(): Future[void] {.async.} =
