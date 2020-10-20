@@ -7,7 +7,7 @@ import logging
 
 when defined(release):  setLogFilter(lvlInfo)
 
-proc caching_sha2_password_auth*(conn:Connection, pkt, scrambleBuff, password: string): Future[string] {.async.} =
+proc caching_sha2_password_auth*(conn:Connection, pkt:seq[char], scrambleBuff, password: string): Future[seq[char]] {.async.} =
   # pkt 
   # 1 status 0x01
   # 2 auth_method_data (string.EOF) -- extra auth-data beyond the initial challenge
@@ -19,7 +19,7 @@ proc caching_sha2_password_auth*(conn:Connection, pkt, scrambleBuff, password: s
     let authData = scramble_caching_sha2(responseAuthSwitch.pluginData, password)
     pkt = await conn.roundtrip(authData)
   if not pkt.isExtraAuthDataPacket:
-    raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & pkt)
+    raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & cast[string](pkt))
   
   # magic numbers:
   # 2 - request public key

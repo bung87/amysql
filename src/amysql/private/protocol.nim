@@ -22,35 +22,35 @@ when defined(mysql_compression_mode):
 # between the two cases, we check the length of the packet: EOFs
 # are always short, and an 0xFE in a result row would be followed
 # by at least 65538 bytes of data.
-proc isEOFPacket*(pkt: string): bool =
+proc isEOFPacket*(pkt: openarray[char]): bool =
   result = (len(pkt) >= 1) and (pkt[0] == char(ResponseCode_EOF)) and (len(pkt) < 9)
 
 # Error packets are simpler to detect, because 0xFF is not (yet?)
 # valid as the start of a length-encoded-integer.
-proc isERRPacket*(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_ERR))
+proc isERRPacket*(pkt: openarray[char]): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_ERR))
 
-proc isOKPacket*(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_OK))
+proc isOKPacket*(pkt: openarray[char]): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_OK))
 
-proc isAuthSwitchRequestPacket*(pkt: string): bool = 
+proc isAuthSwitchRequestPacket*(pkt: openarray[char]): bool = 
   ## http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
   pkt[0] == char(ResponseCode_AuthSwitchRequest)
 
-proc isExtraAuthDataPacket*(pkt: string): bool = 
+proc isExtraAuthDataPacket*(pkt: openarray[char]): bool = 
   ## https://dev.mysql.com/doc/internals/en/successful-authentication.html
   pkt[0] == char(ResponseCode_ExtraAuthData)
 
-proc parseErrorPacket*(pkt: string): ref ResponseERR =
+proc parseErrorPacket*(pkt: openarray[char]): ref ResponseERR =
   new(result)
   result.error_code = scanU16(pkt, 1)
   var pos: int
   if len(pkt) >= 9 and pkt[3] == '#':
-    result.sqlstate = pkt.substr(4, 8)
+    result.sqlstate = cast[string](pkt[4 .. 8])
     pos = 9
   else:
     pos = 3
-  result.msg = pkt[pos .. high(pkt)]
+  result.msg = cast[string](pkt[pos .. high(pkt)])
 
-proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket = 
+proc parseHandshakePacket*(conn: Connection, buf: openarray[char]): HandshakePacket = 
   new result
   result.protocolVersion = int(buf[0])
   if result.protocolVersion != HandshakeV10.int:
@@ -61,7 +61,7 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   conn.threadId = scanU32(buf, pos)
   result.threadId = int(conn.threadId)
   inc(pos,4)
-  result.scrambleBuff1 = buf[pos .. pos+7]
+  result.scrambleBuff1 = cast[string](buf[pos .. pos+7])
   inc(pos,8)
   inc pos # filter0
   let capabilities1 = scanU16(buf, pos)
@@ -86,14 +86,14 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   result.scrambleLen = int(buf[pos])
   inc pos
   inc pos,10 # filter2
-  result.scrambleBuff2 = buf[pos ..< (pos + 12)]
+  result.scrambleBuff2 = cast[string](buf[pos ..< (pos + 12)])
   inc pos,12
   result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
   inc pos # filter 3
   if Cap.pluginAuth in conn.serverCaps:
     result.plugin = readNulStringX(buf, pos)
 
-proc parseAuthSwitchPacket*(conn: Connection, pkt: string): ref ResponseAuthSwitch =
+proc parseAuthSwitchPacket*(conn: Connection, pkt: openarray[char]): ref ResponseAuthSwitch =
   new(result)
   var pos: int = 1
   result.status = ResponseCode_ExtraAuthData
@@ -106,7 +106,7 @@ proc parseResponseAuthMorePacket*(conn: Connection,pkt: string): ref ResponseAut
   result.status = ResponseCode_ExtraAuthData
   result.pluginData = readNulStringX(pkt, pos)
 
-proc parseOKPacket*(conn: Connection, pkt: string): ResponseOK =
+proc parseOKPacket*(conn: Connection, pkt: openarray[char]): ResponseOK =
   result.eof = false
   var pos: int = 1
   result.affected_rows = readLenInt(pkt, pos)
@@ -120,7 +120,7 @@ proc parseOKPacket*(conn: Connection, pkt: string): ResponseOK =
   else:
     result.info = readNulStringX(pkt, pos)
 
-proc parseEOFPacket*(pkt: string): ResponseOK =
+proc parseEOFPacket*(pkt: openarray[char]): ResponseOK =
   result.eof = true
   if len(pkt) > 1:
     result.warning_count = scanU16(pkt, 1)
@@ -277,7 +277,7 @@ proc putTime*(buf: var string, val: Duration):int {.discardable.}  =
   if micro != 0:
     buf.put32 micro.addr
 
-proc readTime*(buf: string, pos: var int): Duration = 
+proc readTime*(buf: openarray[char], pos: var int): Duration = 
   let dataLen = int(buf[pos])
   var isNegative = int(buf[pos + 1])
   inc(pos,2)
@@ -333,7 +333,7 @@ proc putDateTime*(buf: var string, val: DateTime):int {.discardable.} =
       var umico = micro.int32
       buf.put32 umico.addr
 
-proc readDateTime*(buf: string, pos: var int, zone: Timezone = utc()): DateTime = 
+proc readDateTime*(buf: openarray[char], pos: var int, zone: Timezone = utc()): DateTime = 
   let year = int(buf[pos+1]) + int(buf[pos+2]) * 256
   inc(pos,2)
   let month = int(buf[pos + 1])
@@ -397,7 +397,7 @@ proc processHeader(c: Connection, header: string): nat24 =
       raise newException(ProtocolError, errMsg.format(pnum,c.sequenceId) )
     c.sequenceId += 1
 
-proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
+proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[seq[char]] {.async, tags:[ReadIOEffect,RootEffect].} =
   # drop_ok used when close
   # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
   when TestWhileIdle:
@@ -430,7 +430,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.as
       header = rec.read
   if len(header) == 0:
     if drop_ok:
-      result = ""
+      # result = ""
       return result
     else:
       raise newException(ProtocolError, "Connection closed")
@@ -438,19 +438,19 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.as
     raise newException(ProtocolError, "Connection closed unexpectedly")
   let payloadLen = conn.processHeader(header)
   if payloadLen == 0:
-    result = ""
+    # result = ""
     return result
-  let payload = conn.socket.recv(payloadLen)
+  result.setLen(payloadLen)
+  let payload = conn.socket.recvInto(result[0].addr,payloadLen)
   let payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
   if not payloadRecvSuccess:
     raise newException(TimeoutError, TimeoutErrorMsg)
-  result = payload.read
+  let received = payload.read
   debug "receive header" & repr header
-  debug "receive payload" & result
   debug "receive payload" & repr result
-  if len(result) == 0:
+  if received == 0:
     raise newException(ProtocolError, "Connection closed unexpectedly")
-  if len(result) != payloadLen:
+  if received != payloadLen:
     raise newException(ProtocolError, "TODO finish this part")
   when defined(mysql_compression_mode):
     if conn.use_zstd():
@@ -460,17 +460,22 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.as
         # 07 00 00 02  00                      00                          00                02   00            00 00
         # header(4)    affected rows(lenenc)   last_insert_id(lenenc)     AUTOCOMMIT enabled status_flags(2)    warnning(2)
         debug "result is uncompressed" 
-        debug repr result
-        result = result.substr(4)
+        # result = result.substr(4)
       else:
-        var decompressed = decompress(result)
-        result = cast[string](decompressed[4 .. ^1])
+        let decompressed = decompress(cast[seq[byte]](result))
+        result = cast[seq[char]](decompressed)
+        # result = cast[string](decompressed[4 .. ^1])
         # result.payload = cast[string](decompressed)
         debug "result is compressed" 
-        debug repr decompressed
-        debug repr result
+        debug "decompressed:" & repr decompressed
+      # delete header
+      result.delete(0)
+      result.delete(0)
+      result.delete(0)
+      result.delete(0)
+      debug repr cast[seq[byte]](result)
 
-proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IOEffect,RootEffect].} =
+proc roundtrip*(conn:Connection, data: string): Future[seq[char]] {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
   buf.setLen(4)
   buf.add data
@@ -480,7 +485,7 @@ proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IO
     raise parseErrorPacket(pkt)
   return pkt
 
-proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: string, pos:var int) =
+proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: openarray[char], pos:var int) =
   # https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition41
   # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_com_query_response_text_resultset.html
   meta[index].catalog = readLenStr(pkt, pos)

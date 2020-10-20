@@ -135,7 +135,7 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
   let handshakePacket = await connect(result)
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc parseTextRow(pkt: string): seq[string] =
+proc parseTextRow(pkt: openarray[char]): seq[string] =
   # duplicated
   var pos = 0
   result = newSeq[string]()

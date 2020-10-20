@@ -396,7 +396,7 @@ proc initDate*(monthday: MonthdayRange, month: Month, year: int, zone: Timezone 
   var dt = initDateTime(monthday,month,year,0,0,0,zone)
   copyMem(result.addr,dt.addr,sizeof(Date))
 
-proc parseTextRow(pkt: string): seq[string] =
+proc parseTextRow(pkt: openarray[char]): seq[string] =
   var pos = 0
   result = newSeq[string]()
   while pos < len(pkt):
@@ -495,7 +495,7 @@ proc formatBoundParams*(conn: Connection, pstmt: SqlPrepared, params: openarray[
   for p in params:
     p.addValueUnlessNULL(result, conn)
 
-proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValue] =
+proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: openarray[char]): seq[ResultValue] =
   ## see https://mariadb.com/kb/en/resultset-row/
   ## https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html
   
@@ -589,7 +589,7 @@ proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlPa
   var pkt = conn.formatBoundParams(pstmt, params)
   return conn.sendPacket(pkt, resetSeqId=true)
 
-template processResultset(conn: Connection, pkt:string, pos:var int, result: typed,isFirst:static[bool],onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
+template processResultset(conn: Connection, pkt:openarray[char], pos:var int, result: typed,isFirst:static[bool],onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
   when not isFirst:
     inc(pos,4)
   let columnCount = readLenInt(pkt, pos)
@@ -604,7 +604,7 @@ template processResultset(conn: Connection, pkt:string, pos:var int, result: typ
   else:
     result.columns = await conn.receiveMetadata(columnCount)
   debug $result
-  var pkt1:string
+  var pkt1:seq[char]
   var pkt1Len:int
   let fullLen = pkt.len
   while true:
@@ -658,6 +658,7 @@ proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[Res
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
   let pkt = await conn.receivePacket()
+  debug repr pkt
   if isOKPacket(pkt):
     # Success, but no rows returned.
     result.status = parseOKPacket(conn, pkt)
@@ -701,7 +702,7 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   elif isEOFPacket(pkt):
     return parseEOFPacket(pkt)
   else:
-    raise newException(ProtocolError, "unexpected response to COM_INIT_DB:" & pkt)
+    raise newException(ProtocolError, "unexpected response to COM_INIT_DB:" & cast[string](pkt))
 
 proc exec*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
             asyncVarargs.} =
