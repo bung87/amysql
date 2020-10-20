@@ -397,7 +397,7 @@ proc processHeader(c: Connection, header: string): nat24 =
       raise newException(ProtocolError, errMsg.format(pnum,c.sequenceId) )
     c.sequenceId += 1
 
-proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[tuple[payload: string, payloadLen: int] ] {.async, tags:[ReadIOEffect,RootEffect].} =
+proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
   # drop_ok used when close
   # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
   when TestWhileIdle:
@@ -430,7 +430,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[tuple[payloa
       header = rec.read
   if len(header) == 0:
     if drop_ok:
-      result.payload = ""
+      result = ""
       return result
     else:
       raise newException(ProtocolError, "Connection closed")
@@ -438,19 +438,19 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[tuple[payloa
     raise newException(ProtocolError, "Connection closed unexpectedly")
   let payloadLen = conn.processHeader(header)
   if payloadLen == 0:
-    result.payload = ""
+    result = ""
     return result
   let payload = conn.socket.recv(payloadLen)
   let payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
   if not payloadRecvSuccess:
     raise newException(TimeoutError, TimeoutErrorMsg)
-  result.payload = payload.read
+  result = payload.read
   debug "receive header" & repr header
-  debug "receive payload" & result.payload
-  debug "receive payload" & repr result.payload
-  if len(result.payload) == 0:
+  debug "receive payload" & result
+  debug "receive payload" & repr result
+  if len(result) == 0:
     raise newException(ProtocolError, "Connection closed unexpectedly")
-  if len(result.payload) != payloadLen:
+  if len(result) != payloadLen:
     raise newException(ProtocolError, "TODO finish this part")
   when defined(mysql_compression_mode):
     if conn.use_zstd():
@@ -461,14 +461,12 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[tuple[payloa
         # header(4)    affected rows(lenenc)   last_insert_id(lenenc)     AUTOCOMMIT enabled status_flags(2)    warnning(2)
         debug "result is uncompressed" 
         debug repr result
-        result.payLoadLen = payloadLen
-        result.payload = result.payload.substr(4)
+        result = result.substr(4)
       else:
-        var decompressed = decompress(result.payload)
-        result.payload = cast[string](decompressed[4 .. ^1])
+        var decompressed = decompress(result)
+        result = cast[string](decompressed[4 .. ^1])
         # result.payload = cast[string](decompressed)
         debug "result is compressed" 
-        result.payLoadLen = int32( uint32(decompressed[0]) or (uint32(decompressed[1]) shl 8) or (uint32(decompressed[2]) shl 16) )
         debug repr decompressed
         debug repr result
 
@@ -477,13 +475,14 @@ proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IO
   buf.setLen(4)
   buf.add data
   await conn.sendPacket(buf)
-  let (payload,_) = await conn.receivePacket()
-  if isERRPacket(payload):
-    raise parseErrorPacket(payload)
-  return payload
+  let pkt = await conn.receivePacket()
+  if isERRPacket(pkt):
+    raise parseErrorPacket(pkt)
+  return pkt
 
 proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: string, pos:var int) =
   # https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition41
+  # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_com_query_response_text_resultset.html
   meta[index].catalog = readLenStr(pkt, pos)
   meta[index].schema = readLenStr(pkt, pos)
   meta[index].table = readLenStr(pkt, pos)
@@ -505,12 +504,13 @@ proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefin
   var received = 0
   result = newSeq[ColumnDefinition](count)
   while received < count:
-    let (pkt,_) = await conn.receivePacket()
+    let pkt = await conn.receivePacket()
     if uint8(pkt[0]) == ResponseCode_ERR or uint8(pkt[0]) == ResponseCode_EOF:
       raise newException(ProtocolError, "TODO")
     var pos = 0
     processMetadata(result,received,pkt,pos)
     inc(received)
-  let (endPacket,_) = await conn.receivePacket()
+  let endPacket = await conn.receivePacket()
+  # If the CLIENT_DEPRECATE_EOF client capability flag is not set, EOF_Packet
   if uint8(endPacket[0]) != ResponseCode_EOF:
     raise newException(ProtocolError, "Expected EOF after column defs, got something else")

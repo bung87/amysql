@@ -412,7 +412,7 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   buf.add( char(Command.statementPrepare) )
   buf.add(qs)
   await conn.sendPacket(buf, resetSeqId=true)
-  let (pkt,_) = await conn.receivePacket()
+  let pkt = await conn.receivePacket()
   if isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   if pkt[0] != char(ResponseCode_OK) or len(pkt) < 12:
@@ -616,7 +616,7 @@ template processResultset(conn: Connection, pkt:string, pos:var int, result: typ
       pkt1 = pkt[pos ..< pos + pkt1Len]
       inc(pos,pkt1Len)
     else:
-      (pkt1,pkt1Len) = await conn.receivePacket()
+      pkt1 = await conn.receivePacket()
     if isEOFPacket(pkt1):
         result.status = parseEOFPacket(pkt1)
         debug result.status.status_flags
@@ -645,40 +645,40 @@ template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:type
 proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  let r = await conn.receivePacket()
-  if isOKPacket(r.payload):
+  let pkt = await conn.receivePacket()
+  if isOKPacket(pkt):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, r.payload)
-  elif isERRPacket(r.payload):
-    raise parseErrorPacket(r.payload)
+    result.status = parseOKPacket(conn, pkt)
+  elif isERRPacket(pkt):
+    raise parseErrorPacket(pkt)
   else: 
-    conn.fetchResultset(r.payload, result, onlyFirst = false, isTextMode = true): discard
+    conn.fetchResultset(pkt, result, onlyFirst = false, isTextMode = true): discard
 
 proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  let r = await conn.receivePacket()
-  if isOKPacket(r.payload):
+  let pkt = await conn.receivePacket()
+  if isOKPacket(pkt):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, r.payload)
-  elif isERRPacket(r.payload):
-    raise parseErrorPacket(r.payload)
-  elif isEOFPacket(r.payload):
-    result.status = parseEOFPacket(r.payload)
+    result.status = parseOKPacket(conn, pkt)
+  elif isERRPacket(pkt):
+    raise parseErrorPacket(pkt)
+  elif isEOFPacket(pkt):
+    result.status = parseEOFPacket(pkt)
   else:
-    conn.fetchResultset(r.payload, result, onlyFirst, true, result.rows.add(parseTextRow(pkt1)))
+    conn.fetchResultset(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt1)))
 
 proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =
   await st
-  let r = await conn.receivePacket()
-  if isOKPacket(r.payload):
+  let pkt = await conn.receivePacket()
+  if isOKPacket(pkt):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, r.payload)
-  elif isERRPacket(r.payload):
-    raise parseErrorPacket(r.payload)
+    result.status = parseOKPacket(conn, pkt)
+  elif isERRPacket(pkt):
+    raise parseErrorPacket(pkt)
   else:
-    conn.fetchResultset(r.payload, result, onlyFirst,false, result.rows.add(parseBinaryRow(result.columns, pkt1)))
+    conn.fetchResultset(pkt, result, onlyFirst,false, result.rows.add(parseBinaryRow(result.columns, pkt1)))
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
@@ -693,7 +693,7 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   buf.add( Command.initDb.char )
   buf.add(database)
   await conn.sendPacket(buf, resetSeqId=true)
-  let (pkt,_) = await conn.receivePacket()
+  let pkt = await conn.receivePacket()
   if isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   elif isOKPacket(pkt):

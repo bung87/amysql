@@ -61,7 +61,7 @@ proc finishEstablishingConnection(conn: Connection,
 
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
   # await confirmation from the server
-  let (pkt,_) = await conn.receivePacket()
+  let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
     conn.authenticated = true
     conn.addIdleCheck()
@@ -83,7 +83,7 @@ proc finishEstablishingConnection(conn: Connection,
         else:
           buf.add authData
       await conn.sendPacket(buf)
-      let (pkt,_) = await conn.receivePacket()
+      let pkt = await conn.receivePacket()
       if isOKPacket(pkt):
         conn.authenticated = true
         conn.addIdleCheck()
@@ -97,7 +97,7 @@ proc finishEstablishingConnection(conn: Connection,
       var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
       putNulString(buf,data)
       await conn.sendPacket(buf)
-      let (pkt,_) = await conn.receivePacket()
+      let pkt = await conn.receivePacket()
       if isOKPacket(pkt):
         conn.authenticated = true
         conn.addIdleCheck()
@@ -119,7 +119,7 @@ proc finishEstablishingConnection(conn: Connection,
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 
 proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
-  let (pkt,_) = await conn.receivePacket()
+  let pkt = await conn.receivePacket()
   result = conn.parseHandshakePacket(pkt)
 
 when declared(SslContext) and declared(startTls):
@@ -152,7 +152,7 @@ template fetchResultset2(conn:typed, pkt:typed, result:typed, onlyFirst:typed, i
   let column_count = readLenInt(pkt, p)
   result.columns = await conn.receiveMetadata(column_count)
   while true:
-    let (pkt,_) = await conn.receivePacket()
+    let pkt = await conn.receivePacket()
     if isEOFPacket(pkt):
       result.status = parseEOFPacket(pkt)
       break
@@ -170,7 +170,7 @@ proc rawQuery(conn: Connection, query: string, onlyFirst:static[bool] = false): 
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   # duplicated
   await conn.sendQuery(query)
-  let (pkt,_) = await conn.receivePacket()
+  let pkt = await conn.receivePacket()
   if isOKPacket(pkt):
     # Success, but no rows returned.
     result.status = parseOKPacket(conn, pkt)
