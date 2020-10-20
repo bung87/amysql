@@ -430,7 +430,6 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[seq[char]] {
       header = rec.read
   if len(header) == 0:
     if drop_ok:
-      # result = ""
       return result
     else:
       raise newException(ProtocolError, "Connection closed")
@@ -438,7 +437,6 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[seq[char]] {
     raise newException(ProtocolError, "Connection closed unexpectedly")
   let payloadLen = conn.processHeader(header)
   if payloadLen == 0:
-    # result = ""
     return result
   result.setLen(payloadLen)
   let payload = conn.socket.recvInto(result[0].addr,payloadLen)
@@ -460,12 +458,9 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[seq[char]] {
         # 07 00 00 02  00                      00                          00                02   00            00 00
         # header(4)    affected rows(lenenc)   last_insert_id(lenenc)     AUTOCOMMIT enabled status_flags(2)    warnning(2)
         debug "result is uncompressed" 
-        # result = result.substr(4)
       else:
         let decompressed = decompress(cast[seq[byte]](result))
         result = cast[seq[char]](decompressed)
-        # result = cast[string](decompressed[4 .. ^1])
-        # result.payload = cast[string](decompressed)
         debug "result is compressed" 
         debug "decompressed:" & repr decompressed
       # delete header
