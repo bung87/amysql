@@ -7,7 +7,7 @@
 ##
 ## Copyright (c) 2015 William Lewis
 ## Copyright (c) 2020 Bung
-
+{.experimental: "views".}
 import amysql/private/protocol
 export protocol
 import amysql/private/format
@@ -495,7 +495,7 @@ proc formatBoundParams*(conn: Connection, pstmt: SqlPrepared, params: openarray[
   for p in params:
     p.addValueUnlessNULL(result, conn)
 
-proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: openarray[char]): seq[ResultValue] =
+proc parseBinaryRow( pkt: openarray[char] ,columns: seq[ColumnDefinition]): seq[ResultValue] =
   ## see https://mariadb.com/kb/en/resultset-row/
   ## https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html
   
@@ -604,7 +604,8 @@ template processResultset(conn: Connection, pkt:openarray[char], pos:var int, re
   else:
     result.columns = await conn.receiveMetadata(columnCount)
   debug $result
-  var pkt1:seq[char]
+  # var pkt1: openarray[char]
+  var pkt1: seq[char]
   var pkt1Len:int
   let fullLen = pkt.len
   while true:
@@ -613,10 +614,11 @@ template processResultset(conn: Connection, pkt:openarray[char], pos:var int, re
         break
       pkt1Len = int32( uint32(pkt[pos]) or (uint32(pkt[pos + 1]) shl 8) or (uint32(pkt[pos + 2]) shl 16) )
       inc(pos,4)
-      pkt1 = pkt[pos ..< pos + pkt1Len]
+      pkt1 = pkt[pos ..< pos + pkt1Len] # pkt[0].unsafeAddr.toOpenArray(pos, pos + pkt1Len - 1)
       inc(pos,pkt1Len)
     else:
-      pkt1 = await conn.receivePacket()
+      let pkt1 = await conn.receivePacket()
+      # pkt1 = pkt[0].unsafeAddr.toOpenArray(0, pkt.len - 1)
     if isEOFPacket(pkt1):
         result.status = parseEOFPacket(pkt1)
         debug result.status.status_flags
@@ -679,7 +681,7 @@ proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void
   elif isERRPacket(pkt):
     raise parseErrorPacket(pkt)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst,false, result.rows.add(parseBinaryRow(result.columns, pkt1)))
+    conn.fetchResultset(pkt, result, onlyFirst,false, result.rows.add(parseBinaryRow( pkt1 ,result.columns)))
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
