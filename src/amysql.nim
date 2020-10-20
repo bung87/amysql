@@ -617,7 +617,7 @@ template processResultset(conn: Connection, pkt:openarray[char], pos:var int, re
       pkt1 = pkt[pos ..< pos + pkt1Len] # pkt[0].unsafeAddr.toOpenArray(pos, pos + pkt1Len - 1)
       inc(pos,pkt1Len)
     else:
-      let pkt1 = await conn.receivePacket()
+      pkt1 = await conn.receivePacket()
       # pkt1 = pkt[0].unsafeAddr.toOpenArray(0, pkt.len - 1)
     if isEOFPacket(pkt1):
         result.status = parseEOFPacket(pkt1)
