@@ -1,3 +1,4 @@
+
 import strutils
 import endians
 import ./errors
@@ -220,9 +221,9 @@ proc scan16(buf: openarray[char], pos: int , p: pointer) {.inline.} =
 proc put16(buf: var string, p: pointer) {.inline.} =
   var arr:array[0..1, char]
   littleEndian16(addr arr, p)
-  var str = newString(2)
-  copyMem(str[0].addr, arr[0].addr, 2)
-  buf.add str
+  let bufLen = buf.len
+  buf.setLen(bufLen + 2)
+  copyMem(buf[bufLen].addr, arr[0].addr, 2)
 
 proc scan32(buf: openarray[char], pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
@@ -233,9 +234,9 @@ proc scan32(buf: openarray[char], pos: int , p: pointer) {.inline.} =
 proc put32(buf: var string, p: pointer) {.inline.} =
   var arr:array[0..3, char]
   littleEndian32(addr arr, p)
-  var str = newString(4)
-  copyMem(str[0].addr, arr[0].addr, 4)
-  buf.add str
+  let bufLen = buf.len
+  buf.setLen(bufLen + 4)
+  copyMem(buf[bufLen].addr, arr[0].addr, 4)
 
 proc scan64(buf: openarray[char], pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
@@ -246,9 +247,9 @@ proc scan64(buf: openarray[char], pos: int , p: pointer) {.inline.} =
 proc put64(buf: var string, p: pointer) {.inline.} =
   var arr:array[0..7, char]
   littleEndian64(addr arr, p)
-  var str = newString(8)
-  copyMem(str[0].addr, arr[0].addr, 8)
-  buf.add str
+  let bufLen = buf.len
+  buf.setLen(bufLen + 8)
+  copyMem(buf[bufLen].addr, arr[0].addr, 8)
 
 proc putU8(buf: var string, val: uint8) {.inline.} =
   buf.add( char(val) )

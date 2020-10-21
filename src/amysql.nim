@@ -7,7 +7,7 @@
 ##
 ## Copyright (c) 2015 William Lewis
 ## Copyright (c) 2020 Bung
-{.experimental: "views".}
+# {.experimental: "views".}
 import amysql/private/protocol
 export protocol
 import amysql/private/format
