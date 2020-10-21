@@ -212,6 +212,11 @@ type
 ## little endian
 # Integers
 
+proc setInt32*(buf: var string, pos:int, value:int) {.inline.} =
+  buf[pos] = char( (value and 0xFF) )
+  buf[pos + 1] = char( ((value shr 8) and 0xFF) )
+  buf[pos + 2] = char( ((value shr 16) and 0xFF) )
+
 proc scan16(buf: openarray[char], pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
     swapEndian16(p, buf[pos].addr)

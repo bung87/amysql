@@ -133,10 +133,8 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
   when TestWhileIdle:
     conn.lastOperationTime = now()
   const TimeoutErrorMsg = "Timeout when send packet"
-  let bodylen = len(buf) - 4
-  buf[0] = char( (bodylen and 0xFF) )
-  buf[1] = char( ((bodylen shr 8) and 0xFF) )
-  buf[2] = char( ((bodylen shr 16) and 0xFF) )
+  let bodyLen = len(buf) - 4
+  setInt32(buf,0,bodyLen)
   if resetSeqId:
     conn.sequenceId = 0
     when defined(mysql_compression_mode):
@@ -155,39 +153,29 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
       var packet = newSeqOfCap[char](7)
       packet.setLen(7)
       var compressed:seq[byte]
-      if bodylen >= MinCompressLength:
+      let bufLen = bodyLen + 4
+      if bodyLen >= MinCompressLength:
         # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
         # https://dev.mysql.com/doc/internals/en/example-one-mysql-packet.html
         compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(0,buf.high),ZstdCompressionLevel)
         let compressedLen = compressed.len
-        let bufLen = bodylen + 4
-        packet[0] = char( (compressedLen and 0xFF) )
-        packet[1] = char( ((compressedLen shr 8) and 0xFF) )
-        packet[2] = char( ((compressedLen shr 16) and 0xFF) )
-        packet[4] = char( (bufLen and 0xFF) )
-        packet[5] = char( ((bufLen shr 8) and 0xFF) )
-        packet[6] = char( ((bufLen shr 16) and 0xFF) )
-        debug "bodylen >= MinCompressLength"
+        setInt32(packet,0,compressedLen)
+        setInt32(packet,4,bufLen)
+        debug "bodyLen >= MinCompressLength"
       else:
         # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
-        debug "bodylen < MinCompressLength"
-        let bufLen = bodylen + 4
-        packet[0] = char( (bufLen and 0xFF) )
-        packet[1] = char( ((bufLen shr 8) and 0xFF) )
-        packet[2] = char( ((bufLen shr 16) and 0xFF) )
-        packet[4] = char(0)
-        packet[5] = char(0)
-        packet[6] = char(0)
+        debug "bodyLen < MinCompressLength"
+        let bufLen = bodyLen + 4
+        setInt32(packet,0,bufLen)
+        setInt32(packet,4,0)
       packet[3] = char( conn.compressedSequenceId )
       inc(conn.compressedSequenceId)
-      if bodylen >= MinCompressLength:
+      if bodyLen >= MinCompressLength:
         packet.add cast[ptr UncheckedArray[char]](compressed[0].addr).toOpenArray(0,compressed.high)
       else:
         packet.add buf
       debug buf.toHex
       debug toHex(cast[string](packet))
-      # 0D 00 00 00 00 00 00 09 00 00 00 03 53 45 4C 45 43 54 20 31
-      # 0d 00 00 00 00 00 00 09 00 00 00 03 53 45 4c 45 43 54 20 31
       let packetLen = packet.len
       let send = conn.socket.send(packet[0].addr,packetLen)
       let success = await withTimeout(send, WriteTimeOut)
