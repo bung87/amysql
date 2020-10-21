@@ -150,15 +150,18 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
     # set global protocol_compression_algorithms='zstd,uncompressed';
     # default value: zlib,zstd,uncompressed
     if conn.use_zstd():
-      var packet = newSeqOfCap[char](7)
-      packet.setLen(7)
+      var packet:seq[char]
       var compressed:seq[byte]
+      var packetLen:int
       let bufLen = bodyLen + 4
       if bodyLen >= MinCompressLength:
         # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
         # https://dev.mysql.com/doc/internals/en/example-one-mysql-packet.html
         compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(0,buf.high),ZstdCompressionLevel)
         let compressedLen = compressed.len
+        packetLen = 7 + compressedLen
+        packet = newSeqOfCap[char](packetLen)
+        packet.setLen(7)
         setInt32(packet,0,compressedLen)
         setInt32(packet,4,bufLen)
         debug "bodyLen >= MinCompressLength"
@@ -166,6 +169,10 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
         # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
         debug "bodyLen < MinCompressLength"
         let bufLen = bodyLen + 4
+        packetLen = 7 + bufLen
+        packet = newSeqOfCap[char](packetLen)
+        packet = newSeqOfCap[char](7 + bufLen)
+        packet.setLen(7)
         setInt32(packet,0,bufLen)
         setInt32(packet,4,0)
       packet[3] = char( conn.compressedSequenceId )
@@ -176,7 +183,6 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
         packet.add buf
       debug buf.toHex
       debug toHex(cast[string](packet))
-      let packetLen = packet.len
       let send = conn.socket.send(packet[0].addr,packetLen)
       let success = await withTimeout(send, WriteTimeOut)
       if not success:
@@ -367,7 +373,7 @@ proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEf
 ## MySQL packet packers/unpackers
 
 proc processHeader(c: Connection, header: string): nat24 =
-  result = int32( uint32(header[0]) or (uint32(header[1]) shl 8) or (uint32(header[2]) shl 16) )
+  result = getInt32(header,0)
   const errMsg = "Bad packet id (got sequence id $1, expected $2)"
   const errMsg2 = "Bad packet id (got compressed sequence id $1, expected $2)"
   let pnum = uint8(header[3])
@@ -440,7 +446,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[seq[char]] {
     raise newException(ProtocolError, "TODO finish this part")
   when defined(mysql_compression_mode):
     if conn.use_zstd():
-      let uncompressedLen = int32(uint32(header[4]) or uint32(header[5]) shl 8 or uint32(header[6]) shl 16)
+      let uncompressedLen = getInt32(header,4)
       let isUncompressed = uncompressedLen == 0
       if isUncompressed:
         # 07 00 00 02  00                      00                          00                02   00            00 00

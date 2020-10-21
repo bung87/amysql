@@ -212,10 +212,13 @@ type
 ## little endian
 # Integers
 
-proc setInt32*(buf: var string, pos:int, value:int) {.inline.} =
+proc setInt32*(buf: var openarray[char], pos:int, value:int) {.inline.} =
   buf[pos] = char( (value and 0xFF) )
   buf[pos + 1] = char( ((value shr 8) and 0xFF) )
   buf[pos + 2] = char( ((value shr 16) and 0xFF) )
+
+proc getInt32*(buf: sink string, pos:int):int32 {.inline.} =
+  result = int32( uint32(buf[pos]) or (uint32(buf[pos+1]) shl 8) or (uint32(buf[pos+2]) shl 16) )
 
 proc scan16(buf: openarray[char], pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
