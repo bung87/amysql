@@ -404,7 +404,7 @@ proc tryInsertId(conn: DBPool, query: SqlQuery,
   except:
     result = -1'i64
     return result
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc tryInsertId*(conn: DBPool, query: SqlQuery,
                   args: varargs[string, `$`]): Future[int64] =
@@ -417,7 +417,7 @@ proc insertId(conn: DBPool, query: SqlQuery,
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
   let resultSet = await conn.exec(query, args)
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc insertId*(conn: DBPool, query: SqlQuery,
                args: varargs[string, `$`]): Future[int64] =
@@ -440,7 +440,7 @@ proc insert(conn: DBPool, query: SqlQuery, pkName: string,
             {.async, #[tags: [WriteDbEffect]]#.} =
   ## same as insertId
   let resultSet = await conn.exec(query, args)
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc insert*(conn: DBPool, query: SqlQuery, pkName: string,
              args: varargs[string, `$`]): Future[int64] =

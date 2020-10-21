@@ -152,10 +152,10 @@ type
   # Server response packets: OK and EOF
   ResponseOK* {.final.} = object 
     eof               : bool  # True if EOF packet, false if OK packet
-    affected_rows*    : Natural
-    last_insert_id*   : Natural
-    status_flags*     : set[Status]
-    warning_count*    : Natural
+    affectedRows*    : Natural
+    lastInsertId*   : Natural
+    statusFlags*     : set[Status]
+    warningCount*    : Natural
     info*             : string
     # session_state_changes: seq[ ... ]
   ResponseAuthSwitch* {.final.} = object 
@@ -194,12 +194,12 @@ type
     catalog*     : string
     schema*      : string
     table*       : string
-    orig_table*  : string
+    origTable*  : string
     name*        : string
-    orig_name*   : string
+    origName*   : string
     charset*      : int16
     length*      : uint32
-    column_type* : FieldType
+    columnType* : FieldType
     flags*       : set[FieldFlag]
     decimals*    : int
   

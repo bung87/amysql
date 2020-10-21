@@ -417,39 +417,39 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
     raise parseErrorPacket(pkt)
   if pkt[0] != char(ResponseCode_OK) or len(pkt) < 12:
     raise newException(ProtocolError, "Unexpected response to STMT_PREPARE (len=" & $(pkt.len) & ", first byte=0x" & toHex(int(pkt[0]), 2) & ")")
-  let num_columns = scanU16(pkt, 5)
-  let num_params = scanU16(pkt, 7)
-  let num_warnings = scanU16(pkt, 10)
+  let numColumns = scanU16(pkt, 5)
+  let numParams = scanU16(pkt, 7)
+  let numWarnings = scanU16(pkt, 10)
 
   new(result)
-  result.warnings = num_warnings
+  result.warnings = numWarnings
   for b in 0 .. 3: result.statement_id[b] = pkt[1+b]
   var pos = 12
   let pktLen = pkt.len()
-  if num_params > 0'u16:
-    debug "prepare receiveMetadata num_params:" & $num_params
+  if numParams > 0'u16:
+    debug "prepare receiveMetadata numParams:" & $numParams
     if pktLen > pos:
       var index = 0
-      result.parameters = newSeq[ColumnDefinition](num_params)
-      while index < num_params.int:
+      result.parameters = newSeq[ColumnDefinition](numParams)
+      while index < numParams.int:
         inc(pos,4)
         processMetadata(result.parameters, index, pkt, pos)
         inc index
     else:
-      result.parameters = await conn.receiveMetadata(int(num_params))
+      result.parameters = await conn.receiveMetadata(int(numParams))
   else:
     result.parameters = newSeq[ColumnDefinition](0)
-  if num_columns > 0'u16:
-    debug "prepare receiveMetadata num_columns:" & $num_columns
+  if numColumns > 0'u16:
+    debug "prepare receiveMetadata numColumns:" & $numColumns
     if pktLen > pos:
       var index = 0
-      result.columns = newSeq[ColumnDefinition](num_columns)
-      while index < num_columns.int:
+      result.columns = newSeq[ColumnDefinition](numColumns)
+      while index < numColumns.int:
         inc(pos,4)
         processMetadata(result.columns, index, pkt, pos)
         inc index
     else:
-      result.columns = await conn.receiveMetadata(int(num_columns))
+      result.columns = await conn.receiveMetadata(int(numColumns))
 
 proc prepare(pstmt: SqlPrepared, buf: var string, cmd: Command, cap: int = 9) =
   buf = newStringOfCap(cap)
@@ -502,24 +502,24 @@ proc parseBinaryRow( pkt: openarray[char] ,columns: seq[ColumnDefinition]): seq[
   # For the Binary Protocol Resultset Row the num-fields and the field-pos need to add a offset of 2.
   # For COM_STMT_EXECUTE this offset is 0.
   const offset = 2 
-  let column_count = columns.len
-  let bitmapBytes = (column_count + offset + 7) div 8
+  let columnCount = columns.len
+  let bitmapBytes = (columnCount + offset + 7) div 8
   if len(pkt) < (1 + bitmapBytes) or pkt[0] != char(0):
     raise newException(ProtocolError, "Truncated or incorrect binary result row")
-  newSeq(result, column_count)
+  newSeq(result, columnCount)
   var pos = 1 + bitmapBytes
-  for ix in 0 .. column_count-1:
+  for ix in 0 .. columnCount-1:
     # First, check whether this column's bit is set in the null
     # bitmap.
     # https://dev.mysql.com/doc/internals/en/null-bitmap.html
     let fieldIndex = ix + offset
     let bytePos = fieldIndex div 8
     let bitPos = fieldIndex mod 8
-    let bitmap_entry = uint8(pkt[ 1 + bytePos ])
-    if (bitmap_entry and uint8(1 shl bitPos)) != 0'u8:
+    let bitmap = uint8(pkt[ 1 + bytePos ])
+    if (bitmap and uint8(1 shl bitPos)) != 0'u8:
       result[ix] = ResultValue(typ: rvtNull)
     else:
-      let typ = columns[ix].column_type
+      let typ = columns[ix].columnType
       let uns = FieldFlag.unsigned in columns[ix].flags
       case typ
       of fieldTypeNull:
@@ -621,7 +621,7 @@ template processResultset(conn: Connection, pkt:openarray[char], pos:var int, re
       # pkt1 = pkt[0].unsafeAddr.toOpenArray(0, pkt.len - 1)
     if isEOFPacket(pkt1):
         result.status = parseEOFPacket(pkt1)
-        debug result.status.status_flags
+        debug result.status.statusFlags
         if conn.use_zstd():
           discard
         else:
@@ -760,14 +760,14 @@ proc tryInsertId*(conn: Connection, qs: SqlQuery,
   except:
     result = -1'i64
     return result
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc insertId*(conn: Connection, qs: SqlQuery,
                args: varargs[string, `$`]): Future[int64] {.asyncVarargs,  #[tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
   let resultSet = await conn.exec(qs, args)
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc tryInsert*(conn: Connection, qs: SqlQuery, pkName: string,
                 args: varargs[string, `$`]): Future[int64] {.asyncVarargs, #[raises: [], tags: [WriteDbEffect]]#.} =
@@ -779,7 +779,7 @@ proc insert*(conn: Connection, qs: SqlQuery, pkName: string,
             {.asyncVarargs,  #[tags: [WriteDbEffect]]#.} =
   ## same as insertId
   let resultSet = await conn.exec(qs, args)
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async,  #[raises: [], tags: [DbEffect]]#.} =
   ## sets the encoding of a database connection, returns true for

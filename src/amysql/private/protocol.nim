@@ -109,11 +109,11 @@ proc parseResponseAuthMorePacket*(conn: Connection,pkt: string): ref ResponseAut
 proc parseOKPacket*(conn: Connection, pkt: openarray[char]): ResponseOK =
   result.eof = false
   var pos: int = 1
-  result.affected_rows = readLenInt(pkt, pos)
-  result.last_insert_id = readLenInt(pkt, pos)
+  result.affectedRows = readLenInt(pkt, pos)
+  result.lastInsertId = readLenInt(pkt, pos)
   # We always supply Cap.protocol41 in client caps
-  result.status_flags = cast[set[Status]]( scanU16(pkt, pos) )
-  result.warning_count = scanU16(pkt, pos+2)
+  result.statusFlags = cast[set[Status]]( scanU16(pkt, pos) )
+  result.warningCount = scanU16(pkt, pos+2)
   pos = pos + 4
   if Cap.sessionTrack in conn.clientCaps:
     result.info = readLenStr(pkt, pos)
@@ -123,8 +123,8 @@ proc parseOKPacket*(conn: Connection, pkt: openarray[char]): ResponseOK =
 proc parseEOFPacket*(pkt: openarray[char]): ResponseOK =
   result.eof = true
   if len(pkt) > 1:
-    result.warning_count = scanU16(pkt, 1)
-    result.status_flags = cast[set[Status]]( scanU16(pkt, 3) )
+    result.warningCount = scanU16(pkt, 1)
+    result.statusFlags = cast[set[Status]]( scanU16(pkt, 3) )
 
 proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future[void] {.async.} =
   # Caller must have left the first four bytes of the buffer available for
@@ -456,7 +456,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[seq[char]] {
       let isUncompressed = uncompressedLen == 0
       if isUncompressed:
         # 07 00 00 02  00                      00                          00                02   00            00 00
-        # header(4)    affected rows(lenenc)   last_insert_id(lenenc)     AUTOCOMMIT enabled status_flags(2)    warnning(2)
+        # header(4)    affected rows(lenenc)   lastInsertId(lenenc)     AUTOCOMMIT enabled statusFlags(2)    warnning(2)
         debug "result is uncompressed" 
       else:
         let decompressed = decompress(cast[seq[byte]](result))
@@ -486,16 +486,16 @@ proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: openarra
   meta[index].catalog = readLenStr(pkt, pos)
   meta[index].schema = readLenStr(pkt, pos)
   meta[index].table = readLenStr(pkt, pos)
-  meta[index].orig_table = readLenStr(pkt, pos)
+  meta[index].origTable = readLenStr(pkt, pos)
   meta[index].name = readLenStr(pkt, pos)
-  meta[index].orig_name = readLenStr(pkt, pos)
+  meta[index].origName = readLenStr(pkt, pos)
   let extras_len = readLenInt(pkt, pos)
   # length of the following fields (always 0x0c)
   if extras_len < 10 or (pos+extras_len > len(pkt)):
     raise newException(ProtocolError, "truncated column packet")
   meta[index].charset = int16(scanU16(pkt, pos))
   meta[index].length = scanU32(pkt, pos+2)
-  meta[index].column_type = FieldType(uint8(pkt[pos+6]))
+  meta[index].columnType = FieldType(uint8(pkt[pos+6]))
   meta[index].flags = cast[set[FieldFlag]](scanU16(pkt, pos+7))
   meta[index].decimals = int(pkt[pos+9])
   inc(pos, 12) # filter
