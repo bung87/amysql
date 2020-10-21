@@ -612,7 +612,7 @@ template processResultset(conn: Connection, pkt:openarray[char], pos:var int, re
     if conn.use_zstd():
       if pos >= fullLen:
         break
-      pkt1Len = int32( uint32(pkt[pos]) or (uint32(pkt[pos + 1]) shl 8) or (uint32(pkt[pos + 2]) shl 16) )
+      pkt1Len = getInt32(pkt, pos)
       inc(pos,4)
       pkt1 = pkt[pos ..< pos + pkt1Len] # pkt[0].unsafeAddr.toOpenArray(pos, pos + pkt1Len - 1)
       inc(pos,pkt1Len)
