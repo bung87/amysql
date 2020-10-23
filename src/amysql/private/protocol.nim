@@ -61,7 +61,9 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   conn.threadId = scanU32(buf, pos)
   result.threadId = int(conn.threadId)
   inc(pos,4)
-  result.scrambleBuff1 = buf[pos .. pos+7]
+  result.scrambleBuff1 = newString(8)
+  copyMem(result.scrambleBuff1[0].addr,buf[pos].unsafeAddr,8)
+  # result.scrambleBuff1 = buf[pos .. pos+7]
   inc(pos,8)
   inc pos # filter0
   let capabilities1 = scanU16(buf, pos)
@@ -83,13 +85,21 @@ proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket =
   let cap = uint32(capabilities1) + (uint32(capabilities2) shl 16)
   conn.serverCaps = cast[set[Cap]]( cap )
   result.capabilities = int(cap)
-  result.scrambleLen = int(buf[pos])
-  inc pos
+  if Cap.pluginAuth in conn.serverCaps:
+    result.scrambleLen = int(buf[pos])
+    inc pos
   inc pos,10 # filter2
-  result.scrambleBuff2 = buf[pos ..< (pos + 12)]
-  inc pos,12
+  if Cap.secureConnection in conn.serverCaps:
+    let scrambleBuff2Len = max(13,result.scrambleLen - 8)
+    result.scrambleBuff2 = newString(scrambleBuff2Len - 1) # null string
+    debug "scrambleBuff2Len" & $scrambleBuff2Len
+    copyMem(result.scrambleBuff2[0].addr,buf[pos].unsafeAddr,scrambleBuff2Len)
+    # result.scrambleBuff2 = cast[string](conn.buf[conn.bufPos ..< (conn.bufPos + 12)])
+    inc pos,scrambleBuff2Len
+  # result.scrambleBuff2 = buf[pos ..< (pos + 12)]
+  # inc pos,12
   result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
-  inc pos # filter 3
+  # inc pos # filter 3
   if Cap.pluginAuth in conn.serverCaps:
     result.plugin = readNulStringX(buf, pos)
 
