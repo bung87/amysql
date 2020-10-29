@@ -536,5 +536,7 @@ proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefin
       raise newException(ProtocolError, "TODO")
     conn.processMetadata(result,received)
     inc(received)
-  await conn.receivePacket()
-  conn.checkEof
+  if Cap.deprecateEof notin conn.clientCaps:
+    await conn.receivePacket()
+    if conn.firstByte.uint8 != ResponseCode_EOF:
+      raise newException(ProtocolError, "Expected EOF after column defs, got something else fist byte:0x" & $conn.firstByte.uint8)
