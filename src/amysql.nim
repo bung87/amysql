@@ -37,9 +37,7 @@ import amysql/async_varargs
 import uri
 import times
 import json
-
 import logging
-
 
 var consoleLog = newConsoleLogger()
 addHandler(consoleLog)
@@ -431,10 +429,10 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   let numParams = scanU16(conn.buf, conn.bufPos)
   inc conn.bufPos,2
   inc conn.bufPos # reserved_1 [00] filler
-  # packet length > 12
-  let numWarnings = scanU16(conn.buf, conn.bufPos)
-  inc conn.bufPos,2
-  result.warnings = numWarnings
+  if conn.curPayloadLen >= 12:
+    let numWarnings = scanU16(conn.buf, conn.bufPos)
+    inc conn.bufPos,2
+    result.warnings = numWarnings
   
   if numParams > 0'u16:
     debug "prepare receiveMetadata numParams:" & $numParams
@@ -443,11 +441,9 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
       result.parameters = newSeq[ColumnDefinition](numParams)
       while index < numParams.int:
         conn.resetPayloadLen
-        inc(conn.bufPos,4)
         conn.processMetadata(result.parameters, index)
         inc index
       conn.resetPayloadLen
-      inc(conn.bufPos,4)
       if conn.firstByte.uint8 != ResponseCode_EOF:
         raise newException(ProtocolError, "Expected EOF after column defs, got something else fist byte:0x" & $conn.firstByte.uint8)
       else:
@@ -463,11 +459,9 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
       result.columns = newSeq[ColumnDefinition](numColumns)
       while index < numColumns.int:
         conn.resetPayloadLen
-        inc(conn.bufPos,4)
         conn.processMetadata(result.columns, index)
         inc index
       conn.resetPayloadLen
-      inc(conn.bufPos,4)
       if conn.firstByte.uint8 != ResponseCode_EOF:
         raise newException(ProtocolError, "Expected EOF after column defs, got something else fist byte:0x" & $conn.firstByte.uint8)
       else:
@@ -617,29 +611,24 @@ proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlPa
 template processResultset(conn: Connection, result: typed,isFirst:static[bool],onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
   when not isFirst:
     conn.resetPayloadLen
-    inc(conn.bufPos,4)
   let columnCount = readLenInt(conn.buf, conn.bufPos)
   if conn.use_zstd():
     var index = 0
     result.columns = newSeq[ColumnDefinition](columnCount)
     while index < columnCount.int:
       conn.resetPayloadLen
-      inc(conn.bufPos,4)
       conn.processMetadata(result.columns, index)
       inc index
     conn.resetPayloadLen
-    inc(conn.bufPos,4)
     if conn.firstByte.uint8 != ResponseCode_EOF:
       raise newException(ProtocolError, "Expected EOF after column defs, got something else fist byte:0x" & $conn.firstByte.uint8)
     else:
       inc(conn.bufPos,5)
   else:
     result.columns = await conn.receiveMetadata(columnCount)
-
   while true:
     if conn.use_zstd():
-      conn.curPayloadLen = int32( uint32(conn.buf[conn.bufPos]) or (uint32(conn.buf[conn.bufPos+1]) shl 8) or (uint32(conn.buf[conn.bufPos+2]) shl 16) )
-      inc(conn.bufPos,4)
+      conn.resetPayloadLen
     else:
       await conn.receivePacket()
     if isEOFPacket(conn):

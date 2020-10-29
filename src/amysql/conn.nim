@@ -126,6 +126,7 @@ proc getPayloadLen*(conn: Connection): int =
 
 proc resetPayloadLen*(conn: Connection) =
   conn.curPayloadLen = conn.getPayloadLen
+  inc(conn.bufPos,4)
 
 when isMainModule:
   echo Version("8.0.21") >= Version("8.0")

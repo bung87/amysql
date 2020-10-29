@@ -470,17 +470,14 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
         # 07 00 00 02  00                      00                          00                02   00            00 00
         # header(4)    affected rows(lenenc)   lastInsertId(lenenc)     AUTOCOMMIT enabled statusFlags(2)    warnning(2)
         debug "result is uncompressed" 
-        copyMem(conn.buf[0].addr,conn.buf[7].addr,conn.payloadLen)
       else:
         let decompressed = decompress(cast[ptr UnCheckedArray[byte]](conn.buf[offset].addr).toOpenArray(0,conn.payloadLen - 1))
-        copyMem(conn.buf[0].addr,decompressed[0].unsafeAddr,decompressed.len)
+        moveMem(conn.buf[offset].addr,decompressed[0].unsafeAddr,uncompressedLen)
         conn.payloadLen = uncompressedLen - 4
         debug "result is compressed" 
         debug "decompressed:" & repr decompressed
         debug "decompressed len:" & $decompressed.len
-      conn.bufPos = 0
       conn.resetPayloadLen
-      conn.bufPos = 4
 
 proc roundtrip*(conn:Connection, data: string) {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
