@@ -1,3 +1,4 @@
+
 import strutils
 import endians
 import ./errors
@@ -18,7 +19,7 @@ const
   ResponseCode_ExtraAuthData*: uint8 = 1 # 0x01
   NullColumn*       = char(0xFB)
 
-  HandshakeV10 : uint8 = 0x0A  # Initial handshake packet since MySQL 3.21
+  HandshakeV10 : uint8 = 0x0A  # 10 Initial handshake packet since MySQL 3.21
 
   Charset_swedish_ci : uint8 = 0x08
   Charset_utf8_ci*    : uint8 = 0x21
@@ -94,7 +95,7 @@ type
     # daemon = 29
     resetConnection = 31
     
-
+  ## https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__column__definition__flags.html
   FieldFlag* {.pure.} = enum
     notNull = 0 # Field can't be NULL
     primaryKey = 1 # Field is part of a primary key
@@ -152,10 +153,10 @@ type
   # Server response packets: OK and EOF
   ResponseOK* {.final.} = object 
     eof               : bool  # True if EOF packet, false if OK packet
-    affected_rows*    : Natural
-    last_insert_id*   : Natural
-    status_flags*     : set[Status]
-    warning_count*    : Natural
+    affectedRows*    : Natural
+    lastInsertId*   : Natural
+    statusFlags*     : set[Status]
+    warningCount*    : Natural
     info*             : string
     # session_state_changes: seq[ ... ]
   ResponseAuthSwitch* {.final.} = object 
@@ -194,12 +195,12 @@ type
     catalog*     : string
     schema*      : string
     table*       : string
-    orig_table*  : string
+    origTable*  : string
     name*        : string
-    orig_name*   : string
+    origName*   : string
     charset*      : int16
     length*      : uint32
-    column_type* : FieldType
+    columnType* : FieldType
     flags*       : set[FieldFlag]
     decimals*    : int
   
@@ -211,7 +212,12 @@ type
 ## little endian
 # Integers
 
-proc scan16(buf: string, pos: int , p: pointer) {.inline.} =
+proc setInt32*(buf: var openarray[char], pos:int, value:int) {.inline.} =
+  buf[pos] = char( (value and 0xFF) )
+  buf[pos + 1] = char( ((value shr 8) and 0xFF) )
+  buf[pos + 2] = char( ((value shr 16) and 0xFF) )
+
+proc scan16(buf: openarray[char], pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
     swapEndian16(p, buf[pos].addr)
   else:
@@ -220,11 +226,11 @@ proc scan16(buf: string, pos: int , p: pointer) {.inline.} =
 proc put16(buf: var string, p: pointer) {.inline.} =
   var arr:array[0..1, char]
   littleEndian16(addr arr, p)
-  var str = newString(2)
-  copyMem(str[0].addr, arr[0].addr, 2)
-  buf.add str
+  let bufLen = buf.len
+  buf.setLen(bufLen + 2)
+  copyMem(buf[bufLen].addr, arr[0].addr, 2)
 
-proc scan32(buf: string, pos: int , p: pointer) {.inline.} =
+proc scan32(buf: openarray[char], pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
     swapEndian32(p, buf[pos].addr)
   else:
@@ -233,11 +239,11 @@ proc scan32(buf: string, pos: int , p: pointer) {.inline.} =
 proc put32(buf: var string, p: pointer) {.inline.} =
   var arr:array[0..3, char]
   littleEndian32(addr arr, p)
-  var str = newString(4)
-  copyMem(str[0].addr, arr[0].addr, 4)
-  buf.add str
+  let bufLen = buf.len
+  buf.setLen(bufLen + 4)
+  copyMem(buf[bufLen].addr, arr[0].addr, 4)
 
-proc scan64(buf: string, pos: int , p: pointer) {.inline.} =
+proc scan64(buf: openarray[char], pos: int , p: pointer) {.inline.} =
   when system.cpuEndian == bigEndian:
     swapEndian64(p, buf[pos].addr)
   else:
@@ -246,9 +252,9 @@ proc scan64(buf: string, pos: int , p: pointer) {.inline.} =
 proc put64(buf: var string, p: pointer) {.inline.} =
   var arr:array[0..7, char]
   littleEndian64(addr arr, p)
-  var str = newString(8)
-  copyMem(str[0].addr, arr[0].addr, 8)
-  buf.add str
+  let bufLen = buf.len
+  buf.setLen(bufLen + 8)
+  copyMem(buf[bufLen].addr, arr[0].addr, 8)
 
 proc putU8(buf: var string, val: uint8) {.inline.} =
   buf.add( char(val) )
@@ -256,13 +262,13 @@ proc putU8(buf: var string, val: uint8) {.inline.} =
 proc putU8*(buf: var string, val: range[0..255]) {.inline.} =
   buf.add( char(val) )
   
-proc scanU16*(buf: string, pos: int): uint16 =
+proc scanU16*(buf: openarray[char], pos: int): uint16 =
   scan16(buf, pos, result.addr)
 
 proc putU16*(buf: var string, val: uint16) =
   put16(buf, val.unSafeAddr)
 
-proc scanU32*(buf: string, pos: int): uint32 =
+proc scanU32*(buf: openarray[char], pos: int): uint32 =
   scan32(buf, pos, addr result)
 
 proc putU32*(buf: var string, val: uint32) =
@@ -277,13 +283,13 @@ proc putDouble*(buf: var string, val: float64) =
   var uval = cast[ptr uint64](val.unSafeAddr)
   put64(buf, uval)
 
-proc scanFloat*(buf: string, pos: int): float32 =
+proc scanFloat*(buf: openarray[char], pos: int): float32 =
   scan32(buf, pos, addr result)
 
-proc scanDouble*(buf: string, pos: int): float64 =
+proc scanDouble*(buf: openarray[char], pos: int): float64 =
   scan64(buf, pos, addr result)
 
-proc scanU64*(buf: string, pos: int): uint64 =
+proc scanU64*(buf: openarray[char], pos: int): uint64 =
   scan64(buf, pos, addr result)
 
 proc putS64*(buf: var string, val: int64) =
@@ -292,7 +298,7 @@ proc putS64*(buf: var string, val: int64) =
 proc putU64*(buf: var string, val: uint64) =
   put64(buf, val.unSafeAddr)
 
-proc readLenInt*(buf: string, pos: var int): int =
+proc readLenInt*(buf: openarray[char], pos: var int): int =
   let b1 = uint8(buf[pos])
   if b1 < 251:
     inc(pos)
@@ -332,14 +338,14 @@ proc putLenInt*(buf: var string, val: int|uint|int32|uint32):int {.discardable.}
 
 
 # Strings
-proc readNulString*(buf: string, pos: var int): string =
+proc readNulString*(buf: openarray[char], pos: var int): string =
   result = ""
   while buf[pos] != char(0):
     result.add(buf[pos])
     inc(pos)
   inc(pos)
 
-proc readNulStringX*(buf: string, pos: var int): string =
+proc readNulStringX*(buf: openarray[char], pos: var int): string =
   # scan null string limited to buf high
   result = ""
   while pos <= high(buf) and buf[pos] != char(0):
@@ -351,11 +357,11 @@ proc putNulString*(buf: var string, val: string) =
   buf.add(val)
   buf.add( char(0) )
 
-proc readLenStr*(buf: string, pos: var int): string =
+proc readLenStr*(buf: openarray[char], pos: var int): string =
   let slen = readLenInt(buf, pos)
   if slen < 0:
     raise newException(ProtocolError, "lenenc-int: is 0x" & toHex(int(buf[pos]), 2))
-  result = substr(buf, pos, pos+slen-1)
+  result = cast[string](buf[pos .. pos+slen-1])
   pos = pos + slen
 
 proc putLenStr*(buf: var string, val: string) =

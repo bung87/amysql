@@ -7,7 +7,7 @@
 ##
 ## Copyright (c) 2015 William Lewis
 ## Copyright (c) 2020 Bung
-
+# {.experimental: "views".}
 import amysql/private/protocol
 export protocol
 import amysql/private/format
@@ -37,9 +37,7 @@ import amysql/async_varargs
 import uri
 import times
 import json
-
 import logging
-
 
 var consoleLog = newConsoleLogger()
 addHandler(consoleLog)
@@ -396,68 +394,72 @@ proc initDate*(monthday: MonthdayRange, month: Month, year: int, zone: Timezone 
   var dt = initDateTime(monthday,month,year,0,0,0,zone)
   copyMem(result.addr,dt.addr,sizeof(Date))
 
-proc parseTextRow(pkt: string): seq[string] =
-  var pos = 0
+proc parseTextRow(conn: Connection,columnCount: int): seq[string] =
   result = newSeq[string]()
-  while pos < len(pkt):
-    if pkt[pos] == NullColumn:
+  var i = 0
+  while i < columnCount:
+    if conn.buf[conn.bufPos] == NullColumn:
       result.add("")
-      inc(pos)
+      inc(conn.bufPos)
     else:
-      result.add(pkt.readLenStr(pos))
+      result.add(conn.buf.readLenStr(conn.bufPos))
+    inc i
 
 proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
+  ## https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_com_stmt_prepare.html
   var buf: string = newStringOfCap(4 + 1 + len(qs))
   buf.setLen(4)
   buf.add( char(Command.statementPrepare) )
   buf.add(qs)
   await conn.sendPacket(buf, resetSeqId=true)
-  let pkt = await conn.receivePacket()
-  debug "prepare receivePacket"
-  if isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
-  if pkt[0] != char(ResponseCode_OK) or len(pkt) < 12:
-    raise newException(ProtocolError, "Unexpected response to STMT_PREPARE (len=" & $(pkt.len) & ", first byte=0x" & toHex(int(pkt[0]), 2) & ")")
-  let num_columns = scanU16(pkt, 5)
-  let num_params = scanU16(pkt, 7)
-  let num_warnings = scanU16(pkt, 10)
-
+  await conn.receivePacket()
+  if isERRPacket(conn):
+    raise parseErrorPacket(conn)
+  if conn.firstByte != char(ResponseCode_OK) or conn.payloadLen < 12:
+    const ErrorMsg = "Unexpected response to STMT_PREPARE (len=$1, first byte=0x$2)"
+    raise newException(ProtocolError,ErrorMsg.format(conn.payloadLen,toHex(int(conn.firstByte), 2)) )
   new(result)
-  result.warnings = num_warnings
-  for b in 0 .. 3: result.statement_id[b] = pkt[1+b]
-  var pos = 12
-  let pktLen = pkt.len()
-  if num_params > 0'u16:
-    debug "prepare receiveMetadata num_params:" & $num_params
-    if pktLen > pos:
+  # int<1> status
+  inc conn.bufPos,1
+  # int<4>	statement_id
+  for b in 0 .. 3: result.statement_id[b] = conn.buf[conn.bufPos + b]
+  inc conn.bufPos,4
+  let numColumns = scanU16(conn.buf, conn.bufPos)
+  inc conn.bufPos,2
+  let numParams = scanU16(conn.buf, conn.bufPos)
+  inc conn.bufPos,2
+  inc conn.bufPos # reserved_1 [00] filler
+  if conn.curPayloadLen >= 12:
+    let numWarnings = scanU16(conn.buf, conn.bufPos)
+    inc conn.bufPos,2
+    result.warnings = numWarnings
+  
+  if numParams > 0'u16:
+    debug "prepare receiveMetadata numParams:" & $numParams
+    if conn.payloadLen > conn.bufPos:
       var index = 0
-      result.parameters = newSeq[ColumnDefinition](num_params)
-      while index < num_params.int:
-        inc(pos,4)
-        debug $index
-        debug $pos
-        processMetadata(result.parameters, index, pkt, pos)
-        inc(pos,10 + 2)
+      result.parameters = newSeq[ColumnDefinition](numParams)
+      while index < numParams.int:
+        conn.resetPayloadLen
+        conn.processMetadata(result.parameters, index)
         inc index
+      conn.checkEof
     else:
-      result.parameters = await conn.receiveMetadata(int(num_params))
+      result.parameters = await conn.receiveMetadata(int(numParams))
   else:
     result.parameters = newSeq[ColumnDefinition](0)
-  if num_columns > 0'u16:
-    debug "prepare receiveMetadata num_columns:" & $num_columns
-    if pktLen > pos:
+  if numColumns > 0'u16:
+    debug "prepare receiveMetadata numColumns:" & $numColumns
+    if conn.payloadLen > conn.bufPos:
       var index = 0
-      result.columns = newSeq[ColumnDefinition](num_columns)
-      while index < num_columns.int:
-        inc(pos,4)
-        debug $index
-        debug $pos
-        processMetadata(result.columns, index, pkt, pos)
-        inc(pos,10 + 2)
+      result.columns = newSeq[ColumnDefinition](numColumns)
+      while index < numColumns.int:
+        conn.resetPayloadLen
+        conn.processMetadata(result.columns, index)
         inc index
+      conn.checkEof
     else:
-      result.columns = await conn.receiveMetadata(int(num_columns))
-  debug "prepare end"
+      result.columns = await conn.receiveMetadata(int(numColumns))
 
 proc prepare(pstmt: SqlPrepared, buf: var string, cmd: Command, cap: int = 9) =
   buf = newStringOfCap(cap)
@@ -503,48 +505,49 @@ proc formatBoundParams*(conn: Connection, pstmt: SqlPrepared, params: openarray[
   for p in params:
     p.addValueUnlessNULL(result, conn)
 
-proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValue] =
+proc parseBinaryRow(conn:Connection, columns: seq[ColumnDefinition]): seq[ResultValue] =
   ## see https://mariadb.com/kb/en/resultset-row/
   ## https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html
   
   # For the Binary Protocol Resultset Row the num-fields and the field-pos need to add a offset of 2.
   # For COM_STMT_EXECUTE this offset is 0.
   const offset = 2 
-  let column_count = columns.len
-  let bitmapBytes = (column_count + offset + 7) div 8
-  if len(pkt) < (1 + bitmapBytes) or pkt[0] != char(0):
+  let columnCount = columns.len
+  let bitmapBytes = (columnCount + offset + 7) div 8
+  if conn.payloadLen < (1 + bitmapBytes) or conn.firstByte != char(0):
     raise newException(ProtocolError, "Truncated or incorrect binary result row")
-  newSeq(result, column_count)
-  var pos = 1 + bitmapBytes
-  for ix in 0 .. column_count-1:
+  newSeq(result, columnCount)
+  inc conn.bufPos # header flag
+  inc conn.bufPos, bitmapBytes
+  for ix in 0 .. columnCount-1:
     # First, check whether this column's bit is set in the null
     # bitmap.
     # https://dev.mysql.com/doc/internals/en/null-bitmap.html
     let fieldIndex = ix + offset
     let bytePos = fieldIndex div 8
     let bitPos = fieldIndex mod 8
-    let bitmap_entry = uint8(pkt[ 1 + bytePos ])
-    if (bitmap_entry and uint8(1 shl bitPos)) != 0'u8:
+    let bitmap = uint8(conn.buf[ 1 + bytePos ])
+    if (bitmap and uint8(1 shl bitPos)) != 0'u8:
       result[ix] = ResultValue(typ: rvtNull)
     else:
-      let typ = columns[ix].column_type
+      let typ = columns[ix].columnType
       let uns = FieldFlag.unsigned in columns[ix].flags
       case typ
       of fieldTypeNull:
         result[ix] = ResultValue(typ: rvtNull)
       of fieldTypeTiny:
-        let v = pkt[pos]
-        inc(pos)
+        let v = conn.buf[conn.bufPos]
+        inc(conn.bufPos)
         let ext = (if uns: int(cast[uint8](v)) else: int(cast[int8](v)))
         result[ix] = ResultValue(typ: rvtInteger, intVal: ext)
       of fieldTypeShort,fieldTypeYear:
-        let v = int(scanU16(pkt, pos))
-        inc(pos, 2)
+        let v = int(scanU16(conn.buf, conn.bufPos))
+        inc(conn.bufPos, 2)
         let ext = (if uns or (v <= 32767): v else: 65536 - v)
         result[ix] = ResultValue(typ: rvtInteger, intVal: ext)
       of fieldTypeInt24, fieldTypeLong:
-        let v = scanU32(pkt, pos)
-        inc(pos, 4)
+        let v = scanU32(conn.buf, conn.bufPos)
+        inc(conn.bufPos, 4)
         var ext: int
         if not uns and (typ == fieldTypeInt24) and v >= 8388608'u32:
           ext = 16777216 - int(v)
@@ -554,42 +557,42 @@ proc parseBinaryRow(columns: seq[ColumnDefinition], pkt: string): seq[ResultValu
           ext = int(v)
         result[ix] = ResultValue(typ: rvtInteger, intVal: ext)
       of fieldTypeLongLong:
-        let v = scanU64(pkt, pos)
-        inc(pos, 8)
+        let v = scanU64(conn.buf, conn.bufPos)
+        inc(conn.bufPos, 8)
         if uns:
           result[ix] = ResultValue(typ: rvtULong, uLongVal: v)
         else:
           result[ix] = ResultValue(typ: rvtLong, longVal: cast[int64](v))
       of fieldTypeFloat:
-        let v = scanFloat(pkt,pos)
-        inc(pos, 4)
+        let v = scanFloat(conn.buf,conn.bufPos)
+        inc(conn.bufPos, 4)
         result[ix] = ResultValue(typ: rvtFloat, floatVal: v)
       of fieldTypeDouble:
-        let v = scanDouble(pkt,pos)
-        inc(pos, 8)
+        let v = scanDouble(conn.buf,conn.bufPos)
+        inc(conn.bufPos, 8)
         result[ix] = ResultValue(typ: rvtDouble, doubleVal: v)
       of fieldTypeDateTime:
-        result[ix] = ResultValue(typ: rvtDateTime, datetimeVal: readDateTime(pkt, pos))
+        result[ix] = ResultValue(typ: rvtDateTime, datetimeVal: readDateTime(conn.buf, conn.bufPos))
       of fieldTypeDate:
-        let year = int(pkt[pos+1]) + int(pkt[pos+2]) * 256
-        inc(pos,2)
-        let month = int(pkt[pos + 1])
-        let day = int(pkt[pos + 2])
-        inc(pos,2)
+        let year = int(conn.buf[conn.bufPos+1]) + int(conn.buf[conn.bufPos+2]) * 256
+        inc(conn.bufPos,2)
+        let month = int(conn.buf[conn.bufPos + 1])
+        let day = int(conn.buf[conn.bufPos + 2])
+        inc(conn.bufPos,2)
         let dt = initDate(day,month.Month,year.int)
         result[ix] = ResultValue(typ: rvtDate, datetimeVal: dt)
       of fieldTypeTimestamp:
-        result[ix] = ResultValue(typ: rvtTimestamp, datetimeVal: readDateTime(pkt, pos))  
+        result[ix] = ResultValue(typ: rvtTimestamp, datetimeVal: readDateTime(conn.buf, conn.bufPos))  
       of fieldTypeTime:
-        result[ix] = ResultValue(typ: rvtTime, durVal: readTime(pkt, pos) )
+        result[ix] = ResultValue(typ: rvtTime, durVal: readTime(conn.buf, conn.bufPos) )
       of fieldTypeTinyBlob, fieldTypeMediumBlob, fieldTypeLongBlob, fieldTypeBlob, fieldTypeBit:
-        result[ix] = ResultValue(typ: rvtBlob, strVal: readLenStr(pkt, pos))
+        result[ix] = ResultValue(typ: rvtBlob, strVal: readLenStr(conn.buf, conn.bufPos))
       of fieldTypeVarchar, fieldTypeVarString, fieldTypeString, fieldTypeDecimal, fieldTypeNewDecimal:
-        result[ix] = ResultValue(typ: rvtString, strVal: readLenStr(pkt, pos))
+        result[ix] = ResultValue(typ: rvtString, strVal: readLenStr(conn.buf, conn.bufPos))
       of fieldTypeJson:
-        result[ix] = ResultValue(typ: rvtJson, strVal: readLenStr(pkt, pos))
+        result[ix] = ResultValue(typ: rvtJson, strVal: readLenStr(conn.buf, conn.bufPos))
       of fieldTypeGeometry:
-        result[ix] = ResultValue(typ: rvtGeometry, strVal: readLenStr(pkt, pos))
+        result[ix] = ResultValue(typ: rvtGeometry, strVal: readLenStr(conn.buf, conn.bufPos))
       of fieldTypeEnum, fieldTypeSet:
         raise newException(ProtocolError, "Unexpected field type " & $(typ) & " in resultset")
 
@@ -597,88 +600,79 @@ proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlPa
   var pkt = conn.formatBoundParams(pstmt, params)
   return conn.sendPacket(pkt, resetSeqId=true)
 
-template fetchResultset(conn:Connection, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped =
-  var pos = 0
-  let columnCount = readLenInt(pkt, pos)
-  debug "column_count" & $column_count
-  debug "result.columns len" &  $result.columns.len
-  let pktLen = pkt.len
-  if pktLen >= 12:
+template processResultset(conn: Connection, result: typed,isFirst:static[bool],onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
+  when not isFirst:
+    conn.resetPayloadLen
+  let columnCount = readLenInt(conn.buf, conn.bufPos)
+  if conn.use_zstd():
     var index = 0
     result.columns = newSeq[ColumnDefinition](columnCount)
     while index < columnCount.int:
-      inc(pos,4)
-      debug $index
-      debug $pos
-      processMetadata(result.columns, index, pkt, pos)
-      inc(pos,10 + 2)
+      conn.resetPayloadLen
+      conn.processMetadata(result.columns, index)
       inc index
+    conn.checkEof
   else:
     result.columns = await conn.receiveMetadata(columnCount)
   while true:
-    debug "fetchResultset receivePacket"
-    debug $pktLen
-    debug $pos
-    if conn.use_zstd:
-      if pos == pktLen:
-        break
-    if pos < pktLen - 1:
-      let pkt = pkt.substr(pos)
-      pos = pos + pkt.len
-      debug repr pkt
+    if conn.use_zstd():
+      conn.resetPayloadLen
     else:
-      let pkt = await conn.receivePacket()
-    if isEOFPacket(pkt):
-      result.status = parseEOFPacket(pkt)
+      await conn.receivePacket()
+    if isEOFPacket(conn):
+      result.status = parseEOFPacket(conn)
       break
-    elif isTextMode and isOKPacket(pkt):
-      result.status = parseOKPacket(conn, pkt)
+    elif isTextMode and isOKPacket(conn):
+      result.status = parseOKPacket(conn)
       break
-    elif isERRPacket(pkt):
-      raise parseErrorPacket(pkt)
+    elif isERRPacket(conn):
+      raise parseErrorPacket(conn)
     else:
       process
       if onlyFirst:
         continue
 
+template fetchResultset(conn:Connection, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
+  processResultset(conn,result,true,onlyFirst,isTextMode,process)
+
 {.push warning[ObservableStores]: off.}
 proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
+  await conn.receivePacket()
+  if isOKPacket(conn):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, pkt)
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
+    result.status = parseOKPacket(conn)
+  elif isERRPacket(conn):
+    raise parseErrorPacket(conn)
   else: 
-    conn.fetchResultset(pkt, result, onlyFirst = false, isTextMode = true): discard
+    conn.fetchResultset(result, onlyFirst = false, isTextMode = true): discard
 
 proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
+  await conn.receivePacket()
+  if isOKPacket(conn):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, pkt)
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
-  elif isEOFPacket(pkt):
-    result.status = parseEOFPacket(pkt)
+    result.status = parseOKPacket(conn)
+  elif isERRPacket(conn):
+    raise parseErrorPacket(conn)
+  elif isEOFPacket(conn):
+    result.status = parseEOFPacket(conn)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt)))
+    conn.fetchResultset(result, onlyFirst, true, result.rows.add(parseTextRow(conn,columnCount)))
 
 proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =
   await st
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
+  await conn.receivePacket()
+  if isOKPacket(conn):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, pkt)
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
+    result.status = parseOKPacket(conn)
+  elif isERRPacket(conn):
+    raise parseErrorPacket(conn)
   else:
-    conn.fetchResultset(pkt, result, onlyFirst,false, result.rows.add(parseBinaryRow(result.columns, pkt)))
+    conn.fetchResultset(result, onlyFirst,false, result.rows.add(parseBinaryRow(conn,result.columns)))
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
@@ -693,15 +687,16 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
   buf.add( Command.initDb.char )
   buf.add(database)
   await conn.sendPacket(buf, resetSeqId=true)
-  let pkt = await conn.receivePacket()
-  if isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
-  elif isOKPacket(pkt):
-    return parseOKPacket(conn, pkt)
-  elif isEOFPacket(pkt):
-    return parseEOFPacket(pkt)
+  await conn.receivePacket()
+  if isERRPacket(conn):
+    raise parseErrorPacket(conn)
+  elif isOKPacket(conn):
+    return parseOKPacket(conn)
+  elif isEOFPacket(conn):
+    return parseEOFPacket(conn)
   else:
-    raise newException(ProtocolError, "unexpected response to COM_INIT_DB:" & pkt)
+    const ErrorMsg = "unexpected response to COM_INIT_DB:$1"
+    raise newException(ProtocolError, ErrorMsg.format cast[string](conn.buf[0].addr))
 
 proc exec*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
             asyncVarargs.} =
@@ -757,14 +752,14 @@ proc tryInsertId*(conn: Connection, qs: SqlQuery,
   except:
     result = -1'i64
     return result
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc insertId*(conn: Connection, qs: SqlQuery,
                args: varargs[string, `$`]): Future[int64] {.asyncVarargs,  #[tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
   let resultSet = await conn.exec(qs, args)
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc tryInsert*(conn: Connection, qs: SqlQuery, pkName: string,
                 args: varargs[string, `$`]): Future[int64] {.asyncVarargs, #[raises: [], tags: [WriteDbEffect]]#.} =
@@ -776,7 +771,7 @@ proc insert*(conn: Connection, qs: SqlQuery, pkName: string,
             {.asyncVarargs,  #[tags: [WriteDbEffect]]#.} =
   ## same as insertId
   let resultSet = await conn.exec(qs, args)
-  result = resultSet.status.last_insert_id.int64
+  result = resultSet.status.lastInsertId.int64
 
 proc setEncoding*(conn: Connection, encoding: string): Future[bool] {.async,  #[raises: [], tags: [DbEffect]]#.} =
   ## sets the encoding of a database connection, returns true for

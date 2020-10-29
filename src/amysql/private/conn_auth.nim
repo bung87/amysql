@@ -3,45 +3,48 @@ import ./errors
 import ./auth
 import ./protocol
 import asyncdispatch
+import strutils
 import logging
 
 when defined(release):  setLogFilter(lvlInfo)
 
-proc caching_sha2_password_auth*(conn:Connection, pkt, scrambleBuff, password: string): Future[string] {.async.} =
+proc caching_sha2_password_auth*(conn:Connection,scrambleBuff, password: string) {.async.} =
   # pkt 
   # 1 status 0x01
   # 2 auth_method_data (string.EOF) -- extra auth-data beyond the initial challenge
+  const ErrorMsg = "caching sha2: Unknown packet for fast auth:$1" 
   if password.len == 0:
-    return await conn.roundtrip("")
-  var pkt = pkt
-  if pkt.isAuthSwitchRequestPacket():
-    let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
+    await conn.roundtrip("")
+    return
+  if conn.isAuthSwitchRequestPacket():
+    let responseAuthSwitch = conn.parseAuthSwitchPacket()
     let authData = scramble_caching_sha2(responseAuthSwitch.pluginData, password)
-    pkt = await conn.roundtrip(authData)
-  if not pkt.isExtraAuthDataPacket:
-    raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & pkt)
+    await conn.roundtrip(authData)
+  if not conn.isExtraAuthDataPacket():
+    raise newException(ProtocolError,ErrorMsg.format cast[string](conn.buf[0].addr))
   
   # magic numbers:
   # 2 - request public key
   # 3 - fast auth succeeded
   # 4 - need full auth
   # var pos: int = 1
-  let n = int(pkt[1])
+  let n = int(conn.buf[conn.bufPos + 1])
   if n == 3:
-    pkt = await conn.receivePacket()
-    if isERRPacket(pkt):
-      raise parseErrorPacket(pkt)
-    return pkt
+    await conn.receivePacket()
+    if isERRPacket(conn):
+      raise parseErrorPacket(conn)
+    return #pkt
   if n != 4:
     raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & $n)
   # full path
   debug "full path magic number:" & $n
   # raise newException(CatchableError, "Unimplemented")
   # if conn.secure # Sending plain password via secure connection (Localhost via UNIX socket or ssl)
-  return await conn.roundtrip(password & char(0))
+  await conn.roundtrip(password & char(0))
+  return 
   # if not conn.server_public_key:
   #   pkt = await roundtrip(conn, "2") 
-  #   if not isExtraAuthDataPacket(pkt):
+  #   if not isExtraAuthDataPacket(conn):
   #     raise newException(ProtocolError,"caching sha2: Unknown packet for public key: "  & pkt)
   #   conn.server_public_key = pkt[1..pkt.high]
   # let data = sha2_rsa_encrypt(password, scrambleBuff, conn.server_public_key)
