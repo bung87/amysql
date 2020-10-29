@@ -34,13 +34,11 @@ type
     authenticated*: bool
     when TestWhileIdle:
       lastOperationTime*: DateTime
-    buf*: array[MysqlBufSize, char]
+    buf*: seq[char]
     bufLen*: int
     bufPos*: int
-    # bufRealLen: int
     payloadLen*: int
     curPayloadLen*: int
-    # remainingPayloadLen: int
 
 proc `$`*(ver: Version): string {.borrow.}
 

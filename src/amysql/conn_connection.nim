@@ -125,6 +125,7 @@ proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
 when declared(SslContext) and declared(startTls):
   proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", ssl: SslContext): Future[Connection] {.async.} =
     result = Connection(socket: sock)
+    result.buf.setLen(MysqlBufSize)
     let handshakePacket = await connect(result)
     # Negotiate encryption
     await result.startTls(ssl)
@@ -132,6 +133,7 @@ when declared(SslContext) and declared(startTls):
 
 proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = ""): Future[Connection] {.async.} =
   result = Connection(socket: sock)
+  result.buf.setLen(MysqlBufSize)
   let handshakePacket = await connect(result)
   echo repr handshakePacket
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
@@ -207,7 +209,7 @@ proc open*(uriStr: string | Uri): Future[Connection] {.async.} =
   ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
   let uri:Uri = when uriStr is string: parseUri(uriStr) else: uriStr
   let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
-  let sock = newAsyncSocket(AF_INET, SOCK_STREAM)
+  let sock = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
   await connect(sock, uri.hostname, Port(port))
   result = await establishConnection(sock, uri.username, uri.password, uri.path[ 1 .. uri.path.high ] )
   if uri.query.len > 0:
@@ -219,7 +221,7 @@ proc open*(connection, user, password:string; database = ""): Future[Connection]
   when defined(posix):
     isPath = connection[0] == '/'
   if isPath:
-    sock = newAsyncSocket(AF_UNIX, SOCK_STREAM)
+    sock = newAsyncSocket(AF_UNIX, SOCK_STREAM, buffered = true)
     await connectUnix(sock,connection)
   else:
     let

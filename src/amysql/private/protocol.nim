@@ -403,7 +403,8 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   # drop_ok used when close
   # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
   conn.bufPos = 0
-  zeroMem conn.buf.addr,MysqlBufSize
+  conn.buf.setLen(MysqlBufSize)
+  zeroMem conn.buf[0].addr,MysqlBufSize
   when TestWhileIdle:
     conn.lastOperationTime = now()
   const TimeoutErrorMsg = "Timeout when receive packet"
@@ -454,6 +455,8 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   inc conn.bufPos,offset
   if conn.payloadLen == 0:
     return 
+  if offset + conn.payloadLen > MysqlBufSize:
+    conn.buf.setLen(offset + conn.payloadLen)
   let payload = conn.socket.recvInto(conn.buf[offset].addr,conn.payloadLen)
   let payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
   if not payloadRecvSuccess:
@@ -461,8 +464,8 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   conn.bufLen = payload.read
   if conn.bufLen == 0:
     raise newException(ProtocolError, "Connection closed unexpectedly")
-  # if bufLen != payloadLen:
-  #   raise newException(ProtocolError, "TODO finish this part")
+  if conn.bufLen != conn.payloadLen:
+    raise newException(ProtocolError, "TODO finish this part")
   when defined(mysql_compression_mode):
     if conn.use_zstd():
       let isUncompressed = uncompressedLen == 0
@@ -471,12 +474,12 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
         # header(4)    affected rows(lenenc)   lastInsertId(lenenc)     AUTOCOMMIT enabled statusFlags(2)    warnning(2)
         debug "result is uncompressed" 
       else:
-        let decompressed = decompress(cast[ptr UnCheckedArray[byte]](conn.buf[offset].addr).toOpenArray(0,conn.payloadLen - 1))
-        moveMem(conn.buf[offset].addr,decompressed[0].unsafeAddr,uncompressedLen)
+        if offset + uncompressedLen  > MysqlBufSize:
+          conn.buf.setLen(offset + uncompressedLen)
+        for i,c in decompress(cast[ptr UnCheckedArray[byte]](conn.buf[offset].addr).toOpenArray(0,conn.payloadLen - 1)):
+          conn.buf[offset + i] = char(c)
         conn.payloadLen = uncompressedLen - 4
         debug "result is compressed" 
-        debug "decompressed:" & repr decompressed
-        debug "decompressed len:" & $decompressed.len
       conn.resetPayloadLen
 
 proc roundtrip*(conn:Connection, data: string) {.async, tags:[IOEffect,RootEffect].} =
