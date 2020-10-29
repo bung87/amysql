@@ -11,6 +11,7 @@ import asyncnet
 
 const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
 const TestWhileIdle* {.booldefine.} = true
+const MysqlBufSize* = 1024
 
 type
   Version* = distinct string
@@ -33,6 +34,13 @@ type
     authenticated*: bool
     when TestWhileIdle:
       lastOperationTime*: DateTime
+    buf*: array[MysqlBufSize, char]
+    bufLen*: int
+    bufPos*: int
+    # bufRealLen: int
+    payloadLen*: int
+    curPayloadLen*: int
+    # remainingPayloadLen: int
 
 proc `$`*(ver: Version): string {.borrow.}
 
@@ -109,6 +117,15 @@ proc headerLen*(conn: Connection): int =
       result = 4
   else:
     result = 4
+
+proc firstByte*(conn: Connection): lent char =
+  conn.buf[conn.bufPos]
+
+proc getPayloadLen*(conn: Connection): int = 
+  result = int32( uint32(conn.buf[conn.bufPos]) or (uint32(conn.buf[conn.bufPos+1]) shl 8) or (uint32(conn.buf[conn.bufPos+2]) shl 16) )
+
+proc resetPayloadLen*(conn: Connection) =
+  conn.curPayloadLen = conn.getPayloadLen
 
 when isMainModule:
   echo Version("8.0.21") >= Version("8.0")

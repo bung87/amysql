@@ -22,108 +22,118 @@ when defined(mysql_compression_mode):
 # between the two cases, we check the length of the packet: EOFs
 # are always short, and an 0xFE in a result row would be followed
 # by at least 65538 bytes of data.
-proc isEOFPacket*(pkt: string): bool =
-  result = (len(pkt) >= 1) and (pkt[0] == char(ResponseCode_EOF)) and (len(pkt) < 9)
+proc isEOFPacket*(conn:Connection): bool =
+  result = conn.curPayloadLen >= 3 and conn.firstByte == char(ResponseCode_EOF) and conn.curPayloadLen < 9
 
 # Error packets are simpler to detect, because 0xFF is not (yet?)
 # valid as the start of a length-encoded-integer.
-proc isERRPacket*(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_ERR))
+proc isERRPacket*(conn:Connection): bool = conn.curPayloadLen >= 3 and conn.firstByte == char(ResponseCode_ERR)
 
-proc isOKPacket*(pkt: string): bool = (len(pkt) >= 3) and (pkt[0] == char(ResponseCode_OK))
+proc isOKPacket*(conn:Connection): bool = conn.curPayloadLen >= 3 and conn.firstByte == char(ResponseCode_OK)
 
-proc isAuthSwitchRequestPacket*(pkt: string): bool = 
+proc isAuthSwitchRequestPacket*(conn: Connection): bool = 
   ## http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-  pkt[0] == char(ResponseCode_AuthSwitchRequest)
+  conn.firstByte == char(ResponseCode_AuthSwitchRequest)
 
-proc isExtraAuthDataPacket*(pkt: string): bool = 
+proc isExtraAuthDataPacket*(conn: Connection): bool = 
   ## https://dev.mysql.com/doc/internals/en/successful-authentication.html
-  pkt[0] == char(ResponseCode_ExtraAuthData)
+  conn.firstByte == char(ResponseCode_ExtraAuthData)
 
-proc parseErrorPacket*(pkt: string): ref ResponseERR =
+proc parseErrorPacket*(conn: Connection): ref ResponseERR =
   new(result)
-  result.error_code = scanU16(pkt, 1)
-  var pos: int
-  if len(pkt) >= 9 and pkt[3] == '#':
-    result.sqlstate = pkt.substr(4, 8)
-    pos = 9
+  inc conn.bufPos # the error packet flag
+  result.error_code = scanU16(conn.buf,conn.bufPos)
+  inc(conn.bufPos,2)
+  if conn.curPayloadLen >= 9 and conn.buf[conn.bufPos] == '#':
+    # #HY000
+    inc(conn.bufPos,6)
   else:
-    pos = 3
-  result.msg = pkt[pos .. high(pkt)]
+    inc(conn.bufPos,1)
+  result.msg.setLen(conn.payloadLen - conn.bufPos)
+  copyMem(result.msg[0].addr,conn.buf[conn.bufPos].addr,conn.payloadLen - conn.bufPos)
 
-proc parseHandshakePacket*(conn: Connection, buf: string): HandshakePacket = 
+proc parseHandshakePacket*(conn: Connection): HandshakePacket = 
+  ## https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
   new result
-  result.protocolVersion = int(buf[0])
+  result.protocolVersion = int(conn.firstByte)
   if result.protocolVersion != HandshakeV10.int:
     raise newException(ProtocolError, "Unexpected protocol version: " & $result.protocolVersion)
-  var pos = 1
-  conn.serverVersion = readNulString(buf, pos)
+  inc(conn.bufPos)
+  conn.serverVersion = readNulString(conn.buf, conn.bufPos)
   result.serverVersion = conn.serverVersion
-  conn.threadId = scanU32(buf, pos)
+  conn.threadId = scanU32(conn.buf, conn.bufPos)
+  inc(conn.bufPos,4)
   result.threadId = int(conn.threadId)
-  inc(pos,4)
-  result.scrambleBuff1 = buf[pos .. pos+7]
-  inc(pos,8)
-  inc pos # filter0
-  let capabilities1 = scanU16(buf, pos)
-  result.capabilities1 = int(capabilities1)
+  result.scramblebuff1 = newString(8)
+  copyMem(result.scramblebuff1[0].addr,conn.buf[conn.bufPos].addr,8)
+  inc(conn.bufPos,8)
+  inc conn.bufPos # filter1
+  result.capabilities1 = int(scanU16(conn.buf, conn.bufPos))
+  inc(conn.bufPos,2)
   result.capabilities = result.capabilities1
-  conn.serverCaps = cast[set[Cap]](capabilities1)
-  inc(pos,2)
-  result.charset = int(buf[pos])
-  inc pos
-  result.serverStatus = int(scanU16(buf, pos))
-  inc pos,2
-  result.protocol41 = (capabilities1 and Cap.protocol41.ord) > 0
+  conn.serverCaps = cast[set[Cap]](result.capabilities1)
+  result.charset = int(conn.buf[conn.bufPos])
+  inc conn.bufPos
+  result.serverStatus = int(scanU16(conn.buf, conn.bufPos))
+  inc conn.bufPos,2
+  result.protocol41 = (result.capabilities1 and Cap.protocol41.ord) > 0
   if not result.protocol41:
     raise newException(ProtocolError, "Old (pre-4.1) server protocol")
-
-  let capabilities2 = scanU16(buf, pos)
-  result.capabilities2 = int(capabilities2)
-  inc pos,2
-  let cap = uint32(capabilities1) + (uint32(capabilities2) shl 16)
+  result.capabilities2 = int(scanU16(conn.buf, conn.bufPos))
+  inc conn.bufPos,2
+  let cap = uint32(result.capabilities1) + (uint32(result.capabilities2) shl 16)
   conn.serverCaps = cast[set[Cap]]( cap )
   result.capabilities = int(cap)
-  result.scrambleLen = int(buf[pos])
-  inc pos
-  inc pos,10 # filter2
-  result.scrambleBuff2 = buf[pos ..< (pos + 12)]
-  inc pos,12
-  result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
-  inc pos # filter 3
   if Cap.pluginAuth in conn.serverCaps:
-    result.plugin = readNulStringX(buf, pos)
+    result.scrambleLen = int(conn.buf[conn.bufPos])
+  inc conn.bufPos
+  inc conn.bufPos,10 # reserved
+  if Cap.secureConnection in conn.serverCaps:
+    let scrambleBuff2Len = max(13,result.scrambleLen - 8)
+    result.scrambleBuff2 = newString(scrambleBuff2Len - 1) # null string
+    copyMem(result.scrambleBuff2[0].addr,conn.buf[conn.bufPos].addr,scrambleBuff2Len - 1)
+    inc conn.bufPos,scrambleBuff2Len
+    result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
+    assert result.scrambleBuff.len == 20
+    assert result.scrambleLen == 21
+  if Cap.pluginAuth in conn.serverCaps:
+    result.plugin = readNulStringX(conn.buf, conn.bufPos)
 
-proc parseAuthSwitchPacket*(conn: Connection, pkt: string): ref ResponseAuthSwitch =
+proc parseAuthSwitchPacket*(conn: Connection): ref ResponseAuthSwitch =
   new(result)
-  var pos: int = 1
+  inc(conn.bufPos)
   result.status = ResponseCode_ExtraAuthData
-  result.pluginName = readNulString(pkt, pos)
-  result.pluginData = readNulStringX(pkt, pos)
+  result.pluginName = readNulString(conn.buf, conn.bufPos)
+  result.pluginData = readNulStringX(conn.buf, conn.bufPos)
 
 proc parseResponseAuthMorePacket*(conn: Connection,pkt: string): ref ResponseAuthMore =
   new(result)
-  var pos: int = 1
+  inc(conn.bufPos)
   result.status = ResponseCode_ExtraAuthData
-  result.pluginData = readNulStringX(pkt, pos)
+  result.pluginData = readNulStringX(conn.buf, conn.bufPos)
 
-proc parseOKPacket*(conn: Connection, pkt: string): ResponseOK =
+proc parseOKPacket*(conn: Connection): ResponseOK =
   result.eof = false
-  var pos: int = 1
-  result.affected_rows = readLenInt(pkt, pos)
-  result.last_insert_id = readLenInt(pkt, pos)
+  inc(conn.bufPos)
+  result.affectedRows = readLenInt(conn.buf, conn.bufPos)
+  result.lastInsertId = readLenInt(conn.buf, conn.bufPos)
   # We always supply Cap.protocol41 in client caps
-  result.status_flags = cast[set[Status]]( scanU16(pkt, pos) )
-  result.warning_count = scanU16(pkt, pos+2)
-  pos = pos + 4
+  result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
+  result.warningCount = scanU16(conn.buf, conn.bufPos+2)
+  inc(conn.bufPos,4)
   if Cap.sessionTrack in conn.clientCaps:
-    result.info = readLenStr(pkt, pos)
+    result.info = readLenStr(conn.buf, conn.bufPos)
   else:
-    result.info = readNulStringX(pkt, pos)
+    result.info = readNulStringX(conn.buf, conn.bufPos)
 
-proc parseEOFPacket*(pkt: string): ResponseOK =
+proc parseEOFPacket*(conn: Connection): ResponseOK =
   result.eof = true
-  result.warning_count = scanU16(pkt, 1)
-  result.status_flags = cast[set[Status]]( scanU16(pkt, 3) )
+  inc conn.bufPos
+  if conn.curPayloadLen > 1:
+    result.warningCount = scanU16(conn.buf, conn.bufPos)
+    inc(conn.bufPos,2)
+    result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
+    inc(conn.bufPos,2)
 
 proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future[void] {.async.} =
   # Caller must have left the first four bytes of the buffer available for
@@ -132,10 +142,8 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
   when TestWhileIdle:
     conn.lastOperationTime = now()
   const TimeoutErrorMsg = "Timeout when send packet"
-  let bodylen = len(buf) - 4
-  buf[0] = char( (bodylen and 0xFF) )
-  buf[1] = char( ((bodylen shr 8) and 0xFF) )
-  buf[2] = char( ((bodylen shr 16) and 0xFF) )
+  let bodyLen = len(buf) - 4
+  setInt32(buf,0,bodyLen)
   if resetSeqId:
     conn.sequenceId = 0
     when defined(mysql_compression_mode):
@@ -143,7 +151,7 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
   when not defined(mysql_compression_mode):
     buf[3] = char( conn.sequenceId )
     inc(conn.sequenceId)
-    let send = conn.socket.send(buf)
+    let send = conn.socket.send(buf,flags = {})
     let success = await withTimeout(send, WriteTimeOut)
     if not success:
       raise newException(TimeoutError, TimeoutErrorMsg)
@@ -151,43 +159,36 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
     # set global protocol_compression_algorithms='zstd,uncompressed';
     # default value: zlib,zstd,uncompressed
     if conn.use_zstd():
-      var packet = newSeqOfCap[char](7)
-      packet.setLen(7)
+      var packet:seq[char]
       var compressed:seq[byte]
-      if bodylen >= MinCompressLength:
+      var packetLen:int
+      let bufLen = bodyLen + 4
+      if bodyLen >= MinCompressLength:
         # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
         # https://dev.mysql.com/doc/internals/en/example-one-mysql-packet.html
         compressed = compress(cast[ptr UncheckedArray[byte]](buf[0].addr).toOpenArray(0,buf.high),ZstdCompressionLevel)
         let compressedLen = compressed.len
-        let bufLen = bodylen + 4
-        packet[0] = char( (compressedLen and 0xFF) )
-        packet[1] = char( ((compressedLen shr 8) and 0xFF) )
-        packet[2] = char( ((compressedLen shr 16) and 0xFF) )
-        packet[4] = char( (bufLen and 0xFF) )
-        packet[5] = char( ((bufLen shr 8) and 0xFF) )
-        packet[6] = char( ((bufLen shr 16) and 0xFF) )
-        debug "bodylen >= MinCompressLength"
+        packetLen = 7 + compressedLen
+        packet = newSeqOfCap[char](packetLen)
+        packet.setLen(7)
+        setInt32(packet,0,compressedLen)
+        setInt32(packet,4,bufLen)
+        debug "bodyLen >= MinCompressLength"
       else:
         # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
-        debug "bodylen < MinCompressLength"
-        let bufLen = bodylen + 4
-        packet[0] = char( (bufLen and 0xFF) )
-        packet[1] = char( ((bufLen shr 8) and 0xFF) )
-        packet[2] = char( ((bufLen shr 16) and 0xFF) )
-        packet[4] = char(0)
-        packet[5] = char(0)
-        packet[6] = char(0)
+        debug "bodyLen < MinCompressLength"
+        let bufLen = bodyLen + 4
+        packetLen = 7 + bufLen
+        packet = newSeqOfCap[char](packetLen)
+        packet.setLen(7)
+        setInt32(packet,0,bufLen)
+        setInt32(packet,4,0)
       packet[3] = char( conn.compressedSequenceId )
       inc(conn.compressedSequenceId)
-      if bodylen >= MinCompressLength:
+      if bodyLen >= MinCompressLength:
         packet.add cast[ptr UncheckedArray[char]](compressed[0].addr).toOpenArray(0,compressed.high)
       else:
         packet.add buf
-      debug buf.toHex
-      debug toHex(cast[string](packet))
-      # 0D 00 00 00 00 00 00 09 00 00 00 03 53 45 4C 45 43 54 20 31
-      # 0d 00 00 00 00 00 00 09 00 00 00 03 53 45 4c 45 43 54 20 31
-      let packetLen = packet.len
       let send = conn.socket.send(packet[0].addr,packetLen)
       let success = await withTimeout(send, WriteTimeOut)
       if not success:
@@ -242,9 +243,11 @@ proc writeHandshakeResponse*(conn: Connection,
     if Cap.pluginAuthLenencClientData in caps:
       putLenInt(buf, len(auth_response))
       buf.add(auth_response)
-    else:
+    elif Cap.secureConnection in caps:
       putU8(buf, len(auth_response))
       buf.add(auth_response)
+    else:
+      putNulString(buf, auth_response)
   else:
     buf.add( char(0) )
 
@@ -276,7 +279,7 @@ proc putTime*(buf: var string, val: Duration):int {.discardable.}  =
   if micro != 0:
     buf.put32 micro.addr
 
-proc readTime*(buf: string, pos: var int): Duration = 
+proc readTime*(buf: openarray[char], pos: var int): Duration = 
   let dataLen = int(buf[pos])
   var isNegative = int(buf[pos + 1])
   inc(pos,2)
@@ -332,7 +335,7 @@ proc putDateTime*(buf: var string, val: DateTime):int {.discardable.} =
       var umico = micro.int32
       buf.put32 umico.addr
 
-proc readDateTime*(buf: string, pos: var int, zone: Timezone = utc()): DateTime = 
+proc readDateTime*(buf: openarray[char], pos: var int, zone: Timezone = utc()): DateTime = 
   let year = int(buf[pos+1]) + int(buf[pos+2]) * 256
   inc(pos,2)
   let month = int(buf[pos + 1])
@@ -377,38 +380,45 @@ proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEf
 
 ## MySQL packet packers/unpackers
 
-proc processHeader(c: Connection, header: string): nat24 =
-  result = int32( uint32(header[0]) or (uint32(header[1]) shl 8) or (uint32(header[2]) shl 16) )
+proc processHeader(c: Connection): nat24 =
+  result = c.getPayloadLen
   const errMsg = "Bad packet id (got sequence id $1, expected $2)"
   const errMsg2 = "Bad packet id (got compressed sequence id $1, expected $2)"
-  let pnum = uint8(header[3])
+  let id = uint8(c.buf[3])
   when defined(mysql_compression_mode):
     if c.use_zstd():
-      if pnum != c.compressedSequenceId:
-        raise newException(ProtocolError, errMsg2.format(pnum,c.compressedSequenceId ) )
+      if id != c.compressedSequenceId:
+        raise newException(ProtocolError, errMsg2.format(id,c.compressedSequenceId ) )
       c.compressedSequenceId += 1
     else:
-      if pnum != c.sequenceId:
-        raise newException(ProtocolError, errMsg.format(pnum,c.sequenceId) )
+      if id != c.sequenceId:
+        raise newException(ProtocolError, errMsg.format(id,c.sequenceId) )
       c.sequenceId += 1
   else:
-    if pnum != c.sequenceId:
-      raise newException(ProtocolError, errMsg.format(pnum,c.sequenceId) )
+    if id != c.sequenceId:
+      raise newException(ProtocolError, errMsg.format(id,c.sequenceId) )
     c.sequenceId += 1
 
-proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.async, tags:[ReadIOEffect,RootEffect].} =
+proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadIOEffect,RootEffect].} =
   # drop_ok used when close
   # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
+  conn.bufPos = 0
+  zeroMem conn.buf.addr,MysqlBufSize
   when TestWhileIdle:
     conn.lastOperationTime = now()
   const TimeoutErrorMsg = "Timeout when receive packet"
-  var header:string
+  const NormalLen = 4
+  const CompressedLen = 7
+  var offset:int
+  var headerLen:int
+  var uncompressedLen:int32
   when not defined(mysql_compression_mode):
-    let rec = conn.socket.recv(4)
+    offset = NormalLen
+    let rec = conn.socket.recvInto(conn.buf[0].addr, NormalLen,flags = {})
     let success = await withTimeout(rec, ReadTimeOut)
     if not success:
       raise newException(TimeoutError, TimeoutErrorMsg)
-    header = rec.read
+    headerLen = rec.read
   else:
     if conn.use_zstd():
       # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_compression_packet.html#sect_protocol_basic_compression_packet_header
@@ -416,92 +426,107 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false): Future[string] {.as
       # (3)compressed payload length   = 22 00 00 -> 34 (41 - 7)
       # (1)sequence id                 = 00       ->  0
       # (3)uncompressed payload length = 32 00 00 -> 50
-      let rec = conn.socket.recv(7)
+      offset = CompressedLen
+      let rec = conn.socket.recvInto(conn.buf[0].addr,CompressedLen)
       let success = await withTimeout(rec, ReadTimeOut)
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
-      header = rec.read
+      headerLen = rec.read
+      uncompressedLen = int32( uint32(conn.buf[conn.bufPos + 4]) or (uint32(conn.buf[conn.bufPos+5]) shl 8) or (uint32(conn.buf[conn.bufPos+6]) shl 16) )
     else:
-      let rec = conn.socket.recv(4)
+      offset = NormalLen
+      let rec = conn.socket.recvInto(conn.buf[0].addr,NormalLen)
       let success = await withTimeout(rec, ReadTimeOut)
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
-      header = rec.read
-  if len(header) == 0:
+      headerLen = rec.read
+  debug "headerLen:" & $headerLen
+  if headerLen == 0:
     if drop_ok:
-      return ""
+      return 
     else:
       raise newException(ProtocolError, "Connection closed")
-  if len(header) != 4 and len(header) != 7:
+  if headerLen != 4 and headerLen != 7:
     raise newException(ProtocolError, "Connection closed unexpectedly")
-  let payloadLen = conn.processHeader(header)
-  if payloadLen == 0:
-    return ""
-  let payload = conn.socket.recv(payloadLen)
+  conn.payloadLen = conn.processHeader()
+  conn.curPayloadLen = conn.payloadLen
+  debug "payloadLen:" & $conn.payloadLen
+  inc conn.bufPos,offset
+  if conn.payloadLen == 0:
+    return 
+  let payload = conn.socket.recvInto(conn.buf[offset].addr,conn.payloadLen)
   let payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
   if not payloadRecvSuccess:
     raise newException(TimeoutError, TimeoutErrorMsg)
-  result = payload.read
-  debug "receive header" & repr header
-  debug "receive payload" & result
-  debug "receive payload" & repr result
-  if len(result) == 0:
+  conn.bufLen = payload.read
+  if conn.bufLen == 0:
     raise newException(ProtocolError, "Connection closed unexpectedly")
-  if len(result) != payloadLen:
-    raise newException(ProtocolError, "TODO finish this part")
+  # if bufLen != payloadLen:
+  #   raise newException(ProtocolError, "TODO finish this part")
   when defined(mysql_compression_mode):
     if conn.use_zstd():
-      let uncompressedLen = int32(uint32(header[4]) or uint32(header[5]) shl 8 or uint32(header[6]) shl 16)
       let isUncompressed = uncompressedLen == 0
       if isUncompressed:
         # 07 00 00 02  00                      00                          00                02   00            00 00
-        # header(4)    affected rows(lenenc)   last_insert_id(lenenc)     AUTOCOMMIT enabled status_flags(2)    warnning(2)
+        # header(4)    affected rows(lenenc)   lastInsertId(lenenc)     AUTOCOMMIT enabled statusFlags(2)    warnning(2)
         debug "result is uncompressed" 
-        debug repr result.substr(4)
-        result = result.substr(4)
+        copyMem(conn.buf[0].addr,conn.buf[7].addr,conn.payloadLen)
       else:
-        var decompressed = decompress(result)
-        result = cast[string](decompressed[4 .. ^1])
+        let decompressed = decompress(cast[ptr UnCheckedArray[byte]](conn.buf[offset].addr).toOpenArray(0,conn.payloadLen - 1))
+        copyMem(conn.buf[0].addr,decompressed[0].unsafeAddr,decompressed.len)
+        conn.payloadLen = uncompressedLen - 4
         debug "result is compressed" 
-        debug repr decompressed
-        debug repr result
+        debug "decompressed:" & repr decompressed
+        debug "decompressed len:" & $decompressed.len
+      conn.bufPos = 0
+      conn.resetPayloadLen
+      conn.bufPos = 4
 
-proc roundtrip*(conn:Connection, data: string): Future[string] {.async, tags:[IOEffect,RootEffect].} =
+proc roundtrip*(conn:Connection, data: string) {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
   buf.setLen(4)
   buf.add data
   await conn.sendPacket(buf)
-  let pkt = await conn.receivePacket()
-  if isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
-  return pkt
+  await conn.receivePacket()
+  if isERRPacket(conn):
+    raise parseErrorPacket(conn)
+  return
 
-proc processMetadata*(meta:var seq[ColumnDefinition], index: int , pkt: string, pos:var int) =
-  meta[index].catalog = readLenStr(pkt, pos)
-  meta[index].schema = readLenStr(pkt, pos)
-  meta[index].table = readLenStr(pkt, pos)
-  meta[index].orig_table = readLenStr(pkt, pos)
-  meta[index].name = readLenStr(pkt, pos)
-  meta[index].orig_name = readLenStr(pkt, pos)
-  let extras_len = readLenInt(pkt, pos)
-  if extras_len < 10 or (pos+extras_len > len(pkt)):
-    raise newException(ProtocolError, "truncated column packet")
-  meta[index].charset = int16(scanU16(pkt, pos))
-  meta[index].length = scanU32(pkt, pos+2)
-  meta[index].column_type = FieldType(uint8(pkt[pos+6]))
-  meta[index].flags = cast[set[FieldFlag]](scanU16(pkt, pos+7))
-  meta[index].decimals = int(pkt[pos+9])
+proc processMetadata*(conn: Connection, meta:var seq[ColumnDefinition], index: int) =
+  # https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition41
+  # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_com_query_response_text_resultset.html
+  meta[index].catalog = readLenStr(conn.buf, conn.bufPos)
+  meta[index].schema = readLenStr(conn.buf, conn.bufPos)
+  meta[index].table = readLenStr(conn.buf, conn.bufPos)
+  meta[index].origTable = readLenStr(conn.buf, conn.bufPos)
+  meta[index].name = readLenStr(conn.buf, conn.bufPos)
+  meta[index].origName = readLenStr(conn.buf, conn.bufPos)
+  let extras_len = readLenInt(conn.buf, conn.bufPos)
+  # length of the following fields (always 0x0c)
+  # if extras_len < 10 or (conn.bufPos+extras_len > len(conn.buf)):
+  #   raise newException(ProtocolError, "truncated column packet")
+  meta[index].charset = int16(scanU16(conn.buf, conn.bufPos))
+  inc conn.bufPos,2
+  meta[index].length = scanU32(conn.buf, conn.bufPos)
+  inc conn.bufPos,4
+  meta[index].columnType = FieldType(uint8(conn.buf[conn.bufPos]))
+  inc conn.bufPos,1
+  meta[index].flags = cast[set[FieldFlag]](scanU16(conn.buf, conn.bufPos))
+  inc conn.bufPos,2
+  meta[index].decimals = int(conn.buf[conn.bufPos])
+  inc conn.bufPos
+  inc(conn.bufPos, 2) # filter internals manual mentioned
 
 proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefinition]] {.async.} =
   var received = 0
   result = newSeq[ColumnDefinition](count)
   while received < count:
-    let pkt = await conn.receivePacket()
-    if uint8(pkt[0]) == ResponseCode_ERR or uint8(pkt[0]) == ResponseCode_EOF:
+    await conn.receivePacket()
+    if conn.firstByte.uint8 == ResponseCode_ERR or conn.firstByte.uint8 == ResponseCode_EOF:
       raise newException(ProtocolError, "TODO")
-    var pos = 0
-    processMetadata(result,received,pkt,pos)
+    conn.processMetadata(result,received)
     inc(received)
-  let endPacket = await conn.receivePacket()
-  if uint8(endPacket[0]) != ResponseCode_EOF:
-    raise newException(ProtocolError, "Expected EOF after column defs, got something else")
+  await conn.receivePacket()
+  # If the CLIENT_DEPRECATE_EOF client capability flag is not set, EOF_Packet
+  if conn.firstByte.uint8 != ResponseCode_EOF:
+    raise newException(ProtocolError, "Expected EOF after column defs, got something else fist byte:0x" & $conn.firstByte.uint8)

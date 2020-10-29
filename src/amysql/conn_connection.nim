@@ -61,16 +61,16 @@ proc finishEstablishingConnection(conn: Connection,
 
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
   # await confirmation from the server
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
+  await conn.receivePacket()
+  if isOKPacket(conn):
     conn.authenticated = true
     conn.addIdleCheck()
     return
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
-  elif isAuthSwitchRequestPacket(pkt):
+  elif isERRPacket(conn):
+    raise parseErrorPacket(conn)
+  elif isAuthSwitchRequestPacket(conn):
     debug "isAuthSwitchRequestPacket"
-    let responseAuthSwitch = conn.parseAuthSwitchPacket(pkt)
+    let responseAuthSwitch = conn.parseAuthSwitchPacket()
     if Cap.pluginAuth in conn.serverCaps  and responseAuthSwitch.pluginName.len > 0:
       debug "plugin auth handshake:" & responseAuthSwitch.pluginName
       debug "pluginData:" & responseAuthSwitch.pluginData
@@ -83,13 +83,13 @@ proc finishEstablishingConnection(conn: Connection,
         else:
           buf.add authData
       await conn.sendPacket(buf)
-      let pkt = await conn.receivePacket()
-      if isOKPacket(pkt):
+      await conn.receivePacket()
+      if isOKPacket(conn):
         conn.authenticated = true
         conn.addIdleCheck()
         return
-      elif isERRPacket(pkt):
-        raise parseErrorPacket(pkt)
+      elif isERRPacket(conn):
+        raise parseErrorPacket(conn)
     else:
       debug "legacy handshake"
       var buf: string = newStringOfCap(32)
@@ -97,18 +97,18 @@ proc finishEstablishingConnection(conn: Connection,
       var data = scramble323(responseAuthSwitch.pluginData, password) # need to be zero terminated before send
       putNulString(buf,data)
       await conn.sendPacket(buf)
-      let pkt = await conn.receivePacket()
-      if isOKPacket(pkt):
+      await conn.receivePacket()
+      if isOKPacket(conn):
         conn.authenticated = true
         conn.addIdleCheck()
         return
-      elif isERRPacket(pkt):
-        raise parseErrorPacket(pkt)
-  elif isExtraAuthDataPacket(pkt):
+      elif isERRPacket(conn):
+        raise parseErrorPacket(conn)
+  elif isExtraAuthDataPacket(conn):
     debug "isExtraAuthDataPacket"
     # https://dev.mysql.com/doc/internals/en/successful-authentication.html
     if handshakePacket.plugin == "caching_sha2_password":
-        discard await caching_sha2_password_auth(conn, pkt, password, handshakePacket.scrambleBuff)
+        await caching_sha2_password_auth(conn, password, handshakePacket.scrambleBuff)
     # elif handshakePacket.plugin == "sha256_password":
     #     discard await = sha256_password_auth(conn, auth_packet, password)
     else:
@@ -119,8 +119,8 @@ proc finishEstablishingConnection(conn: Connection,
     raise newException(ProtocolError, "Unexpected packet received after sending client handshake")
 
 proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
-  let pkt = await conn.receivePacket()
-  result = conn.parseHandshakePacket(pkt)
+  await conn.receivePacket()
+  result = conn.parseHandshakePacket()
 
 when declared(SslContext) and declared(startTls):
   proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", ssl: SslContext): Future[Connection] {.async.} =
@@ -133,34 +133,35 @@ when declared(SslContext) and declared(startTls):
 proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = ""): Future[Connection] {.async.} =
   result = Connection(socket: sock)
   let handshakePacket = await connect(result)
+  echo repr handshakePacket
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc parseTextRow(pkt: string): seq[string] =
+proc parseTextRow(conn: Connection,columnCount: int): seq[string] =
   # duplicated
-  var pos = 0
   result = newSeq[string]()
-  while pos < len(pkt):
-    if pkt[pos] == NullColumn:
+  var i = 0
+  while i < columnCount:
+    if conn.buf[conn.bufPos] == NullColumn:
       result.add("")
-      inc(pos)
+      inc(conn.bufPos)
     else:
-      result.add(pkt.readLenStr(pos))
+      result.add(conn.buf.readLenStr(conn.bufPos))
+    inc i
 
-template fetchResultset2(conn:typed, pkt:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped =
+template fetchResultset(conn:typed, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
   # duplicated
-  var p = 0
-  let column_count = readLenInt(pkt, p)
-  result.columns = await conn.receiveMetadata(column_count)
+  let columnCount = readLenInt(conn.buf, conn.bufPos)
+  result.columns = await conn.receiveMetadata(columnCount)
   while true:
-    let pkt = await conn.receivePacket()
-    if isEOFPacket(pkt):
-      result.status = parseEOFPacket(pkt)
+    await conn.receivePacket()
+    if isEOFPacket(conn):
+      result.status = parseEOFPacket(conn)
       break
-    elif isTextMode and isOKPacket(pkt):
-      result.status = parseOKPacket(conn, pkt)
+    elif isTextMode and isOKPacket(conn):
+      result.status = parseOKPacket(conn)
       break
-    elif isERRPacket(pkt):
-      raise parseErrorPacket(pkt)
+    elif isERRPacket(conn):
+      raise parseErrorPacket(conn)
     else:
       process
       when onlyFirst:
@@ -170,14 +171,14 @@ proc rawQuery(conn: Connection, query: string, onlyFirst:static[bool] = false): 
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   # duplicated
   await conn.sendQuery(query)
-  let pkt = await conn.receivePacket()
-  if isOKPacket(pkt):
+  await conn.receivePacket()
+  if isOKPacket(conn):
     # Success, but no rows returned.
-    result.status = parseOKPacket(conn, pkt)
-  elif isERRPacket(pkt):
-    raise parseErrorPacket(pkt)
+    result.status = parseOKPacket(conn)
+  elif isERRPacket(conn):
+    raise parseErrorPacket(conn)
   else:
-    conn.fetchResultset2(pkt, result, onlyFirst, true, result.rows.add(parseTextRow(pkt)))
+    conn.fetchResultset( result, onlyFirst, true, result.rows.add(conn.parseTextRow(columnCount)))
 
 proc handleParams(conn: Connection, q: string) {.async.} =
   ## SHOW VARIABLES;
@@ -236,5 +237,5 @@ proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
   buf.setLen(4)
   buf.add( char(Command.quit) )
   await conn.sendPacket(buf, resetSeqId=true)
-  discard await conn.receivePacket(drop_ok=true)
+  await conn.receivePacket(drop_ok=true)
   conn.socket.close()
