@@ -135,7 +135,6 @@ proc establishConnection*(sock: AsyncSocket, username: string, password: string 
   result = Connection(socket: sock)
   result.buf.setLen(MysqlBufSize)
   let handshakePacket = await connect(result)
-  echo repr handshakePacket
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
 proc parseTextRow(conn: Connection,columnCount: int): seq[string] =
