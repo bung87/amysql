@@ -435,7 +435,6 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
     result.warnings = numWarnings
   
   if numParams > 0'u16:
-    debug "prepare receiveMetadata numParams:" & $numParams
     if conn.payloadLen > conn.bufPos:
       var index = 0
       result.parameters = newSeq[ColumnDefinition](numParams)
@@ -449,7 +448,6 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   else:
     result.parameters = newSeq[ColumnDefinition](0)
   if numColumns > 0'u16:
-    debug "prepare receiveMetadata numColumns:" & $numColumns
     if conn.payloadLen > conn.bufPos:
       var index = 0
       result.columns = newSeq[ColumnDefinition](numColumns)

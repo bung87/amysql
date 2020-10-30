@@ -238,7 +238,8 @@ proc writeHandshakeResponse*(conn: Connection,
 
   # Fixed-length portion
   putU32(buf, cast[uint32](caps))
-  putU32(buf, 65536'u32)  # max packet size, TODO: what should I put here?
+  # https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_max_allowed_packet
+  putU32(buf, 65536'u32)  # max packet size
   buf.add( char(Charset_utf8_ci) )
 
   # 23 bytes of filler
@@ -451,7 +452,6 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
       headerLen = rec.read
-  debug "headerLen:" & $headerLen
   if headerLen == 0:
     if drop_ok:
       return 
@@ -461,7 +461,6 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
     raise newException(ProtocolError, "Connection closed unexpectedly")
   conn.payloadLen = conn.processHeader()
   conn.curPayloadLen = conn.payloadLen
-  debug "payloadLen:" & $conn.payloadLen
   inc conn.bufPos,offset
   if conn.payloadLen == 0:
     return 
