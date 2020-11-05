@@ -18,6 +18,5 @@ proc dbQuote*(s: string): string =
     of '\'': result.add "\\'"
     of '\\': result.add "\\\\"
     of '_': result.add "\\_"
-    of Letters+Digits: result.add c
-    else: result.add "\\" & $ord(c)
+    else: result.add c
   add(result, '\'')
