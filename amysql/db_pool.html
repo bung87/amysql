@@ -47,21 +47,12 @@ function main() {
 
   toggleSwitch.addEventListener('change', switchTheme, false);
 
+  const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+  if (currentTheme) {
+    document.documentElement.setAttribute('data-theme', currentTheme);
 
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.setAttribute('data-theme', "dark");
-    toggleSwitch.checked = true;
-  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    document.documentElement.setAttribute('data-theme', "light");
-    toggleSwitch.checked = false;
-  } else {
-    const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
-    if (currentTheme) {
-      document.documentElement.setAttribute('data-theme', currentTheme);
-
-      if (currentTheme === 'dark') {
-        toggleSwitch.checked = true;
-      }
+    if (currentTheme === 'dark') {
+      toggleSwitch.checked = true;
     }
   }
 }
@@ -123,56 +114,120 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#newDBConn%2Cptr.Channel%5BDBResult%5D"
-    title="newDBConn(writer: ptr Channel[DBResult]): DBConn"><wbr />new<wbr />DBConn<span class="attachedType">DBConn</span></a></li>
-  <li><a class="reference" href="#close%2CDBConn"
-    title="close(self: DBConn): owned(Future[void])"><wbr />close<span class="attachedType">DBConn</span></a></li>
-  <li><a class="reference" href="#expired%2CDBConn%2CDuration"
-    title="expired(self: DBConn; timeout: Duration): bool"><wbr />expired<span class="attachedType">DBConn</span></a></li>
-  <li><a class="reference" href="#newDBPool"
-    title="newDBPool(uriStr: string | Uri): Future[DBPool]"><wbr />new<wbr />DBPool<span class="attachedType">DBPool</span></a></li>
+      <ul class="simple nested-toc-section">expired
+      <li><a class="reference" href="#expired%2CDBConn%2CDuration"
+    title="expired(self: DBConn; timeout: Duration): bool">expired,DBConn,Duration<span class="attachedType">DBConn</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">fetchConn
+      <li><a class="reference" href="#fetchConn%2CDBPool"
+    title="fetchConn(self: DBPool): Future[DBConn]">fetchConn,DBPool<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">close
+      <li><a class="reference" href="#close%2CDBConn"
+    title="close(self: DBConn): owned(Future[void])">close,DBConn<span class="attachedType">DBConn</span></a></li>
   <li><a class="reference" href="#close%2CDBPool"
-    title="close(self: DBPool): Future[void]"><wbr />close<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#fetchConn%2CDBPool"
-    title="fetchConn(self: DBPool): Future[DBConn]"><wbr />fetch<wbr />Conn<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#rawQuery%2CDBPool%2Cstring%2Cstatic%5Bbool%5D"
-    title="rawQuery(self: DBPool; query: string; onlyFirst: static[bool] = false): Future[
-    ResultSet[string]]"><wbr />raw<wbr />Query<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#query%2CDBPool%2CDBSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"
+    title="close(self: DBPool): Future[void]">close,DBPool<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">query
+      <li><a class="reference" href="#query%2CDBPool%2CDBSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"
     title="query(self: DBPool; pstmt: DBSqlPrepared; params: varargs[SqlParam, asParam]): Future[
-    ResultSet[ResultValue]]"><wbr />query<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#rawExec%2CDBPool%2Cstring"
-    title="rawExec(self: DBPool; query: string): Future[ResultSet[string]]"><wbr />raw<wbr />Exec<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#prepare%2CDBPool%2Cstring"
-    title="prepare(self: DBPool; query: string): Future[DBSqlPrepared]"><wbr />prepare<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#finalize%2CDBPool%2CDBSqlPrepared"
-    title="finalize(self: DBPool; pstmt: DBSqlPrepared): Future[void]"><wbr />finalize<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#reset%2CDBPool%2CDBSqlPrepared"
-    title="reset(self: DBPool; pstmt: DBSqlPrepared): Future[void]"><wbr />reset<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#exec%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="exec(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    ResultSet[string]]"><wbr />exec<span class="attachedType">DBPool</span></a></li>
+    ResultSet[ResultValue]]">query,DBPool,DBSqlPrepared,varargs[SqlParam,asParam]<span class="attachedType">DBPool</span></a></li>
   <li><a class="reference" href="#query%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D"
     title="query(conn: DBPool; query: SqlQuery; args: varargs[string, `$`];
-      onlyFirst: static[bool] = false): Future[ResultSet[string]]"><wbr />query<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#tryQuery%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="tryQuery(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]"><wbr />try<wbr />Query<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#getRow%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="getRow(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]"><wbr />get<wbr />Row<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#getAllRows%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="getAllRows(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]"><wbr />get<wbr />All<wbr />Rows<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#getValue%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="getValue(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[string]"><wbr />get<wbr />Value<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#tryInsertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="tryInsertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]"><wbr />try<wbr />Insert<wbr />Id<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#insertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="insertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[int64]"><wbr />insert<wbr />Id<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#tryInsert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
-    title="tryInsert(conn: DBPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
-    int64]"><wbr />try<wbr />Insert<span class="attachedType">DBPool</span></a></li>
-  <li><a class="reference" href="#insert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
+      onlyFirst: static[bool] = false): Future[ResultSet[string]]">query,DBPool,SqlQuery,varargs[string,],static[bool]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">tryQuery
+      <li><a class="reference" href="#tryQuery%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="tryQuery(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]">tryQuery,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">prepare
+      <li><a class="reference" href="#prepare%2CDBPool%2Cstring"
+    title="prepare(self: DBPool; query: string): Future[DBSqlPrepared]">prepare,DBPool,string<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getValue
+      <li><a class="reference" href="#getValue%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="getValue(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
+    string]">getValue,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getAllRows
+      <li><a class="reference" href="#getAllRows%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="getAllRows(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
+    seq[Row]]">getAllRows,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">reset
+      <li><a class="reference" href="#reset%2CDBPool%2CDBSqlPrepared"
+    title="reset(self: DBPool; pstmt: DBSqlPrepared): Future[void]">reset,DBPool,DBSqlPrepared<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">tryInsert
+      <li><a class="reference" href="#tryInsert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
+    title="tryInsert(conn: DBPool; query: SqlQuery; pkName: string;
+          args: varargs[string, `$`]): Future[int64]">tryInsert,DBPool,SqlQuery,string,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">newDBPool
+      <li><a class="reference" href="#newDBPool"
+    title="newDBPool(uriStr: string | Uri): Future[DBPool]">newDBPool<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">insertId
+      <li><a class="reference" href="#insertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="insertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
+    int64]">insertId,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">rawExec
+      <li><a class="reference" href="#rawExec%2CDBPool%2Cstring"
+    title="rawExec(self: DBPool; query: string): Future[ResultSet[string]]">rawExec,DBPool,string<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">rawQuery
+      <li><a class="reference" href="#rawQuery%2CDBPool%2Cstring%2Cstatic%5Bbool%5D"
+    title="rawQuery(self: DBPool; query: string; onlyFirst: static[bool] = false): Future[
+    ResultSet[string]]">rawQuery,DBPool,string,static[bool]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">finalize
+      <li><a class="reference" href="#finalize%2CDBPool%2CDBSqlPrepared"
+    title="finalize(self: DBPool; pstmt: DBSqlPrepared): Future[void]">finalize,DBPool,DBSqlPrepared<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">insert
+      <li><a class="reference" href="#insert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
     title="insert(conn: DBPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
-    int64]"><wbr />insert<span class="attachedType">DBPool</span></a></li>
+    int64]">insert,DBPool,SqlQuery,string,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">exec
+      <li><a class="reference" href="#exec%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="exec(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
+    ResultSet[string]]">exec,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">newDBConn
+      <li><a class="reference" href="#newDBConn%2Cptr.Channel%5BDBResult%5D"
+    title="newDBConn(writer: ptr Channel[DBResult]): DBConn">newDBConn,ptr.Channel[DBResult]<span class="attachedType">DBConn</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">tryInsertId
+      <li><a class="reference" href="#tryInsertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="tryInsertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
+    int64]">tryInsertId,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getRow
+      <li><a class="reference" href="#getRow%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="getRow(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]">getRow,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+
+  </ul>
 
   </ul>
 </li>
@@ -226,7 +281,8 @@ function main() {
 <h1><a class="toc-backref" href="#12">Procs</a></h1>
 <dl class="item">
 <a id="newDBConn,ptr.Channel[DBResult]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#newDBConn%2Cptr.Channel%5BDBResult%5D"><span class="Identifier">newDBConn</span></a><span class="Other">(</span><span class="Identifier">writer</span><span class="Other">:</span> <span class="Keyword">ptr</span> <span class="Identifier">Channel</span><span class="Other">[</span><span class="Identifier">DBResult</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <a href="db_pool.html#DBConn"><span class="Identifier">DBConn</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#newDBConn%2Cptr.Channel%5BDBResult%5D"><span class="Identifier">newDBConn</span></a><span class="Other">(</span><span class="Identifier">writer</span><span class="Other">:</span> <span class="Keyword">ptr</span> <span class="Identifier">Channel</span><span class="Other">[</span><span class="Identifier">DBResult</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <a href="db_pool.html#DBConn"><span class="Identifier">DBConn</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -234,14 +290,15 @@ function main() {
 </dd>
 <a id="close,DBConn"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#close%2CDBConn"><span class="Identifier">close</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBConn"><span class="Identifier">DBConn</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">owned</span><span class="Other">(</span><span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
 
 </dd>
 <a id="expired,DBConn,Duration"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#expired%2CDBConn%2CDuration"><span class="Identifier">expired</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBConn"><span class="Identifier">DBConn</span></a><span class="Other">;</span> <span class="Identifier">timeout</span><span class="Other">:</span> <span class="Identifier">Duration</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#expired%2CDBConn%2CDuration"><span class="Identifier">expired</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBConn"><span class="Identifier">DBConn</span></a><span class="Other">;</span> <span class="Identifier">timeout</span><span class="Other">:</span> <span class="Identifier">Duration</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -278,8 +335,9 @@ conn returns a newly-opened or new DBconn.
 
 </dd>
 <a id="query,DBPool,DBSqlPrepared,varargs[SqlParam,asParam]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#query%2CDBPool%2CDBSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="db_pool.html#DBSqlPrepared"><span class="Identifier">DBSqlPrepared</span></a><span class="Other">;</span> <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><a href="../amysql.html#SqlParam"><span class="Identifier">SqlParam</span></a><span class="Other">,</span> <span class="Identifier">asParam</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><a href="../amysql.html#ResultValue"><span class="Identifier">ResultValue</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#query%2CDBPool%2CDBSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="db_pool.html#DBSqlPrepared"><span class="Identifier">DBSqlPrepared</span></a><span class="Other">;</span>
+           <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><a href="../amysql.html#SqlParam"><span class="Identifier">SqlParam</span></a><span class="Other">,</span> <span class="Identifier">asParam</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><a href="../amysql.html#ResultValue"><span class="Identifier">ResultValue</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -304,16 +362,16 @@ conn returns a newly-opened or new DBconn.
 
 </dd>
 <a id="finalize,DBPool,DBSqlPrepared"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#finalize%2CDBPool%2CDBSqlPrepared"><span class="Identifier">finalize</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="db_pool.html#DBSqlPrepared"><span class="Identifier">DBSqlPrepared</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#finalize%2CDBPool%2CDBSqlPrepared"><span class="Identifier">finalize</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="db_pool.html#DBSqlPrepared"><span class="Identifier">DBSqlPrepared</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
 
 </dd>
 <a id="reset,DBPool,DBSqlPrepared"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#reset%2CDBPool%2CDBSqlPrepared"><span class="Identifier">reset</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="db_pool.html#DBSqlPrepared"><span class="Identifier">DBSqlPrepared</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#reset%2CDBPool%2CDBSqlPrepared"><span class="Identifier">reset</span></a><span class="Other">(</span><span class="Identifier">self</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="db_pool.html#DBSqlPrepared"><span class="Identifier">DBSqlPrepared</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -330,25 +388,25 @@ conn returns a newly-opened or new DBconn.
 </dd>
 <a id="query,DBPool,SqlQuery,varargs[string,],static[bool]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#query%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">;</span>
-          <span class="Identifier">onlyFirst</span><span class="Other">:</span> <span class="Identifier">static</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span></pre></dt>
+           <span class="Identifier">onlyFirst</span><span class="Other">:</span> <span class="Identifier">static</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span></pre></dt>
 <dd>
 
 
 
 </dd>
 <a id="tryQuery,DBPool,SqlQuery,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#tryQuery%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">tryQuery</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#tryQuery%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">tryQuery</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <span class="Identifier">bool</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 tries to execute the query and returns true if successful, false otherwise.
 
 </dd>
 <a id="getRow,DBPool,SqlQuery,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#getRow%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getRow</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="../amysql.html#Row"><span class="Identifier">Row</span></a><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#getRow%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getRow</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <a href="../amysql.html#Row"><span class="Identifier">Row</span></a><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 Retrieves a single row. If the query doesn't return any rows, this proc will return a Row with empty strings for each column.
@@ -364,9 +422,9 @@ executes the query and returns the whole result dataset.
 
 </dd>
 <a id="getValue,DBPool,SqlQuery,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#getValue%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getValue</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#getValue%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getValue</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <span class="Identifier">string</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 executes the query and returns the first column of the first row of the result dataset. Returns &quot;&quot; if the dataset contains no rows or the database value is NULL.
@@ -382,9 +440,9 @@ executes the query (typically &quot;INSERT&quot;) and returns the generated ID f
 
 </dd>
 <a id="insertId,DBPool,SqlQuery,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#insertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">insertId</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#insertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">insertId</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 executes the query (typically &quot;INSERT&quot;) and returns the generated ID for the row.
@@ -392,7 +450,7 @@ executes the query (typically &quot;INSERT&quot;) and returns the generated ID f
 </dd>
 <a id="tryInsert,DBPool,SqlQuery,string,varargs[string,]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#tryInsert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">tryInsert</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">pkName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
-              <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+               <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
     <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
@@ -401,9 +459,10 @@ same as tryInsertID
 
 </dd>
 <a id="insert,DBPool,SqlQuery,string,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#insert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">insert</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">pkName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#insert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">insert</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="db_pool.html#DBPool"><span class="Identifier">DBPool</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">pkName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
+            <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 same as insertId
@@ -419,7 +478,7 @@ same as insertId
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 09:42:52 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-05 08:27:14 UTC</small>
       </div>
     </div>
   </div>

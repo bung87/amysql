@@ -47,21 +47,12 @@ function main() {
 
   toggleSwitch.addEventListener('change', switchTheme, false);
 
+  const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+  if (currentTheme) {
+    document.documentElement.setAttribute('data-theme', currentTheme);
 
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.setAttribute('data-theme', "dark");
-    toggleSwitch.checked = true;
-  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    document.documentElement.setAttribute('data-theme', "light");
-    toggleSwitch.checked = false;
-  } else {
-    const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
-    if (currentTheme) {
-      document.documentElement.setAttribute('data-theme', currentTheme);
-
-      if (currentTheme === 'dark') {
-        toggleSwitch.checked = true;
-      }
+    if (currentTheme === 'dark') {
+      toggleSwitch.checked = true;
     }
   }
 }
@@ -109,8 +100,11 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
+      <ul class="simple nested-toc-section">dbFormat
       <li><a class="reference" href="#dbFormat%2CSqlQuery%2C"
-    title="dbFormat(formatstr: SqlQuery; args: varargs[string] | seq[string]): string"><wbr />db<wbr />Format<span class="attachedType"></span></a></li>
+    title="dbFormat(formatstr: SqlQuery; args: varargs[string] | seq[string]): string">dbFormat,SqlQuery,<span class="attachedType"></span></a></li>
+
+  </ul>
 
   </ul>
 </li>
@@ -147,7 +141,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 09:42:50 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-05 08:27:12 UTC</small>
       </div>
     </div>
   </div>

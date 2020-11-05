@@ -35,27 +35,27 @@ asDuration	amysql.html#asDuration.c,ResultValue	amysql: asDuration(v: ResultValu
 asMyGeometry	amysql.html#asMyGeometry.c,ResultValue	amysql: asMyGeometry(v: ResultValue): MyGeometry	
 asBool	amysql.html#asBool.c,ResultValue	amysql: asBool(v: ResultValue): bool	
 asJson	amysql.html#asJson.c,ResultValue	amysql: asJson(v: ResultValue): JsonNode	
-initDate	amysql.html#initDate,MonthdayRange,Month,int,Timezone	amysql: initDate(monthday: MonthdayRange; month: Month; year: int; zone: Timezone = local()): Date	
+initDate	amysql.html#initDate,MonthdayRange,Month,int,Timezone	amysql: initDate(monthday: MonthdayRange; month: Month; year: int;\n         zone: Timezone = local()): Date	
 prepare	amysql.html#prepare,Connection,string	amysql: prepare(conn: Connection; qs: string): Future[SqlPrepared]	
 finalize	amysql.html#finalize,Connection,SqlPrepared	amysql: finalize(conn: Connection; pstmt: SqlPrepared): Future[void]	
 reset	amysql.html#reset,Connection,SqlPrepared	amysql: reset(conn: Connection; pstmt: SqlPrepared): Future[void]	
-formatBoundParams	amysql.html#formatBoundParams,Connection,SqlPrepared,openArray[SqlParam]	amysql: formatBoundParams(conn: Connection; pstmt: SqlPrepared; params: openArray[SqlParam]): string	
+formatBoundParams	amysql.html#formatBoundParams,Connection,SqlPrepared,openArray[SqlParam]	amysql: formatBoundParams(conn: Connection; pstmt: SqlPrepared;\n                  params: openArray[SqlParam]): string	
 query	amysql.html#query,Connection,SqlPrepared,openArray[static[SqlParam]]	amysql: query(conn: Connection; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[\n    void]	
 rawExec	amysql.html#rawExec,Connection,string	amysql: rawExec(conn: Connection; qs: string): Future[ResultSet[string]]	
 rawQuery	amysql.html#rawQuery,Connection,string,bool	amysql: rawQuery(conn: Connection; qs: string; onlyFirst: bool = false): Future[\n    ResultSet[string]]	
-performPreparedQuery	amysql.html#performPreparedQuery,Connection,SqlPrepared,Future[void],static[bool]	amysql: performPreparedQuery(conn: Connection; pstmt: SqlPrepared; st: Future[void];\n                     onlyFirst: static[bool] = false): Future[ResultSet[ResultValue]]	
+performPreparedQuery	amysql.html#performPreparedQuery,Connection,SqlPrepared,Future[void],static[bool]	amysql: performPreparedQuery(conn: Connection; pstmt: SqlPrepared; st: Future[void];\n                     onlyFirst: static[bool] = false): Future[\n    ResultSet[ResultValue]]	
 query	amysql.html#query,Connection,SqlPrepared,varargs[SqlParam,asParam]	amysql: query(conn: Connection; pstmt: SqlPrepared; params: varargs[SqlParam, asParam]): Future[\n    ResultSet[ResultValue]]	
 selectDatabase	amysql.html#selectDatabase,Connection,string	amysql: selectDatabase(conn: Connection; database: string): Future[ResponseOK]	
 exec	amysql.html#exec,Connection,SqlQuery,varargs[string,]	amysql: exec(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    ResultSet[string]]	
 query	amysql.html#query,Connection,SqlQuery,varargs[string,],static[bool]	amysql: query(conn: Connection; qs: SqlQuery; args: varargs[string, `$`];\n      onlyFirst: static[bool] = false): Future[ResultSet[string]]	
-tryQuery	amysql.html#tryQuery,Connection,SqlQuery,varargs[string,]	amysql: tryQuery(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[bool]	
+tryQuery	amysql.html#tryQuery,Connection,SqlQuery,varargs[string,]	amysql: tryQuery(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    bool]	
 getRow	amysql.html#getRow,Connection,SqlQuery,varargs[string,]	amysql: getRow(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]	
-getAllRows	amysql.html#getAllRows,Connection,SqlQuery,varargs[string,]	amysql: getAllRows(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]	
-getValue	amysql.html#getValue,Connection,SqlQuery,varargs[string,]	amysql: getValue(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[string]	
-tryInsertId	amysql.html#tryInsertId,Connection,SqlQuery,varargs[string,]	amysql: tryInsertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]	
-insertId	amysql.html#insertId,Connection,SqlQuery,varargs[string,]	amysql: insertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]	
-tryInsert	amysql.html#tryInsert,Connection,SqlQuery,string,varargs[string,]	amysql: tryInsert(conn: Connection; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[\n    int64]	
-insert	amysql.html#insert,Connection,SqlQuery,string,varargs[string,]	amysql: insert(conn: Connection; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[\n    int64]	
+getAllRows	amysql.html#getAllRows,Connection,SqlQuery,varargs[string,]	amysql: getAllRows(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    seq[Row]]	
+getValue	amysql.html#getValue,Connection,SqlQuery,varargs[string,]	amysql: getValue(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    string]	
+tryInsertId	amysql.html#tryInsertId,Connection,SqlQuery,varargs[string,]	amysql: tryInsertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    int64]	
+insertId	amysql.html#insertId,Connection,SqlQuery,varargs[string,]	amysql: insertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    int64]	
+tryInsert	amysql.html#tryInsert,Connection,SqlQuery,string,varargs[string,]	amysql: tryInsert(conn: Connection; qs: SqlQuery; pkName: string;\n          args: varargs[string, `$`]): Future[int64]	
+insert	amysql.html#insert,Connection,SqlQuery,string,varargs[string,]	amysql: insert(conn: Connection; qs: SqlQuery; pkName: string;\n       args: varargs[string, `$`]): Future[int64]	
 setEncoding	amysql.html#setEncoding,Connection,string	amysql: setEncoding(conn: Connection; encoding: string): Future[bool]	
 startTransaction	amysql.html#startTransaction,Connection	amysql: startTransaction(conn: Connection): owned(Future[void])	
 commit	amysql.html#commit,Connection	amysql: commit(conn: Connection): owned(Future[void])	

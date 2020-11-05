@@ -47,21 +47,12 @@ function main() {
 
   toggleSwitch.addEventListener('change', switchTheme, false);
 
+  const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+  if (currentTheme) {
+    document.documentElement.setAttribute('data-theme', currentTheme);
 
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.setAttribute('data-theme', "dark");
-    toggleSwitch.checked = true;
-  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    document.documentElement.setAttribute('data-theme', "light");
-    toggleSwitch.checked = false;
-  } else {
-    const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
-    if (currentTheme) {
-      document.documentElement.setAttribute('data-theme', currentTheme);
-
-      if (currentTheme === 'dark') {
-        toggleSwitch.checked = true;
-      }
+    if (currentTheme === 'dark') {
+      toggleSwitch.checked = true;
     }
   }
 }
@@ -103,14 +94,26 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
+      <ul class="simple nested-toc-section">scramble_caching_sha2
+      <li><a class="reference" href="#scramble_caching_sha2%2Cstring%2Cstring"
+    title="scramble_caching_sha2(scrambleBuff: string; password: string): string">scramble_caching_sha2,string,string<span class="attachedType"></span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">plugin_auth
+      <li><a class="reference" href="#plugin_auth%2Cstring%2Cstring%2Cstring"
+    title="plugin_auth(plugin_name, scramble, password: string): string">plugin_auth,string,string,string<span class="attachedType"></span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">scramble323
+      <li><a class="reference" href="#scramble323%2Cstring%2Cstring"
+    title="scramble323(seed: string; password: string): string">scramble323,string,string<span class="attachedType"></span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">scramble_native_password
       <li><a class="reference" href="#scramble_native_password%2Cstring%2Cstring"
-    title="scramble_native_password(scrambleBuff: string; password: string): string"><wbr />scramble_<wbr />native_<wbr />password<span class="attachedType"></span></a></li>
-  <li><a class="reference" href="#scramble_caching_sha2%2Cstring%2Cstring"
-    title="scramble_caching_sha2(scrambleBuff: string; password: string): string"><wbr />scramble_<wbr />caching_<wbr />sha2<span class="attachedType"></span></a></li>
-  <li><a class="reference" href="#scramble323%2Cstring%2Cstring"
-    title="scramble323(seed: string; password: string): string"><wbr />scramble323<span class="attachedType"></span></a></li>
-  <li><a class="reference" href="#plugin_auth%2Cstring%2Cstring%2Cstring"
-    title="plugin_auth(plugin_name, scramble, password: string): string"><wbr />plugin_<wbr />auth<span class="attachedType"></span></a></li>
+    title="scramble_native_password(scrambleBuff: string; password: string): string">scramble_native_password,string,string<span class="attachedType"></span></a></li>
+
+  </ul>
 
   </ul>
 </li>
@@ -149,7 +152,8 @@ function main() {
 
 </dd>
 <a id="plugin_auth,string,string,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#plugin_auth%2Cstring%2Cstring%2Cstring"><span class="Identifier">plugin_auth</span></a><span class="Other">(</span><span class="Identifier">plugin_name</span><span class="Other">,</span> <span class="Identifier">scramble</span><span class="Other">,</span> <span class="Identifier">password</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#plugin_auth%2Cstring%2Cstring%2Cstring"><span class="Identifier">plugin_auth</span></a><span class="Other">(</span><span class="Identifier">plugin_name</span><span class="Other">,</span> <span class="Identifier">scramble</span><span class="Other">,</span> <span class="Identifier">password</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -165,7 +169,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 09:42:51 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-05 08:27:14 UTC</small>
       </div>
     </div>
   </div>

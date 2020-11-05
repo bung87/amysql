@@ -1,1 +1,1 @@
-caching_sha2_password_auth	amysql/private/conn_auth.html#caching_sha2_password_auth,Connection,string,string,string	conn_auth: caching_sha2_password_auth(conn: Connection; pkt, scrambleBuff, password: string): Future[\n    string]	
+caching_sha2_password_auth	amysql/private/conn_auth.html#caching_sha2_password_auth,Connection,string,string	conn_auth: caching_sha2_password_auth(conn: Connection; scrambleBuff, password: string): owned(\n    Future[void])	

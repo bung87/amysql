@@ -47,21 +47,12 @@ function main() {
 
   toggleSwitch.addEventListener('change', switchTheme, false);
 
+  const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+  if (currentTheme) {
+    document.documentElement.setAttribute('data-theme', currentTheme);
 
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.setAttribute('data-theme', "dark");
-    toggleSwitch.checked = true;
-  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    document.documentElement.setAttribute('data-theme', "light");
-    toggleSwitch.checked = false;
-  } else {
-    const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
-    if (currentTheme) {
-      document.documentElement.setAttribute('data-theme', currentTheme);
-
-      if (currentTheme === 'dark') {
-        toggleSwitch.checked = true;
-      }
+    if (currentTheme === 'dark') {
+      toggleSwitch.checked = true;
     }
   }
 }
@@ -119,54 +110,113 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#newAsyncPool%2Cstring%2Cstring%2Cstring%2Cstring%2Cint"
-    title="newAsyncPool(host, user, password, database: string; num: int): Future[AsyncPool]"><wbr />new<wbr />Async<wbr />Pool<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#newAsyncPool%2C%2Cint"
-    title="newAsyncPool(uriStr: string | Uri; num: int): Future[AsyncPool]"><wbr />new<wbr />Async<wbr />Pool<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#getFreeConnIdx%2CAsyncPool"
-    title="getFreeConnIdx(pool: AsyncPool): Future[int]"><wbr />get<wbr />Free<wbr />Conn<wbr />Idx<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#getFreeConn%2CAsyncPool%2Cint"
-    title="getFreeConn(pool: AsyncPool; conIdx: int): Connection"><wbr />get<wbr />Free<wbr />Conn<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#returnConn%2CAsyncPool%2Cint"
-    title="returnConn(pool: AsyncPool; conIdx: int)"><wbr />return<wbr />Conn<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#close%2CAsyncPool"
-    title="close(pool: AsyncPool): owned(Future[void])"><wbr />close<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#query%2CAsyncPool%2CSqlPrepared%2CopenArray%5Bstatic%5BSqlParam%5D%5D"
+      <ul class="simple nested-toc-section">selectDatabase
+      <li><a class="reference" href="#selectDatabase%2CAsyncPool%2Cstring"
+    title="selectDatabase(pool: AsyncPool; database: string): Future[ResponseOK]">selectDatabase,AsyncPool,string<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">close
+      <li><a class="reference" href="#close%2CAsyncPool"
+    title="close(pool: AsyncPool): owned(Future[void])">close,AsyncPool<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">query
+      <li><a class="reference" href="#query%2CAsyncPool%2CSqlPrepared%2CopenArray%5Bstatic%5BSqlParam%5D%5D"
     title="query(pool: AsyncPool; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[
-    void]"><wbr />query<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#rawExec%2CAsyncPool%2Cstring"
-    title="rawExec(pool: AsyncPool; qs: string): Future[ResultSet[string]]"><wbr />raw<wbr />Exec<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#rawQuery%2CAsyncPool%2Cstring%2Cbool"
-    title="rawQuery(pool: AsyncPool; qs: string; onlyFirst: bool = false): Future[ResultSet[string]]"><wbr />raw<wbr />Query<span class="attachedType">AsyncPool</span></a></li>
+    void]">query,AsyncPool,SqlPrepared,openArray[static[SqlParam]]<span class="attachedType">AsyncPool</span></a></li>
   <li><a class="reference" href="#query%2CAsyncPool%2CSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"
     title="query(pool: AsyncPool; pstmt: SqlPrepared; params: varargs[SqlParam, asParam]): Future[
-    ResultSet[ResultValue]]"><wbr />query<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#selectDatabase%2CAsyncPool%2Cstring"
-    title="selectDatabase(pool: AsyncPool; database: string): Future[ResponseOK]"><wbr />select<wbr />Database<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#exec%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="exec(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[
-    ResultSet[string]]"><wbr />exec<span class="attachedType">AsyncPool</span></a></li>
+    ResultSet[ResultValue]]">query,AsyncPool,SqlPrepared,varargs[SqlParam,asParam]<span class="attachedType">AsyncPool</span></a></li>
   <li><a class="reference" href="#query%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D"
     title="query(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`];
-      onlyFirst: static[bool] = false): Future[ResultSet[string]]"><wbr />query<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#tryQuery%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="tryQuery(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[bool]"><wbr />try<wbr />Query<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#getRow%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="getRow(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]"><wbr />get<wbr />Row<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#getAllRows%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="getAllRows(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[seq[Row]]"><wbr />get<wbr />All<wbr />Rows<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#getValue%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="getValue(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[string]"><wbr />get<wbr />Value<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#tryInsertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="tryInsertId(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]"><wbr />try<wbr />Insert<wbr />Id<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#insertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="insertId(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[int64]"><wbr />insert<wbr />Id<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#tryInsert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
-    title="tryInsert(pool: AsyncPool; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
-    int64]"><wbr />try<wbr />Insert<span class="attachedType">AsyncPool</span></a></li>
-  <li><a class="reference" href="#insert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
+      onlyFirst: static[bool] = false): Future[ResultSet[string]]">query,AsyncPool,SqlQuery,varargs[string,],static[bool]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">tryQuery
+      <li><a class="reference" href="#tryQuery%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="tryQuery(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[bool]">tryQuery,AsyncPool,SqlQuery,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getFreeConn
+      <li><a class="reference" href="#getFreeConn%2CAsyncPool%2Cint"
+    title="getFreeConn(pool: AsyncPool; conIdx: int): Connection">getFreeConn,AsyncPool,int<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getValue
+      <li><a class="reference" href="#getValue%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="getValue(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[
+    string]">getValue,AsyncPool,SqlQuery,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getAllRows
+      <li><a class="reference" href="#getAllRows%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="getAllRows(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[
+    seq[Row]]">getAllRows,AsyncPool,SqlQuery,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">tryInsert
+      <li><a class="reference" href="#tryInsert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
+    title="tryInsert(pool: AsyncPool; qs: SqlQuery; pkName: string;
+          args: varargs[string, `$`]): Future[int64]">tryInsert,AsyncPool,SqlQuery,string,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">newAsyncPool
+      <li><a class="reference" href="#newAsyncPool%2Cstring%2Cstring%2Cstring%2Cstring%2Cint"
+    title="newAsyncPool(host, user, password, database: string; num: int): Future[AsyncPool]">newAsyncPool,string,string,string,string,int<span class="attachedType">AsyncPool</span></a></li>
+  <li><a class="reference" href="#newAsyncPool%2C%2Cint"
+    title="newAsyncPool(uriStr: string | Uri; num: int): Future[AsyncPool]">newAsyncPool,,int<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">insertId
+      <li><a class="reference" href="#insertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="insertId(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[
+    int64]">insertId,AsyncPool,SqlQuery,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">rawExec
+      <li><a class="reference" href="#rawExec%2CAsyncPool%2Cstring"
+    title="rawExec(pool: AsyncPool; qs: string): Future[ResultSet[string]]">rawExec,AsyncPool,string<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">rawQuery
+      <li><a class="reference" href="#rawQuery%2CAsyncPool%2Cstring%2Cbool"
+    title="rawQuery(pool: AsyncPool; qs: string; onlyFirst: bool = false): Future[
+    ResultSet[string]]">rawQuery,AsyncPool,string,bool<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">insert
+      <li><a class="reference" href="#insert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
     title="insert(pool: AsyncPool; qs: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
-    int64]"><wbr />insert<span class="attachedType">AsyncPool</span></a></li>
+    int64]">insert,AsyncPool,SqlQuery,string,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">exec
+      <li><a class="reference" href="#exec%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="exec(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[
+    ResultSet[string]]">exec,AsyncPool,SqlQuery,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getFreeConnIdx
+      <li><a class="reference" href="#getFreeConnIdx%2CAsyncPool"
+    title="getFreeConnIdx(pool: AsyncPool): Future[int]">getFreeConnIdx,AsyncPool<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">tryInsertId
+      <li><a class="reference" href="#tryInsertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="tryInsertId(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[
+    int64]">tryInsertId,AsyncPool,SqlQuery,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getRow
+      <li><a class="reference" href="#getRow%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
+    title="getRow(pool: AsyncPool; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]">getRow,AsyncPool,SqlQuery,varargs[string,]<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">returnConn
+      <li><a class="reference" href="#returnConn%2CAsyncPool%2Cint"
+    title="returnConn(pool: AsyncPool; conIdx: int)">returnConn,AsyncPool,int<span class="attachedType">AsyncPool</span></a></li>
+
+  </ul>
 
   </ul>
 </li>
@@ -202,8 +252,9 @@ function main() {
 <h1><a class="toc-backref" href="#12">Procs</a></h1>
 <dl class="item">
 <a id="newAsyncPool,string,string,string,string,int"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#newAsyncPool%2Cstring%2Cstring%2Cstring%2Cstring%2Cint"><span class="Identifier">newAsyncPool</span></a><span class="Other">(</span><span class="Identifier">host</span><span class="Other">,</span> <span class="Identifier">user</span><span class="Other">,</span> <span class="Identifier">password</span><span class="Other">,</span> <span class="Identifier">database</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">num</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#newAsyncPool%2Cstring%2Cstring%2Cstring%2Cstring%2Cint"><span class="Identifier">newAsyncPool</span></a><span class="Other">(</span><span class="Identifier">host</span><span class="Other">,</span> <span class="Identifier">user</span><span class="Other">,</span> <span class="Identifier">password</span><span class="Other">,</span> <span class="Identifier">database</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">num</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+                 <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">IOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 Create a new async pool of num connections.
@@ -217,15 +268,16 @@ Create a new async pool of num connections.
 
 </dd>
 <a id="getFreeConnIdx,AsyncPool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#getFreeConnIdx%2CAsyncPool"><span class="Identifier">getFreeConnIdx</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#getFreeConnIdx%2CAsyncPool"><span class="Identifier">getFreeConnIdx</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 Wait for a free connection and return it.
 
 </dd>
 <a id="getFreeConn,AsyncPool,int"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#getFreeConn%2CAsyncPool%2Cint"><span class="Identifier">getFreeConn</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">conIdx</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#getFreeConn%2CAsyncPool%2Cint"><span class="Identifier">getFreeConn</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">conIdx</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -240,15 +292,15 @@ Make the connection as free after using it and getting results.
 </dd>
 <a id="close,AsyncPool"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#close%2CAsyncPool"><span class="Identifier">close</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">owned</span><span class="Other">(</span><span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
 
 </dd>
 <a id="query,AsyncPool,SqlPrepared,openArray[static[SqlParam]]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#query%2CAsyncPool%2CSqlPrepared%2CopenArray%5Bstatic%5BSqlParam%5D%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="../amysql.html#SqlPrepared"><span class="Identifier">SqlPrepared</span></a><span class="Other">;</span> <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">static</span><span class="Other">[</span><a href="../amysql.html#SqlParam"><span class="Identifier">SqlParam</span></a><span class="Other">]</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">void</span><span class="Other">]</span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#query%2CAsyncPool%2CSqlPrepared%2CopenArray%5Bstatic%5BSqlParam%5D%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="../amysql.html#SqlPrepared"><span class="Identifier">SqlPrepared</span></a><span class="Other">;</span>
+           <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">static</span><span class="Other">[</span><a href="../amysql.html#SqlParam"><span class="Identifier">SqlParam</span></a><span class="Other">]</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span></pre></dt>
 <dd>
 
 
@@ -273,9 +325,10 @@ Make the connection as free after using it and getting results.
 
 </dd>
 <a id="query,AsyncPool,SqlPrepared,varargs[SqlParam,asParam]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#query%2CAsyncPool%2CSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="../amysql.html#SqlPrepared"><span class="Identifier">SqlPrepared</span></a><span class="Other">;</span> <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><a href="../amysql.html#SqlParam"><span class="Identifier">SqlParam</span></a><span class="Other">,</span> <span class="Identifier">asParam</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><a href="../amysql.html#ResultValue"><span class="Identifier">ResultValue</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-                             <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#query%2CAsyncPool%2CSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="../amysql.html#SqlPrepared"><span class="Identifier">SqlPrepared</span></a><span class="Other">;</span>
+           <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><a href="../amysql.html#SqlParam"><span class="Identifier">SqlParam</span></a><span class="Other">,</span> <span class="Identifier">asParam</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><a href="../amysql.html#ResultValue"><span class="Identifier">ResultValue</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -283,7 +336,8 @@ Make the connection as free after using it and getting results.
 </dd>
 <a id="selectDatabase,AsyncPool,string"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#selectDatabase%2CAsyncPool%2Cstring"><span class="Identifier">selectDatabase</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">database</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="private/protocol.html#ResponseOK"><span class="Identifier">ResponseOK</span></a><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -300,25 +354,25 @@ Make the connection as free after using it and getting results.
 </dd>
 <a id="query,AsyncPool,SqlQuery,varargs[string,],static[bool]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#query%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">;</span>
-          <span class="Identifier">onlyFirst</span><span class="Other">:</span> <span class="Identifier">static</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span></pre></dt>
+           <span class="Identifier">onlyFirst</span><span class="Other">:</span> <span class="Identifier">static</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span></pre></dt>
 <dd>
 
 
 
 </dd>
 <a id="tryQuery,AsyncPool,SqlQuery,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#tryQuery%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">tryQuery</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#tryQuery%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">tryQuery</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <span class="Identifier">bool</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+            <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
 
 </dd>
 <a id="getRow,AsyncPool,SqlQuery,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#getRow%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getRow</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="../amysql.html#Row"><span class="Identifier">Row</span></a><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#getRow%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getRow</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <a href="../amysql.html#Row"><span class="Identifier">Row</span></a><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+           <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -327,16 +381,16 @@ Make the connection as free after using it and getting results.
 <a id="getAllRows,AsyncPool,SqlQuery,varargs[string,]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#getAllRows%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getAllRows</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
     <span class="Identifier">seq</span><span class="Other">[</span><a href="../amysql.html#Row"><span class="Identifier">Row</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-               <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+                <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
 
 </dd>
 <a id="getValue,AsyncPool,SqlQuery,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#getValue%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getValue</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#getValue%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">getValue</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <span class="Identifier">string</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+              <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -345,16 +399,16 @@ Make the connection as free after using it and getting results.
 <a id="tryInsertId,AsyncPool,SqlQuery,varargs[string,]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#tryInsertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">tryInsertId</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
     <span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-            <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+             <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
 
 </dd>
 <a id="insertId,AsyncPool,SqlQuery,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#insertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">insertId</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#insertId%2CAsyncPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">insertId</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
+    <span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+             <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -362,7 +416,7 @@ Make the connection as free after using it and getting results.
 </dd>
 <a id="tryInsert,AsyncPool,SqlQuery,string,varargs[string,]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#tryInsert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">tryInsert</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">pkName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
-              <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+               <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
     <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
@@ -371,9 +425,10 @@ Make the connection as free after using it and getting results.
 
 </dd>
 <a id="insert,AsyncPool,SqlQuery,string,varargs[string,]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#insert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">insert</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">pkName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-            <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dt><pre><span class="Keyword">proc</span> <a href="#insert%2CAsyncPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">insert</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">pkName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
+            <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">int64</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -389,7 +444,7 @@ Make the connection as free after using it and getting results.
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 09:42:51 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-05 08:27:14 UTC</small>
       </div>
     </div>
   </div>

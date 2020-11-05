@@ -47,21 +47,12 @@ function main() {
 
   toggleSwitch.addEventListener('change', switchTheme, false);
 
+  const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+  if (currentTheme) {
+    document.documentElement.setAttribute('data-theme', currentTheme);
 
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.setAttribute('data-theme', "dark");
-    toggleSwitch.checked = true;
-  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    document.documentElement.setAttribute('data-theme', "light");
-    toggleSwitch.checked = false;
-  } else {
-    const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
-    if (currentTheme) {
-      document.documentElement.setAttribute('data-theme', currentTheme);
-
-      if (currentTheme === 'dark') {
-        toggleSwitch.checked = true;
-      }
+    if (currentTheme === 'dark') {
+      toggleSwitch.checked = true;
     }
   }
 }
@@ -105,14 +96,15 @@ function main() {
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#Cap"
     title="Cap {.pure.} = enum
-  longPassword = 0, foundRows = 1, longFlag = 2, connectWithDb = 3, noSchema = 4, compress = 5,
-  odbc = 6, localFiles = 7, ignoreSpace = 8, protocol41 = 9, interactive = 10, ssl = 11,
-  ignoreSigpipe = 12, transactions = 13, reserved = 14, secureConnection = 15,
-  multiStatements = 16, multiResults = 17, psMultiResults = 18, pluginAuth = 19,
-  connectAttrs = 20, pluginAuthLenencClientData = 21, canHandleExpiredPasswords = 22,
+  longPassword = 0, foundRows = 1, longFlag = 2, connectWithDb = 3,
+  noSchema = 4, compress = 5, odbc = 6, localFiles = 7, ignoreSpace = 8,
+  protocol41 = 9, interactive = 10, ssl = 11, ignoreSigpipe = 12,
+  transactions = 13, reserved = 14, secureConnection = 15, multiStatements = 16,
+  multiResults = 17, psMultiResults = 18, pluginAuth = 19, connectAttrs = 20,
+  pluginAuthLenencClientData = 21, canHandleExpiredPasswords = 22,
   sessionTrack = 23, deprecateEof = 24, optionalResultsetMetaData = 25,
-  zstdCompressionAlgorithm = 26, capabilityExtension = 29, sslVerifyServerCert = 30,
-  rememberOptions = 31"><wbr />Cap<span class="attachedType"></span></a></li>
+  zstdCompressionAlgorithm = 26, capabilityExtension = 29,
+  sslVerifyServerCert = 30, rememberOptions = 31"><wbr />Cap<span class="attachedType"></span></a></li>
 
   </ul>
 </li>
@@ -129,14 +121,15 @@ function main() {
 <dl class="item">
 <a id="Cap"></a>
 <dt><pre><a href="cap.html#Cap"><span class="Identifier">Cap</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">pure</span></span><span class="Other">.}</span></span> <span class="Other">=</span> <span class="Keyword">enum</span>
-  <span class="Identifier">longPassword</span> <span class="Other">=</span> <span class="DecNumber">0</span><span class="Other">,</span> <span class="Identifier">foundRows</span> <span class="Other">=</span> <span class="DecNumber">1</span><span class="Other">,</span> <span class="Identifier">longFlag</span> <span class="Other">=</span> <span class="DecNumber">2</span><span class="Other">,</span> <span class="Identifier">connectWithDb</span> <span class="Other">=</span> <span class="DecNumber">3</span><span class="Other">,</span> <span class="Identifier">noSchema</span> <span class="Other">=</span> <span class="DecNumber">4</span><span class="Other">,</span> <span class="Identifier">compress</span> <span class="Other">=</span> <span class="DecNumber">5</span><span class="Other">,</span>
-  <span class="Identifier">odbc</span> <span class="Other">=</span> <span class="DecNumber">6</span><span class="Other">,</span> <span class="Identifier">localFiles</span> <span class="Other">=</span> <span class="DecNumber">7</span><span class="Other">,</span> <span class="Identifier">ignoreSpace</span> <span class="Other">=</span> <span class="DecNumber">8</span><span class="Other">,</span> <span class="Identifier">protocol41</span> <span class="Other">=</span> <span class="DecNumber">9</span><span class="Other">,</span> <span class="Identifier">interactive</span> <span class="Other">=</span> <span class="DecNumber">10</span><span class="Other">,</span> <span class="Identifier">ssl</span> <span class="Other">=</span> <span class="DecNumber">11</span><span class="Other">,</span>
-  <span class="Identifier">ignoreSigpipe</span> <span class="Other">=</span> <span class="DecNumber">12</span><span class="Other">,</span> <span class="Identifier">transactions</span> <span class="Other">=</span> <span class="DecNumber">13</span><span class="Other">,</span> <span class="Identifier">reserved</span> <span class="Other">=</span> <span class="DecNumber">14</span><span class="Other">,</span> <span class="Identifier">secureConnection</span> <span class="Other">=</span> <span class="DecNumber">15</span><span class="Other">,</span>
-  <span class="Identifier">multiStatements</span> <span class="Other">=</span> <span class="DecNumber">16</span><span class="Other">,</span> <span class="Identifier">multiResults</span> <span class="Other">=</span> <span class="DecNumber">17</span><span class="Other">,</span> <span class="Identifier">psMultiResults</span> <span class="Other">=</span> <span class="DecNumber">18</span><span class="Other">,</span> <span class="Identifier">pluginAuth</span> <span class="Other">=</span> <span class="DecNumber">19</span><span class="Other">,</span>
-  <span class="Identifier">connectAttrs</span> <span class="Other">=</span> <span class="DecNumber">20</span><span class="Other">,</span> <span class="Identifier">pluginAuthLenencClientData</span> <span class="Other">=</span> <span class="DecNumber">21</span><span class="Other">,</span> <span class="Identifier">canHandleExpiredPasswords</span> <span class="Other">=</span> <span class="DecNumber">22</span><span class="Other">,</span>
+  <span class="Identifier">longPassword</span> <span class="Other">=</span> <span class="DecNumber">0</span><span class="Other">,</span> <span class="Identifier">foundRows</span> <span class="Other">=</span> <span class="DecNumber">1</span><span class="Other">,</span> <span class="Identifier">longFlag</span> <span class="Other">=</span> <span class="DecNumber">2</span><span class="Other">,</span> <span class="Identifier">connectWithDb</span> <span class="Other">=</span> <span class="DecNumber">3</span><span class="Other">,</span>
+  <span class="Identifier">noSchema</span> <span class="Other">=</span> <span class="DecNumber">4</span><span class="Other">,</span> <span class="Identifier">compress</span> <span class="Other">=</span> <span class="DecNumber">5</span><span class="Other">,</span> <span class="Identifier">odbc</span> <span class="Other">=</span> <span class="DecNumber">6</span><span class="Other">,</span> <span class="Identifier">localFiles</span> <span class="Other">=</span> <span class="DecNumber">7</span><span class="Other">,</span> <span class="Identifier">ignoreSpace</span> <span class="Other">=</span> <span class="DecNumber">8</span><span class="Other">,</span>
+  <span class="Identifier">protocol41</span> <span class="Other">=</span> <span class="DecNumber">9</span><span class="Other">,</span> <span class="Identifier">interactive</span> <span class="Other">=</span> <span class="DecNumber">10</span><span class="Other">,</span> <span class="Identifier">ssl</span> <span class="Other">=</span> <span class="DecNumber">11</span><span class="Other">,</span> <span class="Identifier">ignoreSigpipe</span> <span class="Other">=</span> <span class="DecNumber">12</span><span class="Other">,</span>
+  <span class="Identifier">transactions</span> <span class="Other">=</span> <span class="DecNumber">13</span><span class="Other">,</span> <span class="Identifier">reserved</span> <span class="Other">=</span> <span class="DecNumber">14</span><span class="Other">,</span> <span class="Identifier">secureConnection</span> <span class="Other">=</span> <span class="DecNumber">15</span><span class="Other">,</span> <span class="Identifier">multiStatements</span> <span class="Other">=</span> <span class="DecNumber">16</span><span class="Other">,</span>
+  <span class="Identifier">multiResults</span> <span class="Other">=</span> <span class="DecNumber">17</span><span class="Other">,</span> <span class="Identifier">psMultiResults</span> <span class="Other">=</span> <span class="DecNumber">18</span><span class="Other">,</span> <span class="Identifier">pluginAuth</span> <span class="Other">=</span> <span class="DecNumber">19</span><span class="Other">,</span> <span class="Identifier">connectAttrs</span> <span class="Other">=</span> <span class="DecNumber">20</span><span class="Other">,</span>
+  <span class="Identifier">pluginAuthLenencClientData</span> <span class="Other">=</span> <span class="DecNumber">21</span><span class="Other">,</span> <span class="Identifier">canHandleExpiredPasswords</span> <span class="Other">=</span> <span class="DecNumber">22</span><span class="Other">,</span>
   <span class="Identifier">sessionTrack</span> <span class="Other">=</span> <span class="DecNumber">23</span><span class="Other">,</span> <span class="Identifier">deprecateEof</span> <span class="Other">=</span> <span class="DecNumber">24</span><span class="Other">,</span> <span class="Identifier">optionalResultsetMetaData</span> <span class="Other">=</span> <span class="DecNumber">25</span><span class="Other">,</span>
-  <span class="Identifier">zstdCompressionAlgorithm</span> <span class="Other">=</span> <span class="DecNumber">26</span><span class="Other">,</span> <span class="Identifier">capabilityExtension</span> <span class="Other">=</span> <span class="DecNumber">29</span><span class="Other">,</span> <span class="Identifier">sslVerifyServerCert</span> <span class="Other">=</span> <span class="DecNumber">30</span><span class="Other">,</span>
-  <span class="Identifier">rememberOptions</span> <span class="Other">=</span> <span class="DecNumber">31</span></pre></dt>
+  <span class="Identifier">zstdCompressionAlgorithm</span> <span class="Other">=</span> <span class="DecNumber">26</span><span class="Other">,</span> <span class="Identifier">capabilityExtension</span> <span class="Other">=</span> <span class="DecNumber">29</span><span class="Other">,</span>
+  <span class="Identifier">sslVerifyServerCert</span> <span class="Other">=</span> <span class="DecNumber">30</span><span class="Other">,</span> <span class="Identifier">rememberOptions</span> <span class="Other">=</span> <span class="DecNumber">31</span></pre></dt>
 <dd>
 
 
@@ -152,7 +145,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-10-02 09:42:47 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-05 08:27:09 UTC</small>
       </div>
     </div>
   </div>
