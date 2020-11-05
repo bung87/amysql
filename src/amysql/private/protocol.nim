@@ -324,6 +324,10 @@ proc putDate*(buf: var string, val: DateTime):int {.discardable.}  =
   buf.putU8 val.monthday.uint8
 
 proc putDateTime*(buf: var string, val: DateTime):int {.discardable.} =
+  if default(DateTime) == val:
+    result = 0
+    buf.putU8 0.uint8
+    return result
   let hasTime = val.second != 0 or val.minute != 0 or val.hour != 0
   if val.nanosecond != 0:
     result = 11
@@ -357,6 +361,8 @@ proc readDateTime*(buf: openarray[char], pos: var int, zone: Timezone = utc()): 
   minute = int(buf[pos + 2])
   second = int(buf[pos + 3])
   inc(pos,3)
+  if year == 0 and month == 0 and day == 0:
+    return default(DateTime)
   result = initDateTime(day,month.Month,year.int,hour,minute,second,zone)
 
 proc putTimestamp*(buf: var string, val: DateTime): int {.discardable.} = 

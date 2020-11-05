@@ -145,8 +145,8 @@ proc approximatePackedSize(p: SqlParam): int {.inline.} =
     let micro = dp[Microseconds]
     result = if micro == 0: 8 + 1 else: 12 + 1
   of paramDateTime:
-    # case t.IsZero():
-    # return 1
+    if default(DateTime) == p.datetimeVal:
+      return 1
     if p.datetimeVal.nanosecond != 0:
       return 11 + 1
     elif p.datetimeVal.second != 0 or p.datetimeVal.minute != 0 or p.datetimeVal.hour != 0:
@@ -280,7 +280,11 @@ proc `$`*(v: ResultValue): string =
   of rvtDouble:
     return $v.doubleVal
   of rvtDateTime:
-    return v.datetimeVal.format("yyyy-MM-dd hh:mm:ss")
+    # DateTime.format will assert value is valid, return static here.
+    if v.datetimeVal == default(DateTime):
+      return "0000-00-00"
+    else:
+      return v.datetimeVal.format("yyyy-MM-dd hh:mm:ss")
   of rvtDate:
     return v.datetimeVal.format("yyyy-MM-dd")
   of rvtTimestamp:
@@ -331,6 +335,8 @@ converter asString*(v: ResultValue): string =
     return v.strVal
   of rvtDate:
     return v.datetimeVal.format("yyyy-MM-dd")
+  of rvtDateTime:
+    return $v
   else:
     raise newException(ValueError, "Can't convert " & $(v.typ) & " to string")
 
