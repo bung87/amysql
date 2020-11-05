@@ -63,7 +63,7 @@ suite "connnection":
     ## Conversely, the second of the following lines is legal at runtime, but the first is not:
     ## SET GLOBAL max_allowed_packet=16M;
     ## SET GLOBAL max_allowed_packet=16*1024*1024
-    let conn = waitFor amysql.open(fmt"mysqlx://{user_name}:{pass_word}@{host_name}/{database_name}?sql_mode=TRADITIONAL")
+    let conn = waitFor amysql.open(fmt"mysql://{user_name}:{pass_word}@{host_name}/{database_name}?sql_mode=TRADITIONAL")
     waitFor conn.close()
 
   # A SET NAMES 'charset_name' statement is equivalent to these three statements:
@@ -72,9 +72,9 @@ suite "connnection":
   # SET character_set_connection = charset_name;
 
   test "dsn charset":
-    let conn = waitFor amysql.open(fmt"mysqlx://{user_name}:{pass_word}@{host_name}/{database_name}?charset=utf8&sql_mode=TRADITIONAL")
+    let conn = waitFor amysql.open(fmt"mysql://{user_name}:{pass_word}@{host_name}/{database_name}?charset=utf8&sql_mode=TRADITIONAL")
     waitFor conn.close()
 
   test "dsn multiple charset":
-    let conn = waitFor amysql.open(fmt"mysqlx://{user_name}:{pass_word}@{host_name}/{database_name}?charset=utf8mb4,utf8&sql_mode=TRADITIONAL")
+    let conn = waitFor amysql.open(fmt"mysql://{user_name}:{pass_word}@{host_name}/{database_name}?charset=utf8mb4,utf8&sql_mode=TRADITIONAL")
     waitFor conn.close()
