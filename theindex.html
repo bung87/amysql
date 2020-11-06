@@ -246,6 +246,10 @@ function main() {
 <li><a class="reference external"
           data-doc-search-tag="conn: ConnectionObj" href="amysql/conn.html#ConnectionObj">conn: ConnectionObj</a></li>
           </ul></dd>
+<dt><a name="countLenInt" href="#countLenInt"><span>countLenInt:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: countLenInt(val: int | uint | int32 | uint32): int" href="amysql/private/protocol.html#countLenInt">protocol: countLenInt(val: int | uint | int32 | uint32): int</a></li>
+          </ul></dd>
 <dt><a name="CursorType" href="#CursorType"><span>CursorType:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="protocol: CursorType" href="amysql/private/protocol.html#CursorType">protocol: CursorType</a></li>
@@ -281,8 +285,10 @@ function main() {
 <dt><a name="establishConnection" href="#establishConnection"><span>establishConnection:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="conn_connection: establishConnection(sock: AsyncSocket; username: string; password: string = &quot;&quot;;
-                    database: string = &quot;&quot;): Future[Connection]" href="amysql/conn_connection.html#establishConnection%2CAsyncSocket%2Cstring%2Cstring%2Cstring">conn_connection: establishConnection(sock: AsyncSocket; username: string; password: string = &quot;&quot;;
-                    database: string = &quot;&quot;): Future[Connection]</a></li>
+                    database: string = &quot;&quot;; connectAttrs: Table[string, string] = default(
+    Table[string, string])): Future[Connection]" href="amysql/conn_connection.html#establishConnection%2CAsyncSocket%2Cstring%2Cstring%2Cstring%2CTable%5Bstring%2Cstring%5D">conn_connection: establishConnection(sock: AsyncSocket; username: string; password: string = &quot;&quot;;
+                    database: string = &quot;&quot;; connectAttrs: Table[string, string] = default(
+    Table[string, string])): Future[Connection]</a></li>
           </ul></dd>
 <dt><a name="exec" href="#exec"><span>exec:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -556,6 +562,10 @@ function main() {
 <li><a class="reference external"
           data-doc-search-tag="protocol: isExtraAuthDataPacket(conn: Connection): bool" href="amysql/private/protocol.html#isExtraAuthDataPacket%2CConnection">protocol: isExtraAuthDataPacket(conn: Connection): bool</a></li>
           </ul></dd>
+<dt><a name="isLocalInfileRequestPacket" href="#isLocalInfileRequestPacket"><span>isLocalInfileRequestPacket:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: isLocalInfileRequestPacket(conn: Connection): bool" href="amysql/private/protocol.html#isLocalInfileRequestPacket%2CConnection">protocol: isLocalInfileRequestPacket(conn: Connection): bool</a></li>
+          </ul></dd>
 <dt><a name="isMaria" href="#isMaria"><span>isMaria:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="conn: isMaria(self: Connection): bool" href="amysql/conn.html#isMaria%2CConnection">conn: isMaria(self: Connection): bool</a></li>
@@ -600,9 +610,13 @@ function main() {
           </ul></dd>
 <dt><a name="open" href="#open"><span>open:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="conn_connection: open(uriStr: string | Uri): Future[Connection]" href="amysql/conn_connection.html#open">conn_connection: open(uriStr: string | Uri): Future[Connection]</a></li>
+          data-doc-search-tag="conn_connection: open(uriStr: string | uri.Uri): Future[Connection]" href="amysql/conn_connection.html#open">conn_connection: open(uriStr: string | uri.Uri): Future[Connection]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="conn_connection: open(connection, user, password: string; database = &quot;&quot;): Future[Connection]" href="amysql/conn_connection.html#open%2Cstring%2Cstring%2Cstring%2Cstring">conn_connection: open(connection, user, password: string; database = &quot;&quot;): Future[Connection]</a></li>
+          data-doc-search-tag="conn_connection: open(connection, user, password: string; database = &quot;&quot;;
+     connectAttrs: Table[string, string] = default(Table[string, string])): Future[
+    Connection]" href="amysql/conn_connection.html#open%2Cstring%2Cstring%2Cstring%2Cstring%2CTable%5Bstring%2Cstring%5D">conn_connection: open(connection, user, password: string; database = &quot;&quot;;
+     connectAttrs: Table[string, string] = default(Table[string, string])): Future[
+    Connection]</a></li>
           </ul></dd>
 <dt><a name="parseAuthSwitchPacket" href="#parseAuthSwitchPacket"><span>parseAuthSwitchPacket:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -619,6 +633,10 @@ function main() {
 <dt><a name="parseHandshakePacket" href="#parseHandshakePacket"><span>parseHandshakePacket:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="protocol: parseHandshakePacket(conn: Connection): HandshakePacket" href="amysql/private/protocol.html#parseHandshakePacket%2CConnection">protocol: parseHandshakePacket(conn: Connection): HandshakePacket</a></li>
+          </ul></dd>
+<dt><a name="parseLocalInfileRequestPacket" href="#parseLocalInfileRequestPacket"><span>parseLocalInfileRequestPacket:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: parseLocalInfileRequestPacket(conn: Connection): string" href="amysql/private/protocol.html#parseLocalInfileRequestPacket%2CConnection">protocol: parseLocalInfileRequestPacket(conn: Connection): string</a></li>
           </ul></dd>
 <dt><a name="parseOKPacket" href="#parseOKPacket"><span>parseOKPacket:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -838,6 +856,10 @@ function main() {
 <li><a class="reference external"
           data-doc-search-tag="protocol: ResponseCode_ExtraAuthData" href="amysql/private/protocol.html#ResponseCode_ExtraAuthData">protocol: ResponseCode_ExtraAuthData</a></li>
           </ul></dd>
+<dt><a name="ResponseCode_LOCAL_INFILE" href="#ResponseCode_LOCAL_INFILE"><span>ResponseCode_LOCAL_INFILE:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: ResponseCode_LOCAL_INFILE" href="amysql/private/protocol.html#ResponseCode_LOCAL_INFILE">protocol: ResponseCode_LOCAL_INFILE</a></li>
+          </ul></dd>
 <dt><a name="ResponseCode_OK" href="#ResponseCode_OK"><span>ResponseCode_OK:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="protocol: ResponseCode_OK" href="amysql/private/protocol.html#ResponseCode_OK">protocol: ResponseCode_OK</a></li>
@@ -911,6 +933,14 @@ function main() {
           data-doc-search-tag="amysql: selectDatabase(conn: Connection; database: string): Future[ResponseOK]" href="amysql.html#selectDatabase%2CConnection%2Cstring">amysql: selectDatabase(conn: Connection; database: string): Future[ResponseOK]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="async_pool: selectDatabase(pool: AsyncPool; database: string): Future[ResponseOK]" href="amysql/async_pool.html#selectDatabase%2CAsyncPool%2Cstring">async_pool: selectDatabase(pool: AsyncPool; database: string): Future[ResponseOK]</a></li>
+          </ul></dd>
+<dt><a name="sendEmptyPacket" href="#sendEmptyPacket"><span>sendEmptyPacket:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: sendEmptyPacket(conn: Connection): Future[void]" href="amysql/private/protocol.html#sendEmptyPacket%2CConnection">protocol: sendEmptyPacket(conn: Connection): Future[void]</a></li>
+          </ul></dd>
+<dt><a name="sendFile" href="#sendFile"><span>sendFile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: sendFile(conn: Connection; filename: string): Future[void]" href="amysql/private/protocol.html#sendFile%2CConnection%2Cstring">protocol: sendFile(conn: Connection; filename: string): Future[void]</a></li>
           </ul></dd>
 <dt><a name="sendPacket" href="#sendPacket"><span>sendPacket:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -1039,7 +1069,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-05 08:27:14 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-06 08:52:05 UTC</small>
       </div>
     </div>
   </div>

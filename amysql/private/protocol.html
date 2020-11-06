@@ -185,6 +185,8 @@ function main() {
     title="ResponseCode_EOF: uint8 = 254"><wbr />Response<wbr />Code_<wbr />EOF<span class="attachedType"></span></a></li>
   <li><a class="reference" href="#ResponseCode_ERR"
     title="ResponseCode_ERR: uint8 = 255"><wbr />Response<wbr />Code_<wbr />ERR<span class="attachedType"></span></a></li>
+  <li><a class="reference" href="#ResponseCode_LOCAL_INFILE"
+    title="ResponseCode_LOCAL_INFILE: uint8 = 251"><wbr />Response<wbr />Code_<wbr />LOCAL_<wbr />INFILE<span class="attachedType"></span></a></li>
   <li><a class="reference" href="#ResponseCode_AuthSwitchRequest"
     title="ResponseCode_AuthSwitchRequest: uint8 = 254"><wbr />Response<wbr />Code_<wbr />Auth<wbr />Switch<wbr />Request<span class="attachedType"></span></a></li>
   <li><a class="reference" href="#ResponseCode_ExtraAuthData"
@@ -321,6 +323,11 @@ function main() {
     title="receiveMetadata(conn: Connection; count: Positive): Future[seq[ColumnDefinition]]">receiveMetadata,Connection,Positive<span class="attachedType"></span></a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">parseLocalInfileRequestPacket
+      <li><a class="reference" href="#parseLocalInfileRequestPacket%2CConnection"
+    title="parseLocalInfileRequestPacket(conn: Connection): string">parseLocalInfileRequestPacket,Connection<span class="attachedType"></span></a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">putU16
       <li><a class="reference" href="#putU16%2Cstring%2Cuint16"
     title="putU16(buf: var string; val: uint16)">putU16,string,uint16<span class="attachedType"></span></a></li>
@@ -356,6 +363,11 @@ function main() {
     title="readLenStr(buf: openArray[char]; pos: var int): string">readLenStr,openArray[char],int<span class="attachedType"></span></a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">isLocalInfileRequestPacket
+      <li><a class="reference" href="#isLocalInfileRequestPacket%2CConnection"
+    title="isLocalInfileRequestPacket(conn: Connection): bool">isLocalInfileRequestPacket,Connection<span class="attachedType"></span></a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">roundtrip
       <li><a class="reference" href="#roundtrip%2CConnection%2Cstring"
     title="roundtrip(conn: Connection; data: string): owned(Future[void])">roundtrip,Connection,string<span class="attachedType"></span></a></li>
@@ -381,6 +393,11 @@ function main() {
     title="putU64(buf: var string; val: uint64)">putU64,string,uint64<span class="attachedType"></span></a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">countLenInt
+      <li><a class="reference" href="#countLenInt"
+    title="countLenInt(val: int | uint | int32 | uint32): int">countLenInt<span class="attachedType"></span></a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">readNulStringX
       <li><a class="reference" href="#readNulStringX%2CopenArray%5Bchar%5D%2Cint"
     title="readNulStringX(buf: openArray[char]; pos: var int): string">readNulStringX,openArray[char],int<span class="attachedType"></span></a></li>
@@ -403,6 +420,11 @@ function main() {
   <ul class="simple nested-toc-section">putLenInt
       <li><a class="reference" href="#putLenInt%2Cstring%2C"
     title="putLenInt(buf: var string; val: int | uint | int32 | uint32): int">putLenInt,string,<span class="attachedType"></span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">sendFile
+      <li><a class="reference" href="#sendFile%2CConnection%2Cstring"
+    title="sendFile(conn: Connection; filename: string): Future[void]">sendFile,Connection,string<span class="attachedType"></span></a></li>
 
   </ul>
   <ul class="simple nested-toc-section">scanU32
@@ -430,6 +452,11 @@ function main() {
   <ul class="simple nested-toc-section">checkEof
       <li><a class="reference" href="#checkEof%2CConnection"
     title="checkEof(conn: Connection)">checkEof,Connection<span class="attachedType"></span></a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">sendEmptyPacket
+      <li><a class="reference" href="#sendEmptyPacket%2CConnection"
+    title="sendEmptyPacket(conn: Connection): Future[void]">sendEmptyPacket,Connection<span class="attachedType"></span></a></li>
 
   </ul>
   <ul class="simple nested-toc-section">parseAuthSwitchPacket
@@ -631,6 +658,13 @@ function main() {
 
 
 </dd>
+<a id="ResponseCode_LOCAL_INFILE"></a>
+<dt><pre><a href="protocol.html#ResponseCode_LOCAL_INFILE"><span class="Identifier">ResponseCode_LOCAL_INFILE</span></a><span class="Other">:</span> <span class="Identifier">uint8</span> <span class="Other">=</span> <span class="DecNumber">251</span></pre></dt>
+<dd>
+
+
+
+</dd>
 <a id="ResponseCode_AuthSwitchRequest"></a>
 <dt><pre><a href="protocol.html#ResponseCode_AuthSwitchRequest"><span class="Identifier">ResponseCode_AuthSwitchRequest</span></a><span class="Other">:</span> <span class="Identifier">uint8</span> <span class="Other">=</span> <span class="DecNumber">254</span></pre></dt>
 <dd>
@@ -771,6 +805,13 @@ function main() {
 
 
 </dd>
+<a id="countLenInt"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#countLenInt"><span class="Identifier">countLenInt</span></a><span class="Other">(</span><span class="Identifier">val</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Operator">|</span> <span class="Identifier">uint</span> <span class="Operator">|</span> <span class="Identifier">int32</span> <span class="Operator">|</span> <span class="Identifier">uint32</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">int</span></pre></dt>
+<dd>
+
+
+
+</dd>
 <a id="readNulString,openArray[char],int"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#readNulString%2CopenArray%5Bchar%5D%2Cint"><span class="Identifier">readNulString</span></a><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">char</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">pos</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
@@ -880,6 +921,21 @@ function main() {
 <dd>
 
 <a class="reference external" href="https://dev.mysql.com/doc/internals/en/successful-authentication.html">https://dev.mysql.com/doc/internals/en/successful-authentication.html</a>
+
+</dd>
+<a id="isLocalInfileRequestPacket,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#isLocalInfileRequestPacket%2CConnection"><span class="Identifier">isLocalInfileRequestPacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="parseLocalInfileRequestPacket,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#parseLocalInfileRequestPacket%2CConnection"><span class="Identifier">parseLocalInfileRequestPacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
 
 </dd>
 <a id="parseErrorPacket,Connection"></a>
@@ -1017,6 +1073,22 @@ function main() {
 
 
 </dd>
+<a id="sendFile,Connection,string"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#sendFile%2CConnection%2Cstring"><span class="Identifier">sendFile</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="sendEmptyPacket,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#sendEmptyPacket%2CConnection"><span class="Identifier">sendEmptyPacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
 <a id="receivePacket,Connection,bool"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#receivePacket%2CConnection%2Cbool"><span class="Identifier">receivePacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">drop_ok</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">owned</span><span class="Other">(</span><span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
@@ -1060,7 +1132,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-05 08:27:12 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-06 08:52:03 UTC</small>
       </div>
     </div>
   </div>

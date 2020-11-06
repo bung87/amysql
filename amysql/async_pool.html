@@ -328,7 +328,7 @@ Make the connection as free after using it and getting results.
 <dt><pre><span class="Keyword">proc</span> <a href="#query%2CAsyncPool%2CSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">pool</span><span class="Other">:</span> <a href="async_pool.html#AsyncPool"><span class="Identifier">AsyncPool</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="../amysql.html#SqlPrepared"><span class="Identifier">SqlPrepared</span></a><span class="Other">;</span>
            <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><a href="../amysql.html#SqlParam"><span class="Identifier">SqlParam</span></a><span class="Other">,</span> <span class="Identifier">asParam</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><a href="../amysql.html#ResultValue"><span class="Identifier">ResultValue</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
     <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -444,7 +444,7 @@ Make the connection as free after using it and getting results.
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-05 08:27:14 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-06 08:52:05 UTC</small>
       </div>
     </div>
   </div>

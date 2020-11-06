@@ -1,6 +1,7 @@
 ResponseCode_OK	amysql/private/protocol.html#ResponseCode_OK	protocol: ResponseCode_OK	
 ResponseCode_EOF	amysql/private/protocol.html#ResponseCode_EOF	protocol: ResponseCode_EOF	
 ResponseCode_ERR	amysql/private/protocol.html#ResponseCode_ERR	protocol: ResponseCode_ERR	
+ResponseCode_LOCAL_INFILE	amysql/private/protocol.html#ResponseCode_LOCAL_INFILE	protocol: ResponseCode_LOCAL_INFILE	
 ResponseCode_AuthSwitchRequest	amysql/private/protocol.html#ResponseCode_AuthSwitchRequest	protocol: ResponseCode_AuthSwitchRequest	
 ResponseCode_ExtraAuthData	amysql/private/protocol.html#ResponseCode_ExtraAuthData	protocol: ResponseCode_ExtraAuthData	
 NullColumn	amysql/private/protocol.html#NullColumn	protocol: NullColumn	
@@ -59,6 +60,7 @@ putS64	amysql/private/protocol.html#putS64,string,int64	protocol: putS64(buf: va
 putU64	amysql/private/protocol.html#putU64,string,uint64	protocol: putU64(buf: var string; val: uint64)	
 readLenInt	amysql/private/protocol.html#readLenInt,openArray[char],int	protocol: readLenInt(buf: openArray[char]; pos: var int): int	
 putLenInt	amysql/private/protocol.html#putLenInt,string,	protocol: putLenInt(buf: var string; val: int | uint | int32 | uint32): int	
+countLenInt	amysql/private/protocol.html#countLenInt	protocol: countLenInt(val: int | uint | int32 | uint32): int	
 readNulString	amysql/private/protocol.html#readNulString,openArray[char],int	protocol: readNulString(buf: openArray[char]; pos: var int): string	
 readNulStringX	amysql/private/protocol.html#readNulStringX,openArray[char],int	protocol: readNulStringX(buf: openArray[char]; pos: var int): string	
 putNulString	amysql/private/protocol.html#putNulString,string,string	protocol: putNulString(buf: var string; val: string)	
@@ -74,6 +76,8 @@ isERRPacket	amysql/private/protocol.html#isERRPacket,Connection	protocol: isERRP
 isOKPacket	amysql/private/protocol.html#isOKPacket,Connection	protocol: isOKPacket(conn: Connection): bool	
 isAuthSwitchRequestPacket	amysql/private/protocol.html#isAuthSwitchRequestPacket,Connection	protocol: isAuthSwitchRequestPacket(conn: Connection): bool	
 isExtraAuthDataPacket	amysql/private/protocol.html#isExtraAuthDataPacket,Connection	protocol: isExtraAuthDataPacket(conn: Connection): bool	
+isLocalInfileRequestPacket	amysql/private/protocol.html#isLocalInfileRequestPacket,Connection	protocol: isLocalInfileRequestPacket(conn: Connection): bool	
+parseLocalInfileRequestPacket	amysql/private/protocol.html#parseLocalInfileRequestPacket,Connection	protocol: parseLocalInfileRequestPacket(conn: Connection): string	
 parseErrorPacket	amysql/private/protocol.html#parseErrorPacket,Connection	protocol: parseErrorPacket(conn: Connection): ref ResponseERR	
 checkEof	amysql/private/protocol.html#checkEof,Connection	protocol: checkEof(conn: Connection)	
 parseHandshakePacket	amysql/private/protocol.html#parseHandshakePacket,Connection	protocol: parseHandshakePacket(conn: Connection): HandshakePacket	
@@ -91,6 +95,8 @@ readDateTime	amysql/private/protocol.html#readDateTime,openArray[char],int,Timez
 putTimestamp	amysql/private/protocol.html#putTimestamp,string,DateTime	protocol: putTimestamp(buf: var string; val: DateTime): int	
 hexdump	amysql/private/protocol.html#hexdump,openArray[char],File	protocol: hexdump(buf: openArray[char]; fp: File)	
 sendQuery	amysql/private/protocol.html#sendQuery,Connection,string	protocol: sendQuery(conn: Connection; query: string): Future[void]	
+sendFile	amysql/private/protocol.html#sendFile,Connection,string	protocol: sendFile(conn: Connection; filename: string): Future[void]	
+sendEmptyPacket	amysql/private/protocol.html#sendEmptyPacket,Connection	protocol: sendEmptyPacket(conn: Connection): Future[void]	
 receivePacket	amysql/private/protocol.html#receivePacket,Connection,bool	protocol: receivePacket(conn: Connection; drop_ok: bool = false): owned(Future[void])	
 roundtrip	amysql/private/protocol.html#roundtrip,Connection,string	protocol: roundtrip(conn: Connection; data: string): owned(Future[void])	
 processMetadata	amysql/private/protocol.html#processMetadata,Connection,seq[ColumnDefinition],int	protocol: processMetadata(conn: Connection; meta: var seq[ColumnDefinition]; index: int)	
