@@ -15,6 +15,7 @@ const
   ResponseCode_OK*  : uint8 = 0
   ResponseCode_EOF* : uint8 = 254   # Deprecated in mysql 5.7.5
   ResponseCode_ERR* : uint8 = 255
+  ResponseCode_LOCAL_INFILE* : uint8 = 251 # 0xfb
   ResponseCode_AuthSwitchRequest*: uint8 = 254 # 0xFE
   ResponseCode_ExtraAuthData*: uint8 = 1 # 0x01
   NullColumn*       = char(0xFB)

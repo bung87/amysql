@@ -108,6 +108,7 @@ before_script:
         # sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('12345678');"
       fi
       sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
+      sudo mysql -u root -e "grant FILE on *.* to 'test_user'@'localhost';"
     fi
 
 

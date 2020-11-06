@@ -639,6 +639,16 @@ template processResultset(conn: Connection, result: typed,isFirst:static[bool],o
 template fetchResultset(conn:Connection, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
   processResultset(conn,result,true,onlyFirst,isTextMode,process)
 
+template processLoadLocalInfile(conn: Connection, result:untyped)=
+  let filename = parseLocalInfileRequestPacket(conn)
+  await conn.sendFile(filename)
+  await conn.sendEmptyPacket()
+  await conn.receivePacket()
+  if isOKPacket(conn):
+    result.status = parseOKPacket(conn)
+  elif isERRPacket(conn):
+    raise parseErrorPacket(conn)
+
 {.push warning[ObservableStores]: off.}
 proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
@@ -649,9 +659,11 @@ proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
     result.status = parseOKPacket(conn)
   elif isERRPacket(conn):
     raise parseErrorPacket(conn)
+  elif isLocalInfileRequestPacket(conn):
+    conn.processLoadLocalInfile(result)
   else: 
     conn.fetchResultset(result, onlyFirst = false, isTextMode = true): discard
-
+  
 proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
@@ -663,6 +675,8 @@ proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[Res
     raise parseErrorPacket(conn)
   elif isEOFPacket(conn):
     result.status = parseEOFPacket(conn)
+  elif isLocalInfileRequestPacket(conn):
+    conn.processLoadLocalInfile(result)
   else:
     conn.fetchResultset(result, onlyFirst, true, result.rows.add(parseTextRow(conn,columnCount)))
 
@@ -675,6 +689,8 @@ proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void
     result.status = parseOKPacket(conn)
   elif isERRPacket(conn):
     raise parseErrorPacket(conn)
+  elif isLocalInfileRequestPacket(conn):
+    conn.processLoadLocalInfile(result)
   else:
     conn.fetchResultset(result, onlyFirst,false, result.rows.add(parseBinaryRow(conn,result.columns)))
 {.pop.}

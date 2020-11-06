@@ -40,6 +40,13 @@ proc isExtraAuthDataPacket*(conn: Connection): bool =
   ## https://dev.mysql.com/doc/internals/en/successful-authentication.html
   conn.firstByte == char(ResponseCode_ExtraAuthData)
 
+proc isLocalInfileRequestPacket*(conn: Connection): bool =
+  conn.firstByte == char(ResponseCode_LOCAL_INFILE)
+
+proc parseLocalInfileRequestPacket*(conn: Connection): string =
+  inc conn.bufPos
+  result = cast[string](conn.buf[conn.bufPos .. ^1])
+
 proc parseErrorPacket*(conn: Connection): ref ResponseERR =
   new(result)
   inc conn.bufPos # the error packet flag
@@ -234,6 +241,8 @@ proc writeHandshakeResponse*(conn: Connection,
     incl(caps, Cap.connectAttrs)
   if Cap.deprecateEof in conn.serverCaps:
     incl(caps, Cap.deprecateEof)
+  if Cap.localFiles in conn.serverCaps:
+    incl(caps, Cap.localFiles)
   when defined(mysql_compression_mode):
     if Cap.zstdCompressionAlgorithm in conn.serverCaps:
       incl(caps, Cap.zstdCompressionAlgorithm)
@@ -416,6 +425,18 @@ proc sendQuery*(conn: Connection, query: string): Future[void] {.tags:[WriteIOEf
   buf.add( char(Command.query) )
   buf.add(query)
   return conn.sendPacket(buf, resetSeqId=true)
+
+proc sendFile*(conn: Connection, filename: string): Future[void] {.tags:[WriteIOEffect,RootEffect].} =
+  let content = readFile(filename)
+  var buf: string = newStringOfCap(4 + len(content))
+  buf.setLen(4)
+  buf.add(content)
+  return conn.sendPacket(buf, resetSeqId=false)
+
+proc sendEmptyPacket*(conn: Connection): Future[void] {.tags:[WriteIOEffect,RootEffect].} =
+  var buf: string = newStringOfCap(4)
+  buf.setLen(4)
+  return conn.sendPacket(buf, resetSeqId=false)
 
 ## MySQL packet packers/unpackers
 
