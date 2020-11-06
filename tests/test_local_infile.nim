@@ -27,7 +27,7 @@ proc mainTests(conn: Connection): Future[void] {.async.} =
   ) ENGINE=MyISAM DEFAULT CHARSET=utf8
   """
   const EnableLocalInfileData = "SET GLOBAL local_infile = true"
-  discard await conn.rawQuery(EnableLocalInfileData)
+  discard await conn.tryQuery(SqlQuery EnableLocalInfileData)
   discard await conn.rawQuery(CreateTable)
   let filename = currentSourcePath.parentDir / "localinfile.csv"
   let r = await conn.rawQuery(fmt"LOAD DATA LOCAL INFILE '{filename}' INTO TABLE person")
