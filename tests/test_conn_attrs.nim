@@ -3,6 +3,7 @@ import unittest
 import net
 import tables
 import logging
+import strformat
 
 const database_name = "performance_schema"
 const port: int = 3306
@@ -19,8 +20,8 @@ proc mainTests(conn: Connection): Future[void] {.async.} =
   #  the attributes for their own connections but not for other connections.
   # On the other hand, session_connect_attrs shows the attributes for all connections.
   # This is useful for the administrator to check the attributes for all users.
-  let r1 = await conn.rawQuery("select * from session_connect_attrs")
-  debug $conn
+  let r1 = await conn.rawQuery("select * from session_connect_attrs where ATTR_NAME=\"_client_name\"")
+  # debug $conn
   # PROCESSLIST_ID ATTR_NAME ATTR_VALUE ORDINAL_POSITION
   check r1.rows[0][1] == "_client_name"
   check r1.rows[0][2] == "amysql"
@@ -30,6 +31,11 @@ proc runTests(): Future[void] {.async.} =
   let conn = await open(host_name,user_name,pass_word,database_name,attrs)
   await conn.mainTests()
   await conn.close()
+  let connectAttrs = "connection-attributes=[_client_name=amysql,attr1=val1,attr2,attr3=]"
+  let dsn = fmt"mysql://{user_name}:{pass_word}@{host_name}/{database_name}?{connectAttrs}"
+  let conn2 = await amysql.open(dsn)
+  await conn2.mainTests()
+  await conn2.close()
 
 test "connection attrs":
   waitFor(runTests())

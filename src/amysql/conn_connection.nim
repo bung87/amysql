@@ -12,6 +12,7 @@ import asyncnet
 import times
 import logging
 import tables
+import uriiy
 
 when defined(release):  setLogFilter(lvlInfo)
 
@@ -124,15 +125,16 @@ proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
   result = conn.parseHandshakePacket()
 
 when declared(SslContext) and declared(startTls):
-  proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", ssl: SslContext): Future[Connection] {.async.} =
+  proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", connectAttrs:Table[string,string] = default(Table[string, string]), ssl: SslContext): Future[Connection] {.async.} =
     result = Connection(socket: sock)
+    result.connectAttrs = connectAttrs
     result.buf.setLen(MysqlBufSize)
     let handshakePacket = await connect(result)
     # Negotiate encryption
     await result.startTls(ssl)
     await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "",connectAttrs:Table[string,string] = default(Table[string, string])): Future[Connection] {.async.} =
+proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", connectAttrs:Table[string,string] = default(Table[string, string])): Future[Connection] {.async.} =
   result = Connection(socket: sock)
   result.connectAttrs = connectAttrs
   result.buf.setLen(MysqlBufSize)
@@ -200,20 +202,39 @@ proc handleParams(conn: Connection, q: string) {.async.} =
           discard await conn.rawQuery("SET NAMES " & charset)
         except:
           discard
+    of "connection-attributes":
+      continue
     else:
       if pos != 0:
         cmd.add ','
       cmd.add key & '=' & val
       inc pos
-  discard await conn.rawQuery cmd
+  if cmd.len  > 4:
+    discard await conn.rawQuery cmd
 
-proc open*(uriStr: string | Uri): Future[Connection] {.async.} =
+proc handleConnectAttrs(q: string): Table[string,string] =
+  for (key, val) in uriiy.parseUri("?" & q).query:
+    case key
+      of "connection-attributes":
+        let pairs = val[1 ..< ^1]
+        # e.g. attr1=val1,attr2,attr3=
+        # a missing key value evaluates as an empty string.
+        let attrs = pairs.split(",")
+        for p in attrs:
+          let kv = p.split("=")
+          if len(kv) == 1:
+            result[kv[0]] = ""
+          else:
+            result[kv[0]] = kv[1]
+  
+proc open*(uriStr: string | uri.Uri): Future[Connection] {.async.} =
   ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
-  let uri:Uri = when uriStr is string: parseUri(uriStr) else: uriStr
+  let uri:uri.Uri = when uriStr is string: uri.parseUri(uriStr) else: uriStr
   let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
   let sock = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
   await connect(sock, uri.hostname, Port(port))
-  result = await establishConnection(sock, uri.username, uri.password, uri.path[ 1 .. uri.path.high ] )
+  let connectAttrs = handleConnectAttrs(uri.query)
+  result = await establishConnection(sock, uri.username, uri.password, uri.path[ 1 .. uri.path.high ],connectAttrs )
   if uri.query.len > 0:
     await result.handleParams(uri.query)
 
