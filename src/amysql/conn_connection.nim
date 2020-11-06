@@ -191,6 +191,7 @@ proc handleParams(conn: Connection, q: string) {.async.} =
     (key, val) = item.split("=")
     case key
     of "charset":
+      # https://dev.mysql.com/doc/refman/8.0/en/set-names.html
       let charsets = val.split(",")
       for charset in charsets:
         try:
