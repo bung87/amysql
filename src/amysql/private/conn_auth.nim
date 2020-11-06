@@ -21,7 +21,7 @@ proc caching_sha2_password_auth*(conn:Connection,scrambleBuff, password: string)
     let authData = scramble_caching_sha2(responseAuthSwitch.pluginData, password)
     await conn.roundtrip(authData)
   if not conn.isExtraAuthDataPacket():
-    raise newException(ProtocolError,ErrorMsg.format cast[string](conn.buf[0].addr))
+    raise newException(ProtocolError,ErrorMsg.format cast[string](conn.buf))
   
   # magic numbers:
   # 2 - request public key

@@ -7,6 +7,7 @@ import times
 import strutils
 import net
 import logging
+import tables
 
 const ReadTimeOut {.intdefine.} = 30_000
 const WriteTimeOut {.intdefine.} = 60_000
@@ -49,8 +50,8 @@ proc parseErrorPacket*(conn: Connection): ref ResponseERR =
     inc(conn.bufPos,6)
   else:
     inc(conn.bufPos,1)
-  result.msg.setLen(conn.payloadLen - conn.bufPos)
-  copyMem(result.msg[0].addr,conn.buf[conn.bufPos].addr,conn.payloadLen - conn.bufPos)
+  result.msg.setLen(conn.payloadLen - conn.bufPos + 4)
+  copyMem(result.msg[0].addr,conn.buf[conn.bufPos].addr,conn.payloadLen - conn.bufPos + 4)
 
 proc checkEof*(conn: Connection) {.inline.} =
   if Cap.deprecateEof notin conn.clientCaps:
@@ -228,6 +229,9 @@ proc writeHandshakeResponse*(conn: Connection,
     incl(caps, Cap.connectWithDb)
   if auth_plugin.len > 0:
     incl(caps, Cap.pluginAuth)
+  let connectAttrsLen = len(conn.connectAttrs)
+  if connectAttrsLen > 0 and  Cap.connectAttrs in conn.serverCaps:
+    incl(caps, Cap.connectAttrs)
   if Cap.deprecateEof in conn.serverCaps:
     incl(caps, Cap.deprecateEof)
   when defined(mysql_compression_mode):
@@ -267,6 +271,24 @@ proc writeHandshakeResponse*(conn: Connection,
 
   if Cap.pluginAuth in caps:
     putNulString(buf, auth_plugin)
+  if Cap.connectAttrs in caps:
+    # https://dev.mysql.com/doc/refman/5.6/en/performance-schema-connection-attribute-tables.html#performance-schema-connection-attributes-available
+    # https://dev.mysql.com/doc/refman/5.6/en/performance-schema-session-connect-attrs-table.html
+    # Attribute names that begin with an underscore (_) are reserved for internal use and should not be created by application programs. 
+    var count = 0
+    var kLen = 0
+    var vLen = 0
+    for k,v in conn.connectAttrs.mpairs:
+      kLen = k.len
+      vLen = v.len
+      inc count,kLen
+      inc count,vLen
+      inc count,countLenInt(kLen)
+      inc count,countLenInt(vLen)
+    putLenInt(buf, count)
+    for k,v in conn.connectAttrs.mpairs:
+      putLenStr(buf, k)
+      putLenStr(buf, v)
   when defined(mysql_compression_mode):
     if Cap.zstdCompressionAlgorithm in caps:
       # For zlib compression method, the default compression level will be set to 6

@@ -39,6 +39,7 @@ type
     bufPos*: int
     payloadLen*: int
     curPayloadLen*: int
+    connectAttrs*:Table[string,string]
 
 proc `$`*(ver: Version): string {.borrow.}
 

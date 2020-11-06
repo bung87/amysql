@@ -336,6 +336,20 @@ proc putLenInt*(buf: var string, val: int|uint|int32|uint32):int {.discardable.}
   else:
     raise newException(ProtocolError, "lenenc-int too long for me!")
 
+proc countLenInt*( val: int|uint|int32|uint32):int =
+  # https://dev.mysql.com/doc/dev/mysql-server/8.0.19/page_protocol_basic_dt_integers.html
+  # for string and raw data
+  if val < 0:
+    raise newException(ProtocolError, "trying to send a negative lenenc-int")
+  elif val < 251:
+    return 1
+  elif val < 65536:
+    return 3
+  elif val <= 0xFFFFFF: # 16777215
+    return 4
+  else:
+    raise newException(ProtocolError, "lenenc-int too long for me!")
+
 
 # Strings
 proc readNulString*(buf: openarray[char], pos: var int): string =

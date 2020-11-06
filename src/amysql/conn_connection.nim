@@ -11,6 +11,7 @@ import asyncdispatch
 import asyncnet
 import times
 import logging
+import tables
 
 when defined(release):  setLogFilter(lvlInfo)
 
@@ -131,8 +132,9 @@ when declared(SslContext) and declared(startTls):
     await result.startTls(ssl)
     await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = ""): Future[Connection] {.async.} =
+proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "",connectAttrs:Table[string,string] = default(Table[string, string])): Future[Connection] {.async.} =
   result = Connection(socket: sock)
+  result.connectAttrs = connectAttrs
   result.buf.setLen(MysqlBufSize)
   let handshakePacket = await connect(result)
   await result.finishEstablishingConnection(username, password, database, handshakePacket)
@@ -215,7 +217,7 @@ proc open*(uriStr: string | Uri): Future[Connection] {.async.} =
   if uri.query.len > 0:
     await result.handleParams(uri.query)
 
-proc open*(connection, user, password:string; database = ""): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
+proc open*(connection, user, password:string; database = ""; connectAttrs:Table[string,string] = default(Table[string, string])): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
   var isPath = false
   var sock:AsyncSocket
   when defined(posix):
@@ -230,9 +232,9 @@ proc open*(connection, user, password:string; database = ""): Future[Connection]
             else: substr(connection, 0, colonPos-1)
       port: int32 = if colonPos < 0: 3306'i32
                     else: substr(connection, colonPos+1).parseInt.int32
-    sock = newAsyncSocket(AF_INET, SOCK_STREAM)
+    sock = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
     await connect(sock, host, Port(port))
-  return await establishConnection(sock, user, password, database)
+  result = await establishConnection(sock, user, password, database, connectAttrs)
 
 proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
   var buf: string = newStringOfCap(5)
