@@ -12,7 +12,7 @@ cache:
 matrix:
   include:
     - name: linux with mysql8
-      env: DB=MYSQL8 DOCKER=true CHANNEL=devel TRAVIS=true
+      env: DB=MYSQL8 DOCKER=true CHANNEL=devel 
       # USE_SHA2=true
       dist: xenial
       services:
@@ -32,14 +32,14 @@ matrix:
     # Build and test against the master (stable) and devel branches of Nim
     - os: linux
       name: linux with mysql(5.7.30)
-      env: CHANNEL=devel TRAVIS=true
+      env: CHANNEL=devel 
       compiler: gcc
       services:
         mysql # mysql  Ver 14.14 Distrib 5.7.30, for Linux (x86_64) using  EditLine wrapper
 
     - os: linux
       name: linux with mariadb(10.4)
-      env: CHANNEL=devel TRAVIS=true
+      env: CHANNEL=devel 
       compiler: gcc
       addons:
         mariadb: '10.4'
