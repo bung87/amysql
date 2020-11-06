@@ -2,11 +2,10 @@ import amysql, asyncdispatch
 import unittest
 import net
 import tables
-import logging
 import strformat
 import os
 
-const database_name = "performance_schema"
+const database_name = "test"
 const port: int = 3306
 const host_name = "localhost"
 const user_name = "test_user"
@@ -22,8 +21,9 @@ proc mainTests(conn: Connection): Future[void] {.async.} =
   # On the other hand, session_connect_attrs shows the attributes for all connections.
   # This is useful for the administrator to check the attributes for all users.
   if getEnv("TRAVIS") != "true":
+    discard await conn.rawQuery("use performance_schema")
     let r1 = await conn.rawQuery("select * from session_connect_attrs where ATTR_NAME=\"_client_name\"")
-    # debug $conn
+    
     # PROCESSLIST_ID ATTR_NAME ATTR_VALUE ORDINAL_POSITION
     check r1.rows[0][1] == "_client_name"
     check r1.rows[0][2] == "amysql"
