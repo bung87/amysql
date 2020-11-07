@@ -139,9 +139,18 @@ proc parseOKPacket*(conn: Connection): ResponseOK =
   inc(conn.bufPos,4)
   if Cap.sessionTrack in conn.clientCaps:
     result.info = readLenStr(conn.buf, conn.bufPos)
+    if Status.sessionStateChanged in result.statusFlags:
+      let bufLen = conn.curPayloadLen + 4
+      var typ:SessionStateType
+      var data:string
+      while conn.bufPos < bufLen:
+        typ = cast[SessionStateType](conn.buf[conn.bufPos])
+        inc conn.bufPos
+        data = readLenStr(conn.buf, conn.bufPos)
+        result.sessionStateChanges.add SessionState(typ:typ,data:data)
   else:
     result.info = readNulStringX(conn.buf, conn.bufPos)
-
+  
 proc parseEOFPacket*(conn: Connection): ResponseOK =
   result.eof = true
   inc conn.bufPos

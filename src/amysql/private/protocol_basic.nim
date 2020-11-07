@@ -28,7 +28,16 @@ const
 
 type
   nat24 = range[0 .. 16777215]
-
+  SessionStateType* {.pure.} = enum
+    systemVariables = 0.uint8
+    schema = 1.uint8
+    stateChange = 2.uint8
+    gtids = 3.uint8
+    transactionCharacteristics = 4.uint8
+    transactionState = 5.uint8
+  SessionState* = object
+    typ*:SessionStateType
+    data*: string
   Status* {.pure.} = enum
     inTransaction = 1  # a transaction is active
     autoCommit = 2 # auto-commit is enabled
@@ -159,7 +168,7 @@ type
     statusFlags*     : set[Status]
     warningCount*    : Natural
     info*             : string
-    # session_state_changes: seq[ ... ]
+    sessionStateChanges*: seq[SessionState]
   ResponseAuthSwitch* {.final.} = object 
     status: uint8 # const ResponseCode_AuthSwitchRequest
     pluginName*: string

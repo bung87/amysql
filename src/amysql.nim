@@ -716,7 +716,7 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
     return parseEOFPacket(conn)
   else:
     const ErrorMsg = "unexpected response to COM_INIT_DB:$1"
-    raise newException(ProtocolError, ErrorMsg.format cast[string](conn.buf[0].addr))
+    raise newException(ProtocolError, ErrorMsg.format cast[string](conn.buf))
 
 proc exec*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
             asyncVarargs.} =
