@@ -20,15 +20,15 @@ proc mainTests(conn: Connection): Future[void] {.async.} =
     r1 = await conn.rawQuery( DisableAutocommit)
   except:
     discard
-  echo $r1
-  
+  check r1.status.sessionStateChanges[0].name == "autocommit"
+  check r1.status.sessionStateChanges[0].value == "OFF"
   const useTest = "use test"
   var r2:ResultSet[string]
   try:
     r2 = await conn.rawQuery( useTest)
   except:
     discard
-  echo $r2
+  check r2.status.sessionStateChanges[0].name == "test"
 
 proc runTests(): Future[void] {.async.} =
   let conn = await open(host_name,user_name,pass_word,database_name)
