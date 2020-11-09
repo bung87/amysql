@@ -43,6 +43,8 @@ var consoleLog = newConsoleLogger()
 addHandler(consoleLog)
 when defined(release):  setLogFilter(lvlInfo)
 
+const ResetConnection* {.booldefine.} = true
+
 type
   ParamBindingType = enum
     paramNull,
@@ -480,6 +482,18 @@ proc reset*(conn: Connection, pstmt: SqlPrepared): Future[void] =
   var buf: string
   pstmt.prepare(buf, Command.statementReset)
   return conn.sendPacket(buf, resetSeqId=true)
+
+proc reset*(conn: Connection): Future[ResultSet[string]] {.
+               async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
+  var buf: string = newStringOfCap(4 + 1)
+  buf.setLen(4)
+  buf.add( char(Command.resetConnection) )
+  await conn.sendPacket(buf, resetSeqId=true)
+  await conn.receivePacket()
+  if isOKPacket(conn):
+    result.status = parseOKPacket(conn)
+  elif isERRPacket(conn):
+    raise parseErrorPacket(conn)
 
 proc formatBoundParams*(conn: Connection, pstmt: SqlPrepared, params: openarray[SqlParam]): string =
   ## see https://mariadb.com/kb/en/com_stmt_execute/

@@ -46,7 +46,7 @@ type
     binary,
     command
   InterfaceKind {.pure.} = enum
-    none,query,rawQuery,prepare,finalize,reset,exec,close
+    none,query,rawQuery,prepare,finalize,reset,exec,close,resetConnection
   DBStmt {.pure.} = object
     case kind:StmtKind
     of text:
@@ -61,7 +61,7 @@ type
       onlyFirst:bool
     of InterfaceKind.query:
       params:seq[SqlParam]
-    of InterfaceKind.none,InterfaceKind.close:
+    of InterfaceKind.none,InterfaceKind.close,InterfaceKind.resetConnection:
       discard
     of InterfaceKind.prepare,InterfaceKind.exec:
       q:string
@@ -171,6 +171,10 @@ proc workerProcess(ctx: sink Context): Future[void] {.async.} =
           let p = DBResult(kind:DBResultKind.none)
           discard ctx.dbConn.writer[].trySend(p)
           break
+        of InterfaceKind.resetConnection:
+          discard await ctx.dbConn.conn[].reset()
+          let p = DBResult(kind:DBResultKind.none)
+          discard ctx.dbConn.writer[].trySend(p)
         else:
           discard
 
@@ -261,10 +265,9 @@ proc fetchConn*(self: DBPool): Future[DBConn] {.async.} =
       # return nil, driver.ErrBadConn
 
     ## Reset the session if required.
-    # let err = conn.resetSession(ctx)
-    # if err == driver.ErrBadConn:
-    #   await conn.close()
-    #   return nil, driver.ErrBadConn
+    when ResetConnection:
+      result.reader[].send(DBStmt(met:InterfaceKind.resetConnection,kind:StmtKind.command))
+      discard result.writer[].recv()
     return result
 
   # no free conn, open new

@@ -23,6 +23,10 @@ const TimeBetweenEvictionRuns {.intdefine.} = 30_000
 compression:  
 const mysql_compression_mode {.booldefine.} = false
 const ZstdCompressionLevel {.intdefine.} = 3
+
+pool:
+const ResetConnection* {.booldefine.} = true # reset session when reuse 
+
 ```
 ## Goals
 

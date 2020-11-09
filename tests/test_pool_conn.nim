@@ -11,7 +11,7 @@ const host_name = "127.0.0.1"
 const user_name = "test_user"
 const pass_word = "12345678"
 
-let pool = waitFor newDBPool(fmt"mysqlx://{user_name}:{pass_word}@{host_name}/{database_name}?minPoolSize=2&maxPoolSize=4")
+let pool = waitFor newDBPool(fmt"mysql://{user_name}:{pass_word}@{host_name}/{database_name}?minPoolSize=2&maxPoolSize=4")
 
 proc mainTest(){.async.} = 
   discard await pool.rawQuery("drop table if exists test_dt")
