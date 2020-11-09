@@ -129,25 +129,36 @@ proc parseResponseAuthMorePacket*(conn: Connection,pkt: string): ref ResponseAut
   result.pluginData = readNulStringX(conn.buf, conn.bufPos)
 
 proc parseOKPacket*(conn: Connection): ResponseOK =
+  # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
   result.eof = false
   inc(conn.bufPos)
   result.affectedRows = readLenInt(conn.buf, conn.bufPos)
   result.lastInsertId = readLenInt(conn.buf, conn.bufPos)
-  # We always supply Cap.protocol41 in client caps
-  result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
-  result.warningCount = scanU16(conn.buf, conn.bufPos+2)
-  inc(conn.bufPos,4)
+  if Cap.protocol41 in conn.clientCaps:
+    result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
+    result.warningCount = scanU16(conn.buf, conn.bufPos+2)
+    inc(conn.bufPos,4)
+  elif Cap.transactions in conn.clientCaps:
+    result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
+    inc(conn.bufPos,2)
   if Cap.sessionTrack in conn.clientCaps:
     result.info = readLenStr(conn.buf, conn.bufPos)
     if Status.sessionStateChanged in result.statusFlags:
-      let bufLen = conn.curPayloadLen + 4
+      let sessionStateChangeDataLength = readLenInt(conn.buf, conn.bufPos)
+      let endOffset = conn.bufPos + sessionStateChangeDataLength
       var typ:SessionStateType
-      var data:string
-      while conn.bufPos < bufLen:
+      var name:string
+      var value:string
+      var dataLen:int
+      while conn.bufPos < endOffset:
         typ = cast[SessionStateType](conn.buf[conn.bufPos])
         inc conn.bufPos
-        data = readLenStr(conn.buf, conn.bufPos)
-        result.sessionStateChanges.add SessionState(typ:typ,data:data)
+        dataLen = readLenInt(conn.buf, conn.bufPos)
+        name = readLenStr(conn.buf, conn.bufPos)
+        if typ == SessionStateType.systemVariables:
+          value = readLenStr(conn.buf, conn.bufPos)
+        result.sessionStateChanges.add SessionState(typ:typ,name:name,value:value)
+        value = ""
   else:
     result.info = readNulStringX(conn.buf, conn.bufPos)
   
@@ -252,6 +263,8 @@ proc writeHandshakeResponse*(conn: Connection,
     incl(caps, Cap.deprecateEof)
   if Cap.localFiles in conn.serverCaps:
     incl(caps, Cap.localFiles)
+  if Cap.sessionTrack in conn.serverCaps:
+    incl(caps, Cap.sessionTrack)
   when defined(mysql_compression_mode):
     if Cap.zstdCompressionAlgorithm in conn.serverCaps:
       incl(caps, Cap.zstdCompressionAlgorithm)

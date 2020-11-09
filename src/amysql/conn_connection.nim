@@ -213,7 +213,7 @@ proc handleParams(conn: Connection, q: string) {.async.} =
     discard await conn.rawQuery cmd
 
 proc handleConnectAttrs(q: string): Table[string,string] =
-  for (key, val) in urlly.parseUri("?" & q).query:
+  for (key, val) in urlly.parseUrl("?" & q).query:
     case key
       of "connection-attributes":
         let pairs = val[1 ..< ^1]

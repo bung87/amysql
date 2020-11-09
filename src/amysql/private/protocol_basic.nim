@@ -36,11 +36,12 @@ type
     transactionCharacteristics = 4.uint8
     transactionState = 5.uint8
   SessionState* = object
-    typ*:SessionStateType
-    data*: string
-  Status* {.pure.} = enum
-    inTransaction = 1  # a transaction is active
-    autoCommit = 2 # auto-commit is enabled
+    name*: string
+    typ*: SessionStateType
+    value*: string
+  Status {.pure.} = enum
+    inTransaction = 0  # a transaction is active
+    autoCommit = 1 # auto-commit is enabled
     moreResultsExist = 3
     noGoodIndexUsed = 4
     noIndexUsed = 5
