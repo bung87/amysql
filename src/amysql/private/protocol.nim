@@ -143,13 +143,7 @@ proc parseOKPacket*(conn: Connection): ResponseOK =
     inc(conn.bufPos,2)
   if Cap.sessionTrack in conn.clientCaps:
     result.info = readLenStr(conn.buf, conn.bufPos)
-    let remain = conn.payloadLen + 4 - conn.bufPos
-    if Status.sessionStateChanged in result.statusFlags and remain > 0:
-      # TODO fix this part in zstd mode
-      #echo conn.curPayloadLen # 931888
-      #echo result.statusFlags # {inTransaction, autoCommit, 2 (invalid data!), moreResultsExist, noIndexUsed, cursorExists, noBackslashEscapes, metadataChanged, queryWasSlow, inTransactionReadOnly, sessionStateChanged}
-      if conn.buf[conn.bufPos].int > remain:
-        return result
+    if Status.sessionStateChanged in result.statusFlags:
       let sessionStateChangeDataLength = readLenInt(conn.buf, conn.bufPos)
       let endOffset = conn.bufPos + sessionStateChangeDataLength
       var typ:SessionStateType

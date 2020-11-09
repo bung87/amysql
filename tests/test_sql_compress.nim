@@ -28,10 +28,13 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   discard await conn.query(insrow, "max", 255, 127, 4294967295, 2147483647, 9223372036854775807'u64)
   discard await conn.query(insrow, "min", 0, -128, 0, -2147483648, (-9223372036854775807'i64 - 1))
   discard await conn.query(insrow, "foo", 128, -127, 256, -32767, -32768)
+  
   await conn.finalize(insrow)
-
+ 
   # Read them back using the text protocol
   let r3 = await conn.rawExec("select s, u8, s8, u, i, b from num_tests order by u8 asc")
+  assertEq(int, r3.rows.len(), 0, "exec rows count")
+  
   let r4 = await conn.query(sql"select s, u8, s8, u, i, b from num_tests order by u8 asc")
   let r1 = await conn.rawQuery("select s, u8, s8, u, i, b from num_tests order by u8 asc")
   assertEq(int, r1.columns.len(), 6, "column count")

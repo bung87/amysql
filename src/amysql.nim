@@ -662,7 +662,8 @@ proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
   elif isLocalInfileRequestPacket(conn):
     conn.processLoadLocalInfile(result)
   else: 
-    conn.fetchResultset(result, onlyFirst = false, isTextMode = true): discard
+    conn.fetchResultset(result, onlyFirst = false, isTextMode = true): 
+      inc conn.bufPos, conn.curPayloadLen
   
 proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
