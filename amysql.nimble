@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.3.9"
+version       = "0.4.0"
 author        = "bung87"
 description   = "Async MySQL Connector write in pure Nim."
 license       = "MIT"
