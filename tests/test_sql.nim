@@ -30,6 +30,8 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   let r3 = await conn.rawExec("select s, u8, s8, u, i, b from num_tests order by u8 asc")
   let r4 = await conn.query(sql"select s, u8, s8, u, i, b from num_tests order by u8 asc")
   let r1 = await conn.rawQuery("select s, u8, s8, u, i, b from num_tests order by u8 asc")
+  let r5 = await conn.query(sql"select s, u8, s8, u, i, b from num_tests order by u8 asc",onlyFirst = true)
+  assertEq(int, r5.rows.len , 1)
   assertEq(int, r1.columns.len(), 6, "column count")
   assertEq(int, r1.rows.len(), 4, "row count")
   assertEq(string, r1.columns[0].name, "s")

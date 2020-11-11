@@ -632,6 +632,8 @@ template processResultset(conn: Connection, result: typed,isFirst:static[bool],o
     conn.checkEof
   else:
     result.columns = await conn.receiveMetadata(columnCount)
+  var firstHandled = false
+  var firstHandledLen:int
   while true:
     if conn.use_zstd():
       conn.resetPayloadLen
@@ -646,9 +648,14 @@ template processResultset(conn: Connection, result: typed,isFirst:static[bool],o
     elif isERRPacket(conn):
       raise parseErrorPacket(conn)
     else:
-      process
-      if onlyFirst:
-        continue
+      if not onlyFirst:
+        process
+      elif onlyFirst:
+        if not firstHandled:
+          process
+          firstHandled = true
+          continue
+        inc conn.bufPos, conn.curPayloadLen
 
 template fetchResultset(conn:Connection, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
   processResultset(conn,result,true,onlyFirst,isTextMode,process)
@@ -757,6 +764,7 @@ proc getRow*(conn: Connection, qs: SqlQuery,
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
   let resultSet = await conn.query(qs, args, onlyFirst = true)
+  assert resultSet.rows.len <= 1
   if resultSet.rows.len == 0:
     let cols = resultSet.columns.len
     result = newSeq[string](cols)

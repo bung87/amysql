@@ -1,13 +1,13 @@
 # Package
 
-version       = "0.4.0"
+version       = "0.4.1"
 author        = "bung87"
 description   = "Async MySQL Connector write in pure Nim."
 license       = "MIT"
-srcDir        = "src"
+srcDir        = """src"""
 skipFiles = @["index.nim"]
 
-task docs,"":
+task docs,"a":
   exec "nim doc --project src/index.nim"
 
 task ghpage,"gh page":

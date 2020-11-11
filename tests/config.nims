@@ -1,2 +1,2 @@
 switch("path", "$projectDir/../src")
-switch("hints", "off")
+#switch("hints", "off")
