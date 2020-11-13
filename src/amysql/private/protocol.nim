@@ -141,6 +141,7 @@ proc parseOKPacket*(conn: Connection): ResponseOK =
   elif Cap.transactions in conn.clientCaps:
     result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
     inc(conn.bufPos,2)
+  conn.hasMoreResults = Status.moreResultsExist in result.statusFlags
   if Cap.sessionTrack in conn.clientCaps:
     result.info = readLenStr(conn.buf, conn.bufPos)
     if Status.sessionStateChanged in result.statusFlags:
@@ -265,6 +266,8 @@ proc writeHandshakeResponse*(conn: Connection,
     incl(caps, Cap.localFiles)
   if Cap.sessionTrack in conn.serverCaps:
     incl(caps, Cap.sessionTrack)
+  incl(caps, Cap.multiStatements)
+  incl(caps, Cap.multiResults)
   when defined(mysql_compression_mode):
     if Cap.zstdCompressionAlgorithm in conn.serverCaps:
       incl(caps, Cap.zstdCompressionAlgorithm)
@@ -469,16 +472,16 @@ proc processHeader(c: Connection): nat24 =
   let id = uint8(c.buf[3])
   when defined(mysql_compression_mode):
     if c.use_zstd():
-      if id != c.compressedSequenceId:
-        raise newException(ProtocolError, errMsg2.format(id,c.compressedSequenceId ) )
+      # if id != c.compressedSequenceId:
+      #   raise newException(ProtocolError, errMsg2.format(id,c.compressedSequenceId ) )
       c.compressedSequenceId += 1
     else:
-      if id != c.sequenceId:
-        raise newException(ProtocolError, errMsg.format(id,c.sequenceId) )
+      # if id != c.sequenceId:
+      #   raise newException(ProtocolError, errMsg.format(id,c.sequenceId) )
       c.sequenceId += 1
   else:
-    if id != c.sequenceId:
-      raise newException(ProtocolError, errMsg.format(id,c.sequenceId) )
+    # if id != c.sequenceId:
+    #   raise newException(ProtocolError, errMsg.format(id,c.sequenceId) )
     c.sequenceId += 1
 
 proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadIOEffect,RootEffect].} =

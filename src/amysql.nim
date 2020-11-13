@@ -402,16 +402,18 @@ proc initDate*(monthday: MonthdayRange, month: Month, year: int, zone: Timezone 
   var dt = initDateTime(monthday,month,year,0,0,0,zone)
   copyMem(result.addr,dt.addr,sizeof(Date))
 
-proc parseTextRow(conn: Connection,columnCount: int): seq[string] =
-  result = newSeq[string]()
+proc parseTextRow(conn: Connection, resultset: var ResultSet[string]) =
+  var row = newSeq[string]()
   var i = 0
+  let columnCount = resultset.columns.len
   while i < columnCount:
     if conn.buf[conn.bufPos] == NullColumn:
-      result.add("")
+      row.add("")
       inc(conn.bufPos)
     else:
-      result.add(conn.buf.readLenStr(conn.bufPos))
+      row.add(conn.buf.readLenStr(conn.bufPos))
     inc i
+  resultset.rows.add row
 
 proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   ## https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_com_stmt_prepare.html
@@ -523,18 +525,18 @@ proc formatBoundParams*(conn: Connection, pstmt: SqlPrepared, params: openarray[
   for p in params:
     p.addValueUnlessNULL(result, conn)
 
-proc parseBinaryRow(conn:Connection, columns: seq[ColumnDefinition]): seq[ResultValue] =
+proc parseBinaryRow(conn:Connection, resultset: var ResultSet[ResultValue]) =
   ## see https://mariadb.com/kb/en/resultset-row/
   ## https://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html
   
   # For the Binary Protocol Resultset Row the num-fields and the field-pos need to add a offset of 2.
   # For COM_STMT_EXECUTE this offset is 0.
   const offset = 2 
-  let columnCount = columns.len
+  let columnCount = resultset.columns.len
   let bitmapBytes = (columnCount + offset + 7) div 8
   if conn.payloadLen < (1 + bitmapBytes) or conn.firstByte != char(0):
     raise newException(ProtocolError, "Truncated or incorrect binary result row")
-  newSeq(result, columnCount)
+  var row = newSeq[ResultValue](columnCount)
   inc conn.bufPos # header flag
   inc conn.bufPos, bitmapBytes
   for ix in 0 .. columnCount-1:
@@ -546,23 +548,23 @@ proc parseBinaryRow(conn:Connection, columns: seq[ColumnDefinition]): seq[Result
     let bitPos = fieldIndex mod 8
     let bitmap = uint8(conn.buf[ 1 + bytePos ])
     if (bitmap and uint8(1 shl bitPos)) != 0'u8:
-      result[ix] = ResultValue(typ: rvtNull)
+      row[ix] = ResultValue(typ: rvtNull)
     else:
-      let typ = columns[ix].columnType
-      let uns = FieldFlag.unsigned in columns[ix].flags
+      let typ = resultset.columns[ix].columnType
+      let uns = FieldFlag.unsigned in resultset.columns[ix].flags
       case typ
       of fieldTypeNull:
-        result[ix] = ResultValue(typ: rvtNull)
+        row[ix] = ResultValue(typ: rvtNull)
       of fieldTypeTiny:
         let v = conn.buf[conn.bufPos]
         inc(conn.bufPos)
         let ext = (if uns: int(cast[uint8](v)) else: int(cast[int8](v)))
-        result[ix] = ResultValue(typ: rvtInteger, intVal: ext)
+        row[ix] = ResultValue(typ: rvtInteger, intVal: ext)
       of fieldTypeShort,fieldTypeYear:
         let v = int(scanU16(conn.buf, conn.bufPos))
         inc(conn.bufPos, 2)
         let ext = (if uns or (v <= 32767): v else: 65536 - v)
-        result[ix] = ResultValue(typ: rvtInteger, intVal: ext)
+        row[ix] = ResultValue(typ: rvtInteger, intVal: ext)
       of fieldTypeInt24, fieldTypeLong:
         let v = scanU32(conn.buf, conn.bufPos)
         inc(conn.bufPos, 4)
@@ -573,24 +575,24 @@ proc parseBinaryRow(conn:Connection, columns: seq[ColumnDefinition]): seq[Result
           ext = int( cast[int32](v) ) # rely on 2's-complement reinterpretation here
         else:
           ext = int(v)
-        result[ix] = ResultValue(typ: rvtInteger, intVal: ext)
+        row[ix] = ResultValue(typ: rvtInteger, intVal: ext)
       of fieldTypeLongLong:
         let v = scanU64(conn.buf, conn.bufPos)
         inc(conn.bufPos, 8)
         if uns:
-          result[ix] = ResultValue(typ: rvtULong, uLongVal: v)
+          row[ix] = ResultValue(typ: rvtULong, uLongVal: v)
         else:
-          result[ix] = ResultValue(typ: rvtLong, longVal: cast[int64](v))
+          row[ix] = ResultValue(typ: rvtLong, longVal: cast[int64](v))
       of fieldTypeFloat:
         let v = scanFloat(conn.buf,conn.bufPos)
         inc(conn.bufPos, 4)
-        result[ix] = ResultValue(typ: rvtFloat, floatVal: v)
+        row[ix] = ResultValue(typ: rvtFloat, floatVal: v)
       of fieldTypeDouble:
         let v = scanDouble(conn.buf,conn.bufPos)
         inc(conn.bufPos, 8)
-        result[ix] = ResultValue(typ: rvtDouble, doubleVal: v)
+        row[ix] = ResultValue(typ: rvtDouble, doubleVal: v)
       of fieldTypeDateTime:
-        result[ix] = ResultValue(typ: rvtDateTime, datetimeVal: readDateTime(conn.buf, conn.bufPos))
+        row[ix] = ResultValue(typ: rvtDateTime, datetimeVal: readDateTime(conn.buf, conn.bufPos))
       of fieldTypeDate:
         let year = int(conn.buf[conn.bufPos+1]) + int(conn.buf[conn.bufPos+2]) * 256
         inc(conn.bufPos,2)
@@ -598,40 +600,41 @@ proc parseBinaryRow(conn:Connection, columns: seq[ColumnDefinition]): seq[Result
         let day = int(conn.buf[conn.bufPos + 2])
         inc(conn.bufPos,2)
         let dt = initDate(day,month.Month,year.int)
-        result[ix] = ResultValue(typ: rvtDate, datetimeVal: dt)
+        row[ix] = ResultValue(typ: rvtDate, datetimeVal: dt)
       of fieldTypeTimestamp:
-        result[ix] = ResultValue(typ: rvtTimestamp, datetimeVal: readDateTime(conn.buf, conn.bufPos))  
+        row[ix] = ResultValue(typ: rvtTimestamp, datetimeVal: readDateTime(conn.buf, conn.bufPos))  
       of fieldTypeTime:
-        result[ix] = ResultValue(typ: rvtTime, durVal: readTime(conn.buf, conn.bufPos) )
+        row[ix] = ResultValue(typ: rvtTime, durVal: readTime(conn.buf, conn.bufPos) )
       of fieldTypeTinyBlob, fieldTypeMediumBlob, fieldTypeLongBlob, fieldTypeBlob, fieldTypeBit:
-        result[ix] = ResultValue(typ: rvtBlob, strVal: readLenStr(conn.buf, conn.bufPos))
+        row[ix] = ResultValue(typ: rvtBlob, strVal: readLenStr(conn.buf, conn.bufPos))
       of fieldTypeVarchar, fieldTypeVarString, fieldTypeString, fieldTypeDecimal, fieldTypeNewDecimal:
-        result[ix] = ResultValue(typ: rvtString, strVal: readLenStr(conn.buf, conn.bufPos))
+        row[ix] = ResultValue(typ: rvtString, strVal: readLenStr(conn.buf, conn.bufPos))
       of fieldTypeJson:
-        result[ix] = ResultValue(typ: rvtJson, strVal: readLenStr(conn.buf, conn.bufPos))
+        row[ix] = ResultValue(typ: rvtJson, strVal: readLenStr(conn.buf, conn.bufPos))
       of fieldTypeGeometry:
-        result[ix] = ResultValue(typ: rvtGeometry, strVal: readLenStr(conn.buf, conn.bufPos))
+        row[ix] = ResultValue(typ: rvtGeometry, strVal: readLenStr(conn.buf, conn.bufPos))
       of fieldTypeEnum, fieldTypeSet:
         raise newException(ProtocolError, "Unexpected field type " & $(typ) & " in resultset")
+  resultset.rows.add row
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: openarray[static[SqlParam]]): Future[void] =
   var pkt = conn.formatBoundParams(pstmt, params)
   return conn.sendPacket(pkt, resetSeqId=true)
 
-template processResultset(conn: Connection, result: typed,isFirst:static[bool],onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
+template processResultset(conn: Connection, resultset: typed, isFirst:static[bool], onlyFirst: typed, isTextMode:static[bool], process: untyped): untyped =
   when not isFirst:
     conn.resetPayloadLen
   let columnCount = readLenInt(conn.buf, conn.bufPos)
   if conn.use_zstd():
     var index = 0
-    result.columns = newSeq[ColumnDefinition](columnCount)
+    resultset.columns = newSeq[ColumnDefinition](columnCount)
     while index < columnCount.int:
       conn.resetPayloadLen
-      conn.processMetadata(result.columns, index)
+      conn.processMetadata(resultset.columns, index)
       inc index
     conn.checkEof
   else:
-    result.columns = await conn.receiveMetadata(columnCount)
+    resultset.columns = await conn.receiveMetadata(columnCount)
   var firstHandled = false
   var firstHandledLen:int
   while true:
@@ -640,10 +643,10 @@ template processResultset(conn: Connection, result: typed,isFirst:static[bool],o
     else:
       await conn.receivePacket()
     if isEOFPacket(conn):
-      result.status = parseEOFPacket(conn)
+      resultset.status = parseEOFPacket(conn)
       break
     elif isTextMode and isOKPacket(conn):
-      result.status = parseOKPacket(conn)
+      resultset.status = parseOKPacket(conn)
       break
     elif isERRPacket(conn):
       raise parseErrorPacket(conn)
@@ -656,9 +659,11 @@ template processResultset(conn: Connection, result: typed,isFirst:static[bool],o
           firstHandled = true
           continue
         inc conn.bufPos, conn.curPayloadLen
+    if conn.bufPos == conn.payLoadLen + 4:
+      break
 
-template fetchResultset(conn:Connection, result:typed, onlyFirst:typed, isTextMode:static[bool], process:untyped): untyped {.dirty.} =
-  processResultset(conn,result,true,onlyFirst,isTextMode,process)
+template fetchResultset(conn: Connection; resultset: typed; onlyFirst: typed; isTextMode: static[bool]; process: untyped) =
+  processResultset(conn, resultset, true, onlyFirst, isTextMode, process)
 
 template processLoadLocalInfile(conn: Connection, result:untyped)=
   let filename = parseLocalInfileRequestPacket(conn)
@@ -689,18 +694,23 @@ proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
 proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  await conn.receivePacket()
-  if isOKPacket(conn):
-    # Success, but no rows returned.
-    result.status = parseOKPacket(conn)
-  elif isERRPacket(conn):
-    raise parseErrorPacket(conn)
-  elif isEOFPacket(conn):
-    result.status = parseEOFPacket(conn)
-  elif isLocalInfileRequestPacket(conn):
-    conn.processLoadLocalInfile(result)
-  else:
-    conn.fetchResultset(result, onlyFirst, true, result.rows.add(parseTextRow(conn,columnCount)))
+  while true:
+    await conn.receivePacket()
+    if isOKPacket(conn):
+      # Success, but no rows returned.
+      result.status = parseOKPacket(conn)
+      if not conn.hasMoreResults:
+        break
+    elif isERRPacket(conn):
+      raise parseErrorPacket(conn)
+    elif isEOFPacket(conn):
+      result.status = parseEOFPacket(conn)
+      break
+    elif isLocalInfileRequestPacket(conn):
+      conn.processLoadLocalInfile(result)
+    else:
+      conn.fetchResultset(result, onlyFirst, true):
+        parseTextRow(conn, result)
 
 proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =
@@ -714,7 +724,8 @@ proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void
   elif isLocalInfileRequestPacket(conn):
     conn.processLoadLocalInfile(result)
   else:
-    conn.fetchResultset(result, onlyFirst,false, result.rows.add(parseBinaryRow(conn,result.columns)))
+    conn.fetchResultset(result, onlyFirst, false):
+      parseBinaryRow(conn, result)
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
@@ -745,7 +756,7 @@ proc exec*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`]): Future[R
   var q = dbFormat(qs, args)
   result = await conn.rawExec(q)
 
-proc query*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`], onlyFirst: static[bool] = false): Future[ResultSet[string]] {.asyncVarargs.} =
+proc query*(conn: Connection, qs: SqlQuery, onlyFirst: static[bool] = false, args: varargs[string, `$`]): Future[ResultSet[string]] {.asyncVarargs.} =
   var q = dbFormat(qs, args)
   result = await conn.rawQuery(q, onlyFirst)
 
@@ -763,7 +774,7 @@ proc getRow*(conn: Connection, qs: SqlQuery,
              args: varargs[string, `$`]): Future[Row] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
-  let resultSet = await conn.query(qs, args, onlyFirst = true)
+  let resultSet = await conn.query(qs, true, args )
   assert resultSet.rows.len <= 1
   if resultSet.rows.len == 0:
     let cols = resultSet.columns.len
@@ -774,7 +785,7 @@ proc getRow*(conn: Connection, qs: SqlQuery,
 proc getAllRows*(conn: Connection, qs: SqlQuery,
                  args: varargs[string, `$`]): Future[seq[Row]] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the whole result dataset.
-  let resultSet = await conn.query(qs, args)
+  let resultSet = await conn.query(qs, false, args)
   result = resultSet.rows
 
 proc getValue*(conn: Connection, qs: SqlQuery,

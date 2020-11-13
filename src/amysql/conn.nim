@@ -40,6 +40,7 @@ type
     payloadLen*: int
     curPayloadLen*: int
     connectAttrs*:Table[string,string]
+    hasMoreResults*: bool
 
 proc `$`*(ver: Version): string {.borrow.}
 
@@ -94,6 +95,7 @@ proc `$`*(conn: Connection): string =
   tbl["clientCaps"] = $conn.clientCaps
   tbl["databaseVersion"] = $conn.getDatabaseVersion()
   tbl["isMaria"] = $conn.isMaria
+  tbl["hasMoreResults"] = $conn.hasMoreResults
   $tbl
 
 proc zstdAvailable*(conn: Connection): bool =
