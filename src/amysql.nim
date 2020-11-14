@@ -640,6 +640,8 @@ template processResultset(conn: Connection, resultset: typed, isFirst:static[boo
   while true:
     if conn.use_zstd():
       conn.resetPayloadLen
+      if conn.bufPos >= conn.payloadLen + 4:
+        break
     else:
       await conn.receivePacket()
     if isEOFPacket(conn):
@@ -711,6 +713,9 @@ proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[Res
     else:
       conn.fetchResultset(result, onlyFirst, true):
         parseTextRow(conn, result)
+    # compression mode we only get one packet, after process conn.bufPos == conn.payloadLen + 4
+    if conn.bufPos == conn.payloadLen + 4:
+      break
 
 proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =

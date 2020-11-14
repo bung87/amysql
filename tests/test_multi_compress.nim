@@ -2,9 +2,6 @@ import amysql, asyncdispatch
 import unittest
 import net
 
-# import regex
-# import parsesql
-# import strutils
 
 const database_name = "test"
 const port: int = 3306
@@ -21,15 +18,6 @@ proc mainTests(conn: Connection): Future[void] {.async.} =
     insert into `num_tests` (s, u8, s8, u, i, b) values (?, ?, ?, ?, ?, ?);
     select s, u8, s8, u, i, b from num_tests order by u8 asc;
     """
-  # const R = re"""([^;]*?((\'.*?\')|(".*?"))?)*?(;\s*|\s*$)"""
-  # let s = dedent q.string
-  # for m in s.findAll(R):
-  #   var q = s[m.boundaries]
-  #   removePrefix(q)
-  #   removeSuffix(q)
-  #   echo repr q
-  #   let node = parseSQL(q)
-  #   echo treeRepr(node)
   let r = await conn.query(q, false, "foo", "128", "-127", "256", "-32767", "-32768")
   check r.rows == @[@[ "foo", "128", "-127", "256", "-32767", "-32768" ]]
 
