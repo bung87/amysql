@@ -24,48 +24,60 @@ when defined(mysql_compression_mode):
 # are always short, and an 0xFE in a result row would be followed
 # by at least 65538 bytes of data.
 proc isEOFPacket*(conn:Connection): bool =
-  let eofFlag = conn.firstByte == char(ResponseCode_EOF)
-  result = eofFlag and conn.curPayloadLen <= 5
+  let eofFlag = conn.firstByte.uint8 == ResponseCode_EOF
+  result = eofFlag and conn.curPacketLen <= 9
 
-proc isERRPacket*(conn:Connection): bool = conn.curPayloadLen >= 3 and conn.firstByte == char(ResponseCode_ERR)
+proc isEOFPacketFollowed*(conn:Connection): bool =
+  let eofFlag = conn.firstByte.uint8 == ResponseCode_EOF
+  result = eofFlag and conn.remainPacketLen <= 9
 
-proc isOKPacket*(conn:Connection): bool = conn.curPayloadLen >= 3 and conn.firstByte == char(ResponseCode_OK)
+proc isERRPacket*(conn:Connection): bool = conn.curPacketLen >= 7 and conn.firstByte.uint8 == ResponseCode_ERR
+
+proc isOKPacket*(conn:Connection): bool = conn.curPacketLen >= 7 and conn.firstByte.uint8 == ResponseCode_OK
 
 proc isAuthSwitchRequestPacket*(conn: Connection): bool = 
   ## http://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::AuthSwitchRequest
-  conn.firstByte == char(ResponseCode_AuthSwitchRequest)
+  conn.firstByte.uint8 == ResponseCode_AuthSwitchRequest
 
 proc isExtraAuthDataPacket*(conn: Connection): bool = 
   ## https://dev.mysql.com/doc/internals/en/successful-authentication.html
-  conn.firstByte == char(ResponseCode_ExtraAuthData)
+  conn.firstByte.uint8 == ResponseCode_ExtraAuthData
 
 proc isLocalInfileRequestPacket*(conn: Connection): bool =
-  conn.firstByte == char(ResponseCode_LOCAL_INFILE)
+  conn.firstByte.uint8 == ResponseCode_LOCAL_INFILE
 
 proc parseLocalInfileRequestPacket*(conn: Connection): string =
-  inc conn.bufPos
+  incPos conn
   result = cast[string](conn.buf[conn.bufPos .. ^1])
 
 proc parseErrorPacket*(conn: Connection): ref ResponseERR =
   new(result)
-  inc conn.bufPos # the error packet flag
+  incPos conn # the error packet flag
   result.error_code = scanU16(conn.buf,conn.bufPos)
-  inc(conn.bufPos,2)
-  if conn.curPayloadLen >= 9 and conn.buf[conn.bufPos] == '#':
+  incPos(conn,2)
+  if conn.remainPacketLen >= 6 and conn.buf[conn.bufPos] == '#':
     # #HY000
-    inc(conn.bufPos,6)
+    incPos(conn,6)
   else:
-    inc(conn.bufPos,1)
+    incPos(conn,1)
   result.msg.setLen(conn.payloadLen - conn.bufPos + 4)
   copyMem(result.msg[0].addr,conn.buf[conn.bufPos].addr,conn.payloadLen - conn.bufPos + 4)
 
 proc checkEof*(conn: Connection) {.inline.} =
+  # int<1> header
+  # if capabilities & CLIENT_PROTOCOL_41 {
+  # int<2>	warnings	number of warnings
+  # int<2>	status_flags	Status Flags
+  # }
   if Cap.deprecateEof notin conn.clientCaps:
-    conn.resetPayloadLen
+    conn.resetPacketLen
     if conn.firstByte.uint8 != ResponseCode_EOF:
       raise newException(ProtocolError, "Expected EOF after column defs, got something else fist byte:0x" & $conn.firstByte.uint8)
     else:
-      inc(conn.bufPos,5)
+      if Cap.protocol41 in conn.clientCaps:
+        incPos(conn,5)
+      else:
+        incPos conn
 
 proc parseHandshakePacket*(conn: Connection): HandshakePacket = 
   ## https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
@@ -73,41 +85,41 @@ proc parseHandshakePacket*(conn: Connection): HandshakePacket =
   result.protocolVersion = int(conn.firstByte)
   if result.protocolVersion != HandshakeV10.int:
     raise newException(ProtocolError, "Unexpected protocol version: " & $result.protocolVersion)
-  inc(conn.bufPos)
+  incPos(conn)
   conn.serverVersion = readNulString(conn.buf, conn.bufPos)
   result.serverVersion = conn.serverVersion
   conn.threadId = scanU32(conn.buf, conn.bufPos)
-  inc(conn.bufPos,4)
+  incPos(conn,4)
   result.threadId = int(conn.threadId)
   result.scramblebuff1 = newString(8)
   copyMem(result.scramblebuff1[0].addr,conn.buf[conn.bufPos].addr,8)
-  inc(conn.bufPos,8)
-  inc conn.bufPos # filter1
+  incPos(conn,8)
+  incPos conn # filter1
   result.capabilities1 = int(scanU16(conn.buf, conn.bufPos))
-  inc(conn.bufPos,2)
+  incPos(conn,2)
   result.capabilities = result.capabilities1
   conn.serverCaps = cast[set[Cap]](result.capabilities1)
   result.charset = int(conn.buf[conn.bufPos])
-  inc conn.bufPos
+  incPos conn
   result.serverStatus = int(scanU16(conn.buf, conn.bufPos))
-  inc conn.bufPos,2
+  incPos conn,2
   result.protocol41 = (result.capabilities1 and Cap.protocol41.ord) > 0
   if not result.protocol41:
     raise newException(ProtocolError, "Old (pre-4.1) server protocol")
   result.capabilities2 = int(scanU16(conn.buf, conn.bufPos))
-  inc conn.bufPos,2
+  incPos conn,2
   let cap = uint32(result.capabilities1) + (uint32(result.capabilities2) shl 16)
   conn.serverCaps = cast[set[Cap]]( cap )
   result.capabilities = int(cap)
   if Cap.pluginAuth in conn.serverCaps:
     result.scrambleLen = int(conn.buf[conn.bufPos])
-  inc conn.bufPos
-  inc conn.bufPos,10 # reserved
+  incPos conn
+  incPos conn,10 # reserved
   if Cap.secureConnection in conn.serverCaps:
     let scrambleBuff2Len = max(13,result.scrambleLen - 8)
     result.scrambleBuff2 = newString(scrambleBuff2Len - 1) # null string
     copyMem(result.scrambleBuff2[0].addr,conn.buf[conn.bufPos].addr,scrambleBuff2Len - 1)
-    inc conn.bufPos,scrambleBuff2Len
+    incPos conn,scrambleBuff2Len
     result.scrambleBuff = result.scrambleBuff1 & result.scrambleBuff2
     assert result.scrambleBuff.len == 20
     assert result.scrambleLen == 21
@@ -116,30 +128,30 @@ proc parseHandshakePacket*(conn: Connection): HandshakePacket =
 
 proc parseAuthSwitchPacket*(conn: Connection): ref ResponseAuthSwitch =
   new(result)
-  inc(conn.bufPos)
+  incPos(conn)
   result.status = ResponseCode_ExtraAuthData
   result.pluginName = readNulString(conn.buf, conn.bufPos)
   result.pluginData = readNulStringX(conn.buf, conn.bufPos)
 
 proc parseResponseAuthMorePacket*(conn: Connection,pkt: string): ref ResponseAuthMore =
   new(result)
-  inc(conn.bufPos)
+  incPos(conn)
   result.status = ResponseCode_ExtraAuthData
   result.pluginData = readNulStringX(conn.buf, conn.bufPos)
 
 proc parseOKPacket*(conn: Connection): ResponseOK =
   # https://dev.mysql.com/doc/internals/en/packet-OK_Packet.html
   result.eof = conn.firstByte == char(ResponseCode_EOF)
-  inc(conn.bufPos)
+  incPos(conn)
   result.affectedRows = readLenInt(conn.buf, conn.bufPos)
   result.lastInsertId = readLenInt(conn.buf, conn.bufPos)
   if Cap.protocol41 in conn.clientCaps:
     result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
     result.warningCount = scanU16(conn.buf, conn.bufPos+2)
-    inc(conn.bufPos,4)
+    incPos(conn,4)
   elif Cap.transactions in conn.clientCaps:
     result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
-    inc(conn.bufPos,2)
+    incPos(conn,2)
   conn.hasMoreResults = Status.moreResultsExist in result.statusFlags
   if Cap.sessionTrack in conn.clientCaps:
     result.info = readLenStr(conn.buf, conn.bufPos)
@@ -152,7 +164,7 @@ proc parseOKPacket*(conn: Connection): ResponseOK =
       var dataLen:int
       while conn.bufPos < endOffset:
         typ = cast[SessionStateType](conn.buf[conn.bufPos])
-        inc conn.bufPos
+        incPos conn
         dataLen = readLenInt(conn.buf, conn.bufPos)
         name = readLenStr(conn.buf, conn.bufPos)
         if typ == SessionStateType.systemVariables:
@@ -164,12 +176,12 @@ proc parseOKPacket*(conn: Connection): ResponseOK =
   
 proc parseEOFPacket*(conn: Connection): ResponseOK =
   result.eof = true
-  inc conn.bufPos
+  incPos conn
   if Cap.protocol41 in conn.clientCaps:
     result.warningCount = scanU16(conn.buf, conn.bufPos)
-    inc(conn.bufPos,2)
+    incPos(conn,2)
     result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
-    inc(conn.bufPos,2)
+    incPos(conn,2)
 
 proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future[void] {.async.} =
   # Caller must have left the first four bytes of the buffer available for
@@ -488,7 +500,7 @@ proc processHeader(c: Connection): nat24 =
 proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadIOEffect,RootEffect].} =
   # drop_ok used when close
   # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
-  conn.bufPos = 0
+  conn.zeroPos()
   conn.buf.setLen(MysqlBufSize)
   zeroMem conn.buf[0].addr,MysqlBufSize
   when TestWhileIdle:
@@ -535,8 +547,10 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   if headerLen != 4 and headerLen != 7:
     raise newException(ProtocolError, "Connection closed unexpectedly")
   conn.payloadLen = conn.processHeader()
-  conn.curPayloadLen = conn.payloadLen
-  inc conn.bufPos,offset
+  conn.fullPacketLen = conn.payloadLen + offset
+  conn.curPacketLen = conn.fullPacketLen
+  # conn.remainPacketLen = conn.fullPacketLen
+  
   if conn.payloadLen == 0:
     return 
   if offset + conn.payloadLen > MysqlBufSize:
@@ -552,6 +566,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
     raise newException(ProtocolError, "TODO finish this part")
   when defined(mysql_compression_mode):
     if conn.use_zstd():
+      conn.incPos offset
       let isUncompressed = uncompressedLen == 0
       if isUncompressed:
         # 07 00 00 02  00                      00                          00                02   00            00 00
@@ -564,7 +579,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
           conn.buf[offset + i] = char(c)
         conn.payloadLen = uncompressedLen - 4
         debug "result is compressed" 
-      conn.resetPayloadLen
+      # conn.resetPacketLen
 
 proc roundtrip*(conn:Connection, data: string) {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
@@ -590,28 +605,30 @@ proc processMetadata*(conn: Connection, meta:var seq[ColumnDefinition], index: i
   # if extras_len < 10 or (conn.bufPos+extras_len > len(conn.buf)):
   #   raise newException(ProtocolError, "truncated column packet")
   meta[index].charset = int16(scanU16(conn.buf, conn.bufPos))
-  inc conn.bufPos,2
+  incPos conn,2
   meta[index].length = scanU32(conn.buf, conn.bufPos)
-  inc conn.bufPos,4
+  incPos conn,4
   meta[index].columnType = FieldType(uint8(conn.buf[conn.bufPos]))
-  inc conn.bufPos,1
+  incPos conn,1
   meta[index].flags = cast[set[FieldFlag]](scanU16(conn.buf, conn.bufPos))
-  inc conn.bufPos,2
+  incPos conn,2
   meta[index].decimals = int(conn.buf[conn.bufPos])
-  inc conn.bufPos
-  inc(conn.bufPos, 2) # filter internals manual mentioned
+  incPos conn
+  incPos(conn, 2) # filter internals manual mentioned
 
 proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefinition]] {.async.} =
   var received = 0
   result = newSeq[ColumnDefinition](count)
   while received < count:
     await conn.receivePacket()
+    conn.resetPacketLen
     if conn.firstByte.uint8 == ResponseCode_ERR or conn.firstByte.uint8 == ResponseCode_EOF:
-      # raise newException(ProtocolError, "Receive $1 when receiveMetadata" % [$conn.firstByte.uint8])
-      break
+      raise newException(ProtocolError, "Receive $1 when receiveMetadata" % [$conn.firstByte.uint8])
+      # break
     conn.processMetadata(result,received)
     inc(received)
   if Cap.deprecateEof notin conn.clientCaps:
     await conn.receivePacket()
+    conn.resetPacketLen
     if conn.firstByte.uint8 != ResponseCode_EOF:
       raise newException(ProtocolError, "Expected EOF after column defs, got something else fist byte:0x" & $conn.firstByte.uint8)

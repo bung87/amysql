@@ -36,9 +36,12 @@ type
       lastOperationTime*: DateTime
     buf*: seq[char]
     bufLen*: int
-    bufPos*: int
     payloadLen*: int
-    curPayloadLen*: int
+    bufPos*: int
+    # remainPacketLen*: int
+    fullPacketLen*: int
+    curPacketLen*: int
+    # curPayloadLen*: int
     connectAttrs*:Table[string,string]
     hasMoreResults*: bool
 
@@ -110,24 +113,35 @@ proc zstdAvailable*(conn: Connection): bool =
 
 proc use_zstd*(conn: Connection): bool = conn.zstdAvailable() and conn.authenticated
 
-proc headerLen*(conn: Connection): int =
-  when defined(mysql_compression_mode):
-    if conn.use_zstd():
-      result = 7
-    else:
-      result = 4
-  else:
-    result = 4
-
 proc firstByte*(conn: Connection): lent char =
-  conn.buf[conn.bufPos]
+  conn.buf[conn.bufPos.int]
+
+proc remainPacketLen*(conn: Connection):int =
+  conn.fullPacketLen - conn.bufPos
+
+proc zeroPos*(conn: Connection) =
+  conn.bufPos = 0
+
+proc incPos*(conn: Connection; count = 1) =
+  conn.bufPos.inc count
+  # conn.remainPacketLen.dec count + 1
 
 proc getPayloadLen*(conn: Connection): int = 
-  result = int32( uint32(conn.buf[conn.bufPos]) or (uint32(conn.buf[conn.bufPos+1]) shl 8) or (uint32(conn.buf[conn.bufPos+2]) shl 16) )
+  result = int32( uint32(conn.buf[conn.bufPos]) or (uint32(conn.buf[conn.bufPos + 1]) shl 8) or (uint32(conn.buf[conn.bufPos + 2]) shl 16) )
 
-proc resetPayloadLen*(conn: Connection) =
-  conn.curPayloadLen = conn.getPayloadLen
-  inc(conn.bufPos,4)
+proc resetPacketLen*(conn: Connection) =
+  conn.curPacketLen = conn.getPayloadLen + 4
+  conn.incPos(4)
+
+proc printBufInfo*(conn: Connection) =
+  echo "============================"
+  echo "conn.bufPos:" & $conn.bufPos
+  echo "conn.fullPacketLen:" & $conn.fullPacketLen
+  echo "conn.bufLen:" & $conn.bufLen
+  echo "conn.curPacketLen:" & $conn.curPacketLen
+  echo "conn.remainPacketLen:" & $conn.remainPacketLen
+  # echo repr conn.buf
+  echo "============================"
 
 when isMainModule:
   echo Version("8.0.21") >= Version("8.0")

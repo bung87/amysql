@@ -219,6 +219,8 @@ type
     status*     : ResponseOK
     columns*    : seq[ColumnDefinition]
     rows*       : seq[seq[T]]
+
+proc isEOF*(stats:ResponseOK):bool = stats.eof
 ## Basic datatype packers/unpackers
 ## little endian
 # Integers

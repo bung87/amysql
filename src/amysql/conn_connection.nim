@@ -64,6 +64,7 @@ proc finishEstablishingConnection(conn: Connection,
   await conn.writeHandshakeResponse(username, authResponse, database, handshakePacket.plugin)
   # await confirmation from the server
   await conn.receivePacket()
+  conn.resetPacketLen
   if isOKPacket(conn):
     conn.authenticated = true
     conn.addIdleCheck()
@@ -122,6 +123,7 @@ proc finishEstablishingConnection(conn: Connection,
 
 proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
   await conn.receivePacket()
+  conn.resetPacketLen
   result = conn.parseHandshakePacket()
 
 when declared(SslContext) and declared(startTls):
@@ -148,7 +150,7 @@ proc parseTextRow(conn: Connection,columnCount: int): seq[string] =
   while i < columnCount:
     if conn.buf[conn.bufPos] == NullColumn:
       result.add("")
-      inc(conn.bufPos)
+      incPos(conn)
     else:
       result.add(conn.buf.readLenStr(conn.bufPos))
     inc i
