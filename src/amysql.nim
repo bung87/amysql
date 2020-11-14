@@ -443,9 +443,8 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
     let numWarnings = scanU16(conn.buf, conn.bufPos)
     inc conn.bufPos,2
     result.warnings = numWarnings
-  
   if numParams > 0'u16:
-    if conn.payloadLen > conn.bufPos:
+    if conn.payloadLen + 4 > conn.bufPos:
       var index = 0
       result.parameters = newSeq[ColumnDefinition](numParams)
       while index < numParams.int:
@@ -458,7 +457,7 @@ proc prepare*(conn: Connection, qs: string): Future[SqlPrepared] {.async.} =
   else:
     result.parameters = newSeq[ColumnDefinition](0)
   if numColumns > 0'u16:
-    if conn.payloadLen > conn.bufPos:
+    if conn.payloadLen  + 4 > conn.bufPos:
       var index = 0
       result.columns = newSeq[ColumnDefinition](numColumns)
       while index < numColumns.int:
@@ -640,8 +639,6 @@ template processResultset(conn: Connection, resultset: typed, isFirst:static[boo
   while true:
     if conn.use_zstd():
       conn.resetPayloadLen
-      if conn.bufPos >= conn.payloadLen + 4:
-        break
     else:
       await conn.receivePacket()
     if isEOFPacket(conn):
@@ -661,8 +658,8 @@ template processResultset(conn: Connection, resultset: typed, isFirst:static[boo
           firstHandled = true
           continue
         inc conn.bufPos, conn.curPayloadLen
-    if conn.bufPos == conn.payLoadLen + 4:
-      break
+    # if conn.bufPos == conn.payLoadLen + 4 :
+    #   break
 
 template fetchResultset(conn: Connection; resultset: typed; onlyFirst: typed; isTextMode: static[bool]; process: untyped) =
   processResultset(conn, resultset, true, onlyFirst, isTextMode, process)
@@ -681,41 +678,49 @@ template processLoadLocalInfile(conn: Connection, result:untyped)=
 proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
+  # while true:
   await conn.receivePacket()
   if isOKPacket(conn):
     # Success, but no rows returned.
     result.status = parseOKPacket(conn)
+    # if not conn.hasMoreResults:
+    #   break
   elif isERRPacket(conn):
     raise parseErrorPacket(conn)
+  elif isEOFPacket(conn):
+    result.status = parseEOFPacket(conn)
+    # break
   elif isLocalInfileRequestPacket(conn):
     conn.processLoadLocalInfile(result)
   else: 
     conn.fetchResultset(result, onlyFirst = false, isTextMode = true): 
-      inc conn.bufPos, conn.curPayloadLen
+      # inc conn.bufPos, conn.curPayloadLen
+      discard
+    # if conn.bufPos == conn.payloadLen + 4 :
+    #   break
   
 proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  while true:
-    await conn.receivePacket()
-    if isOKPacket(conn):
-      # Success, but no rows returned.
-      result.status = parseOKPacket(conn)
-      if not conn.hasMoreResults:
-        break
-    elif isERRPacket(conn):
-      raise parseErrorPacket(conn)
-    elif isEOFPacket(conn):
-      result.status = parseEOFPacket(conn)
+  # while true:
+  await conn.receivePacket()
+  if isOKPacket(conn):
+    # Success, but no rows returned.
+    result.status = parseOKPacket(conn)
+    if not conn.hasMoreResults:
       break
-    elif isLocalInfileRequestPacket(conn):
-      conn.processLoadLocalInfile(result)
-    else:
-      conn.fetchResultset(result, onlyFirst, true):
-        parseTextRow(conn, result)
-    # compression mode we only get one packet, after process conn.bufPos == conn.payloadLen + 4
-    if conn.bufPos == conn.payloadLen + 4:
-      break
+  elif isERRPacket(conn):
+    raise parseErrorPacket(conn)
+  elif isEOFPacket(conn):
+    result.status = parseEOFPacket(conn)
+    break
+  elif isLocalInfileRequestPacket(conn):
+    conn.processLoadLocalInfile(result)
+  else:
+    conn.fetchResultset(result, onlyFirst, true):
+      parseTextRow(conn, result)
+    # if conn.bufPos == conn.payloadLen + 4:
+    #   break
 
 proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =
@@ -724,6 +729,10 @@ proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void
   if isOKPacket(conn):
     # Success, but no rows returned.
     result.status = parseOKPacket(conn)
+    # if not conn.hasMoreResults:
+    #   break
+  # elif isEOFPacket(conn):
+  #   break
   elif isERRPacket(conn):
     raise parseErrorPacket(conn)
   elif isLocalInfileRequestPacket(conn):
@@ -731,6 +740,8 @@ proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void
   else:
     conn.fetchResultset(result, onlyFirst, false):
       parseBinaryRow(conn, result)
+  # if conn.bufPos >= conn.payloadLen + 4:
+  #   break
 {.pop.}
 
 proc query*(conn: Connection, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.

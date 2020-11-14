@@ -24,10 +24,9 @@ when defined(mysql_compression_mode):
 # are always short, and an 0xFE in a result row would be followed
 # by at least 65538 bytes of data.
 proc isEOFPacket*(conn:Connection): bool =
-  result = conn.curPayloadLen >= 3 and conn.firstByte == char(ResponseCode_EOF) and conn.curPayloadLen < 9
+  let eofFlag = conn.firstByte == char(ResponseCode_EOF)
+  result = eofFlag and conn.curPayloadLen <= 5
 
-# Error packets are simpler to detect, because 0xFF is not (yet?)
-# valid as the start of a length-encoded-integer.
 proc isERRPacket*(conn:Connection): bool = conn.curPayloadLen >= 3 and conn.firstByte == char(ResponseCode_ERR)
 
 proc isOKPacket*(conn:Connection): bool = conn.curPayloadLen >= 3 and conn.firstByte == char(ResponseCode_OK)
@@ -166,7 +165,7 @@ proc parseOKPacket*(conn: Connection): ResponseOK =
 proc parseEOFPacket*(conn: Connection): ResponseOK =
   result.eof = true
   inc conn.bufPos
-  if conn.curPayloadLen > 1:
+  if Cap.protocol41 in conn.clientCaps:
     result.warningCount = scanU16(conn.buf, conn.bufPos)
     inc(conn.bufPos,2)
     result.statusFlags = cast[set[Status]]( scanU16(conn.buf, conn.bufPos) )
@@ -266,10 +265,10 @@ proc writeHandshakeResponse*(conn: Connection,
     incl(caps, Cap.localFiles)
   if Cap.sessionTrack in conn.serverCaps:
     incl(caps, Cap.sessionTrack)
-  if Cap.multiStatements in conn.serverCaps:
-    incl(caps, Cap.multiStatements)
-  if Cap.multiResults in conn.serverCaps:
-    incl(caps, Cap.multiResults)
+  # if Cap.multiStatements in conn.serverCaps:
+  #   incl(caps, Cap.multiStatements)
+  # if Cap.multiResults in conn.serverCaps:
+  #   incl(caps, Cap.multiResults)
   when defined(mysql_compression_mode):
     if Cap.zstdCompressionAlgorithm in conn.serverCaps:
       incl(caps, Cap.zstdCompressionAlgorithm)
@@ -608,7 +607,8 @@ proc receiveMetadata*(conn: Connection, count: Positive): Future[seq[ColumnDefin
   while received < count:
     await conn.receivePacket()
     if conn.firstByte.uint8 == ResponseCode_ERR or conn.firstByte.uint8 == ResponseCode_EOF:
-      raise newException(ProtocolError, "TODO")
+      # raise newException(ProtocolError, "Receive $1 when receiveMetadata" % [$conn.firstByte.uint8])
+      break
     conn.processMetadata(result,received)
     inc(received)
   if Cap.deprecateEof notin conn.clientCaps:
