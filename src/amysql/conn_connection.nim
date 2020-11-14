@@ -161,6 +161,7 @@ template fetchResultset(conn:typed, result:typed, onlyFirst:typed, isTextMode:st
   result.columns = await conn.receiveMetadata(columnCount)
   while true:
     await conn.receivePacket()
+    conn.resetPacketLen
     if isEOFPacket(conn):
       result.status = parseEOFPacket(conn)
       break
@@ -179,6 +180,7 @@ proc rawQuery(conn: Connection, query: string, onlyFirst:static[bool] = false): 
   # duplicated
   await conn.sendQuery(query)
   await conn.receivePacket()
+  conn.resetPacketLen
   if isOKPacket(conn):
     # Success, but no rows returned.
     result.status = parseOKPacket(conn)
@@ -200,10 +202,7 @@ proc handleParams(conn: Connection, q: string) {.async.} =
       # https://dev.mysql.com/doc/refman/8.0/en/set-names.html
       let charsets = val.split(",")
       for charset in charsets:
-        try:
-          discard await conn.rawQuery("SET NAMES " & charset)
-        except:
-          discard
+        discard await conn.rawQuery("SET NAMES " & charset)
     of "connection-attributes":
       continue
     else:
