@@ -718,24 +718,27 @@ proc rawExec*(conn: Connection, qs: string): Future[ResultSet[string]] {.
 proc rawQuery*(conn: Connection, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
   await conn.sendQuery(qs)
-  # while true:
-  await conn.receivePacket()
-  conn.resetPacketLen
-  if isOKPacket(conn):
-    # Success, but no rows returned.
-    result.status = parseOKPacket(conn)
-    if not conn.hasMoreResults:
+  # if Cap.multiResults in conn.clientCaps
+  while true:
+    await conn.receivePacket()
+    conn.resetPacketLen
+    if isOKPacket(conn):
+      # Success, but no rows returned.
+      result.status = parseOKPacket(conn)
+      if not conn.hasMoreResults:
+        break
+    elif isERRPacket(conn):
+      raise parseErrorPacket(conn)
+    elif isEOFPacket(conn):
+      result.status = parseEOFPacket(conn)
       break
-  elif isERRPacket(conn):
-    raise parseErrorPacket(conn)
-  elif isEOFPacket(conn):
-    result.status = parseEOFPacket(conn)
-    break
-  elif isLocalInfileRequestPacket(conn):
-    conn.processLoadLocalInfile(result)
-  else:
-    conn.fetchResultset(result, onlyFirst, true):
-      parseTextRow(conn, result)
+    elif isLocalInfileRequestPacket(conn):
+      conn.processLoadLocalInfile(result)
+    else:
+      conn.fetchResultset(result, onlyFirst, true):
+        parseTextRow(conn, result)
+    if result.status.isEOF or conn.remainPacketLen == 0:
+      break
 
 proc performPreparedQuery*(conn: Connection, pstmt: SqlPrepared, st: Future[void], onlyFirst:static[bool] = false): Future[ResultSet[ResultValue]] {.
                           async#[, tags:[RootEffect]]#.} =

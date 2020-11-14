@@ -277,10 +277,10 @@ proc writeHandshakeResponse*(conn: Connection,
     incl(caps, Cap.localFiles)
   if Cap.sessionTrack in conn.serverCaps:
     incl(caps, Cap.sessionTrack)
-  # if Cap.multiStatements in conn.serverCaps:
-  #   incl(caps, Cap.multiStatements)
-  # if Cap.multiResults in conn.serverCaps:
-  #   incl(caps, Cap.multiResults)
+  if Cap.multiStatements in conn.serverCaps:
+    incl(caps, Cap.multiStatements)
+  if Cap.multiResults in conn.serverCaps:
+    incl(caps, Cap.multiResults)
   when defined(mysql_compression_mode):
     if Cap.zstdCompressionAlgorithm in conn.serverCaps:
       incl(caps, Cap.zstdCompressionAlgorithm)
