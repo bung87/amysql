@@ -501,7 +501,8 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   # drop_ok used when close
   # https://dev.mysql.com/doc/internals/en/uncompressed-payload.html
   conn.zeroPos()
-  conn.buf.setLen(MysqlBufSize)
+  if conn.buf.len > MysqlBufSize:
+    conn.buf.setLen(MysqlBufSize)
   zeroMem conn.buf[0].addr,MysqlBufSize
   when TestWhileIdle:
     conn.lastOperationTime = now()
@@ -553,7 +554,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   
   if conn.payloadLen == 0:
     return 
-  if offset + conn.payloadLen > MysqlBufSize:
+  if conn.fullPacketLen > MysqlBufSize:
     conn.buf.setLen(offset + conn.payloadLen)
   let payload = conn.socket.recvInto(conn.buf[offset].addr,conn.payloadLen)
   let payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
