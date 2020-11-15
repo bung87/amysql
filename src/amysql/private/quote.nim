@@ -1,4 +1,3 @@
-import strutils
 
 proc dbQuote*(s: string): string =
   ## DB quotes the string.

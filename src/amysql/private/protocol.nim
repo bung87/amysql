@@ -6,7 +6,6 @@ import ../conn
 import times
 import strutils
 import net
-import logging
 import tables
 
 const ReadTimeOut {.intdefine.} = 30_000

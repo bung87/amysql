@@ -63,4 +63,4 @@ test "connnection with unix socket":
   when defined(posix) and host_name.len > 0:
     waitFor(runTests())
   else:
-    discard
+    echo "mysql socket path not found, ignore."

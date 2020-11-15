@@ -1,4 +1,4 @@
-import amysql, asyncdispatch, os
+import amysql, asyncdispatch
 import unittest
 import net
 
@@ -9,9 +9,6 @@ const user_name = "test_user"
 const pass_word = "12345678"
 const ssl: bool = false
 const verbose: bool = false
-
-template assertEq(T: typedesc, got: untyped, expect: untyped, msg: string = "incorrect value") =
-  check got == expect
 
 proc numberTests(conn: Connection): Future[void] {.async.} =
 
@@ -32,24 +29,23 @@ proc numberTests(conn: Connection): Future[void] {.async.} =
   # Read them back using the text protocol
   let r1 = await conn.rawQuery("SELECT * FROM `float_test`")
 
-  assertEq(seq[string], r1.rows[0],
-    @[ "1.2", "1.2", "1.20", "1.20" ])
+  check r1.rows[0] == @[ "1.2", "1.2", "1.20", "1.20" ]
 
   # Now read them back using the binary protocol
   let rdtab = await conn.prepare("SELECT * FROM `float_test`")
   let r2 = await conn.query(rdtab)
 
-  assertEq(float32,  r2.rows[0][0], 1.2'f32)
-  assertEq(float32,  r2.rows[0][1], 1.2'f32)
-  assertEq(float64,  r2.rows[0][2], 1.2'f64)
-  assertEq(float64,  r2.rows[0][3], 1.2'f64)
+  check r2.rows[0][0] == 1.2'f32
+  check r2.rows[0][1] == 1.2'f32
+  check r2.rows[0][2] == 1.2'f64
+  check r2.rows[0][3] == 1.2'f64
 
   await conn.finalize(rdtab)
 
   let rdtab2 = await conn.prepare("SELECT fla+flb, dba+dbb FROM `float_test`;")
   let r3 = await conn.query(rdtab2)
-  assertEq(float32,  r3.rows[0][0], 2.4000000953674316'f32)
-  assertEq(float64,  r3.rows[0][1], 2.40'f64)
+  check r3.rows[0][0] == 2.4000000953674316'f32
+  check r3.rows[0][1] == 2.40'f64
 
   discard await conn.rawQuery("drop table `float_test`")
 
