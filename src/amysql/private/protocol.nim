@@ -7,6 +7,7 @@ import times
 import strutils
 import net
 import tables
+import ./logger
 
 const ReadTimeOut {.intdefine.} = 30_000
 const WriteTimeOut {.intdefine.} = 60_000

@@ -37,11 +37,7 @@ import amysql/async_varargs
 import uri
 import times
 import json
-import logging
-
-var consoleLog = newConsoleLogger()
-addHandler(consoleLog)
-when defined(release):  setLogFilter(lvlInfo)
+import amysql/private/logger
 
 const ResetConnection* {.booldefine.} = true
 
