@@ -49,10 +49,10 @@ mariadb: 10
 ## TODO  
 
 - [ ] Finish caching_sha2_password_auth.  
-- [ ] Testing ssl mode unix socket mode.  
-- [ ] mutiple statements and mutilple resultsets.
+- [ ] Testing ssl mode ,unix socket mode.  
+- [x] mutiple statements and mutilple resultsets.
 - [x] compression mode (zstd)  
-- [ ] handle connection options  
+- [x] handle connection options  
 
 ## Acknowledgements  
 
