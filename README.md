@@ -68,7 +68,7 @@ mariadb: 10
 
 ## History  
 
-When I starting this project, I have `wiml/nim-asyncmysql` and `asyncmysql` for inspiration, the initial goal is provide basic asynchronous apis compare to Nim std library `db_mysql`'s synchronous apis, `asyncmysql` provide mutiple results feature by design, he map mysql protocol flags to exact to c types, `wiml/nim-asyncmysql` map flags to enum type and the project design is very obvious to me, so I choose base on `wiml/nim-asyncmysql`.  
+When I starting this project, I have `wiml/nim-asyncmysql` and `asyncmysql` for inspiration, the initial goal is provide basic asynchronous apis compare to Nim std library `db_mysql`'s synchronous apis, `asyncmysql` provide mutiple results feature and callback style apis by design, he map mysql protocol flags to exact to c types, `wiml/nim-asyncmysql` provide asynchronous apis and map flags to enum type and the project design is very obvious to me, so I choose base on `wiml/nim-asyncmysql`.  
 
 When this project ready to use, it provide single statement and single results, I starting considering provide compression api, at that time data recevie as string and passing around procs, I starting store data to `seq[char]` as I dont want decompress data and passing around procs, and it also help me move next step, implements multiple results feature. Compare to `asyncmysql` ,`asyncmysql` use a constant size array buffer to store data, I may change as it so in the future.
 
@@ -77,5 +77,5 @@ Above declaration may not explain "Why this project exists ?", here's some key p
 When I starting this project `asyncmysql` and `wiml/nim-asyncmysql` have no commits activities for years. `wiml/nim-asyncmysql` even can't compile for current Nim version.  
 
 1. `db_mysql` provide synchronous apis and need external c library.
-2. `asyncmysql` provide callback style api.
-3. `wiml/nim-asyncmysql` satisify the design, but need update to current Nim version, more features , more client capbilities. 
+2. `asyncmysql` provide callback style apis.
+3. `wiml/nim-asyncmysql` satisify the design, but need update to current Nim version, more column data type mapping, more features , more client capbilities. 
