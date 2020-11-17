@@ -6,7 +6,8 @@ ResponseCode_AuthSwitchRequest	amysql/private/protocol.html#ResponseCode_AuthSwi
 ResponseCode_ExtraAuthData	amysql/private/protocol.html#ResponseCode_ExtraAuthData	protocol: ResponseCode_ExtraAuthData	
 NullColumn	amysql/private/protocol.html#NullColumn	protocol: NullColumn	
 Charset_utf8_ci	amysql/private/protocol.html#Charset_utf8_ci	protocol: Charset_utf8_ci	
-Status	amysql/private/protocol.html#Status	protocol: Status	
+SessionStateType	amysql/private/protocol.html#SessionStateType	protocol: SessionStateType	
+SessionState	amysql/private/protocol.html#SessionState	protocol: SessionState	
 Command	amysql/private/protocol.html#Command	protocol: Command	
 FieldFlag	amysql/private/protocol.html#FieldFlag	protocol: FieldFlag	
 fieldTypeDecimal	amysql/private/protocol.html#fieldTypeDecimal	FieldType.fieldTypeDecimal	
@@ -45,6 +46,7 @@ ResponseERR	amysql/private/protocol.html#ResponseERR	protocol: ResponseERR
 HandshakePacket	amysql/private/protocol.html#HandshakePacket	protocol: HandshakePacket	
 ColumnDefinition	amysql/private/protocol.html#ColumnDefinition	protocol: ColumnDefinition	
 ResultSet	amysql/private/protocol.html#ResultSet	protocol: ResultSet	
+isEOF	amysql/private/protocol.html#isEOF,ResponseOK	protocol: isEOF(stats: ResponseOK): bool	
 setInt32	amysql/private/protocol.html#setInt32,openArray[char],int,int	protocol: setInt32(buf: var openArray[char]; pos: int; value: int)	
 putU8	amysql/private/protocol.html#putU8,string,range[]	protocol: putU8(buf: var string; val: range[0 .. 255])	
 scanU16	amysql/private/protocol.html#scanU16,openArray[char],int	protocol: scanU16(buf: openArray[char]; pos: int): uint16	
@@ -72,6 +74,7 @@ putValue	amysql/private/protocol.html#putValue,string,int64	protocol: putValue(b
 putValue	amysql/private/protocol.html#putValue,string,uint64	protocol: putValue(buf: var string; intVal: uint64)	
 writeTypeAndFlag	amysql/private/protocol.html#writeTypeAndFlag,string,FieldType	protocol: writeTypeAndFlag(buf: var string; fieldType: FieldType)	
 isEOFPacket	amysql/private/protocol.html#isEOFPacket,Connection	protocol: isEOFPacket(conn: Connection): bool	
+isEOFPacketFollowed	amysql/private/protocol.html#isEOFPacketFollowed,Connection	protocol: isEOFPacketFollowed(conn: Connection): bool	
 isERRPacket	amysql/private/protocol.html#isERRPacket,Connection	protocol: isERRPacket(conn: Connection): bool	
 isOKPacket	amysql/private/protocol.html#isOKPacket,Connection	protocol: isOKPacket(conn: Connection): bool	
 isAuthSwitchRequestPacket	amysql/private/protocol.html#isAuthSwitchRequestPacket,Connection	protocol: isAuthSwitchRequestPacket(conn: Connection): bool	

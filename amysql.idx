@@ -1,3 +1,4 @@
+ResetConnection	amysql.html#ResetConnection	amysql: ResetConnection	
 SqlParam	amysql.html#SqlParam	amysql: SqlParam	
 SqlPrepared	amysql.html#SqlPrepared	amysql: SqlPrepared	
 Row	amysql.html#Row	amysql: Row	
@@ -39,6 +40,7 @@ initDate	amysql.html#initDate,MonthdayRange,Month,int,Timezone	amysql: initDate(
 prepare	amysql.html#prepare,Connection,string	amysql: prepare(conn: Connection; qs: string): Future[SqlPrepared]	
 finalize	amysql.html#finalize,Connection,SqlPrepared	amysql: finalize(conn: Connection; pstmt: SqlPrepared): Future[void]	
 reset	amysql.html#reset,Connection,SqlPrepared	amysql: reset(conn: Connection; pstmt: SqlPrepared): Future[void]	
+reset	amysql.html#reset,Connection	amysql: reset(conn: Connection): Future[ResultSet[string]]	
 formatBoundParams	amysql.html#formatBoundParams,Connection,SqlPrepared,openArray[SqlParam]	amysql: formatBoundParams(conn: Connection; pstmt: SqlPrepared;\n                  params: openArray[SqlParam]): string	
 query	amysql.html#query,Connection,SqlPrepared,openArray[static[SqlParam]]	amysql: query(conn: Connection; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[\n    void]	
 rawExec	amysql.html#rawExec,Connection,string	amysql: rawExec(conn: Connection; qs: string): Future[ResultSet[string]]	
@@ -47,7 +49,7 @@ performPreparedQuery	amysql.html#performPreparedQuery,Connection,SqlPrepared,Fut
 query	amysql.html#query,Connection,SqlPrepared,varargs[SqlParam,asParam]	amysql: query(conn: Connection; pstmt: SqlPrepared; params: varargs[SqlParam, asParam]): Future[\n    ResultSet[ResultValue]]	
 selectDatabase	amysql.html#selectDatabase,Connection,string	amysql: selectDatabase(conn: Connection; database: string): Future[ResponseOK]	
 exec	amysql.html#exec,Connection,SqlQuery,varargs[string,]	amysql: exec(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    ResultSet[string]]	
-query	amysql.html#query,Connection,SqlQuery,varargs[string,],static[bool]	amysql: query(conn: Connection; qs: SqlQuery; args: varargs[string, `$`];\n      onlyFirst: static[bool] = false): Future[ResultSet[string]]	
+query	amysql.html#query,Connection,SqlQuery,static[bool],varargs[string,]	amysql: query(conn: Connection; qs: SqlQuery; onlyFirst: static[bool] = false;\n      args: varargs[string, `$`]): Future[ResultSet[string]]	
 tryQuery	amysql.html#tryQuery,Connection,SqlQuery,varargs[string,]	amysql: tryQuery(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    bool]	
 getRow	amysql.html#getRow,Connection,SqlQuery,varargs[string,]	amysql: getRow(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]	
 getAllRows	amysql.html#getAllRows,Connection,SqlQuery,varargs[string,]	amysql: getAllRows(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[\n    seq[Row]]	

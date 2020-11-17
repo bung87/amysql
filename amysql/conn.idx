@@ -15,7 +15,10 @@ isMaria	amysql/conn.html#isMaria,Connection	conn: isMaria(self: Connection): boo
 `$`	amysql/conn.html#$,Connection	conn: `$`(conn: Connection): string	
 zstdAvailable	amysql/conn.html#zstdAvailable,Connection	conn: zstdAvailable(conn: Connection): bool	
 use_zstd	amysql/conn.html#use_zstd,Connection	conn: use_zstd(conn: Connection): bool	
-headerLen	amysql/conn.html#headerLen,Connection	conn: headerLen(conn: Connection): int	
 firstByte	amysql/conn.html#firstByte,Connection	conn: firstByte(conn: Connection): lent char	
+remainPacketLen	amysql/conn.html#remainPacketLen,Connection	conn: remainPacketLen(conn: Connection): int	
+zeroPos	amysql/conn.html#zeroPos,Connection	conn: zeroPos(conn: Connection)	
+incPos	amysql/conn.html#incPos,Connection,int	conn: incPos(conn: Connection; count = 1)	
 getPayloadLen	amysql/conn.html#getPayloadLen,Connection	conn: getPayloadLen(conn: Connection): int	
-resetPayloadLen	amysql/conn.html#resetPayloadLen,Connection	conn: resetPayloadLen(conn: Connection)	
+resetPacketLen	amysql/conn.html#resetPacketLen,Connection	conn: resetPacketLen(conn: Connection)	
+printBufInfo	amysql/conn.html#printBufInfo,Connection	conn: printBufInfo(conn: Connection)	

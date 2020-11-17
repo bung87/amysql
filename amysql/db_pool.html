@@ -101,13 +101,13 @@ function main() {
   <a class="reference reference-toplevel" href="#7" id="57">Types</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#DBPool"
-    title="DBPool = ref DBPoolObj"><wbr />DBPool<span class="attachedType"></span></a></li>
+    title="DBPool = ref DBPoolObj">DBPool</a></li>
   <li><a class="reference" href="#DBConn"
-    title="DBConn = ref DBConnObj"><wbr />DBConn<span class="attachedType"></span></a></li>
+    title="DBConn = ref DBConnObj">DBConn</a></li>
   <li><a class="reference" href="#DBSqlPrepared"
     title="DBSqlPrepared = object
   pstmt: SqlPrepared
-  dbConn: DBConn"><wbr />DBSql<wbr />Prepared<span class="attachedType"></span></a></li>
+  dbConn: DBConn">DBSqlPrepared</a></li>
 
   </ul>
 </li>
@@ -116,116 +116,116 @@ function main() {
   <ul class="simple simple-toc-section">
       <ul class="simple nested-toc-section">expired
       <li><a class="reference" href="#expired%2CDBConn%2CDuration"
-    title="expired(self: DBConn; timeout: Duration): bool">expired,DBConn,Duration<span class="attachedType">DBConn</span></a></li>
+    title="expired(self: DBConn; timeout: Duration): bool">expired,<wbr>DBConn,<wbr>Duration</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">fetchConn
       <li><a class="reference" href="#fetchConn%2CDBPool"
-    title="fetchConn(self: DBPool): Future[DBConn]">fetchConn,DBPool<span class="attachedType">DBPool</span></a></li>
+    title="fetchConn(self: DBPool): Future[DBConn]">fetchConn,<wbr>DBPool</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">close
       <li><a class="reference" href="#close%2CDBConn"
-    title="close(self: DBConn): owned(Future[void])">close,DBConn<span class="attachedType">DBConn</span></a></li>
+    title="close(self: DBConn): owned(Future[void])">close,<wbr>DBConn</a></li>
   <li><a class="reference" href="#close%2CDBPool"
-    title="close(self: DBPool): Future[void]">close,DBPool<span class="attachedType">DBPool</span></a></li>
+    title="close(self: DBPool): Future[void]">close,<wbr>DBPool</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">query
       <li><a class="reference" href="#query%2CDBPool%2CDBSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"
     title="query(self: DBPool; pstmt: DBSqlPrepared; params: varargs[SqlParam, asParam]): Future[
-    ResultSet[ResultValue]]">query,DBPool,DBSqlPrepared,varargs[SqlParam,asParam]<span class="attachedType">DBPool</span></a></li>
+    ResultSet[ResultValue]]">query,<wbr>DBPool,<wbr>DBSqlPrepared,<wbr>varargs[SqlParam,<wbr>asParam]</a></li>
   <li><a class="reference" href="#query%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D"
     title="query(conn: DBPool; query: SqlQuery; args: varargs[string, `$`];
-      onlyFirst: static[bool] = false): Future[ResultSet[string]]">query,DBPool,SqlQuery,varargs[string,],static[bool]<span class="attachedType">DBPool</span></a></li>
+      onlyFirst: static[bool] = false): Future[ResultSet[string]]">query,<wbr>DBPool,<wbr>SqlQuery,<wbr>varargs[string,<wbr>],<wbr>static[bool]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">tryQuery
       <li><a class="reference" href="#tryQuery%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="tryQuery(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]">tryQuery,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+    title="tryQuery(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[bool]">tryQuery,<wbr>DBPool,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">prepare
       <li><a class="reference" href="#prepare%2CDBPool%2Cstring"
-    title="prepare(self: DBPool; query: string): Future[DBSqlPrepared]">prepare,DBPool,string<span class="attachedType">DBPool</span></a></li>
+    title="prepare(self: DBPool; query: string): Future[DBSqlPrepared]">prepare,<wbr>DBPool,<wbr>string</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">getValue
       <li><a class="reference" href="#getValue%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="getValue(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    string]">getValue,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+    string]">getValue,<wbr>DBPool,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">getAllRows
       <li><a class="reference" href="#getAllRows%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="getAllRows(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    seq[Row]]">getAllRows,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+    seq[Row]]">getAllRows,<wbr>DBPool,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">reset
       <li><a class="reference" href="#reset%2CDBPool%2CDBSqlPrepared"
-    title="reset(self: DBPool; pstmt: DBSqlPrepared): Future[void]">reset,DBPool,DBSqlPrepared<span class="attachedType">DBPool</span></a></li>
+    title="reset(self: DBPool; pstmt: DBSqlPrepared): Future[void]">reset,<wbr>DBPool,<wbr>DBSqlPrepared</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">tryInsert
       <li><a class="reference" href="#tryInsert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
     title="tryInsert(conn: DBPool; query: SqlQuery; pkName: string;
-          args: varargs[string, `$`]): Future[int64]">tryInsert,DBPool,SqlQuery,string,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+          args: varargs[string, `$`]): Future[int64]">tryInsert,<wbr>DBPool,<wbr>SqlQuery,<wbr>string,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">newDBPool
       <li><a class="reference" href="#newDBPool"
-    title="newDBPool(uriStr: string | Uri): Future[DBPool]">newDBPool<span class="attachedType">DBPool</span></a></li>
+    title="newDBPool(uriStr: string | Uri): Future[DBPool]">newDBPool</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">insertId
       <li><a class="reference" href="#insertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="insertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    int64]">insertId,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+    int64]">insertId,<wbr>DBPool,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">rawExec
       <li><a class="reference" href="#rawExec%2CDBPool%2Cstring"
-    title="rawExec(self: DBPool; query: string): Future[ResultSet[string]]">rawExec,DBPool,string<span class="attachedType">DBPool</span></a></li>
+    title="rawExec(self: DBPool; query: string): Future[ResultSet[string]]">rawExec,<wbr>DBPool,<wbr>string</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">rawQuery
       <li><a class="reference" href="#rawQuery%2CDBPool%2Cstring%2Cstatic%5Bbool%5D"
     title="rawQuery(self: DBPool; query: string; onlyFirst: static[bool] = false): Future[
-    ResultSet[string]]">rawQuery,DBPool,string,static[bool]<span class="attachedType">DBPool</span></a></li>
+    ResultSet[string]]">rawQuery,<wbr>DBPool,<wbr>string,<wbr>static[bool]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">finalize
       <li><a class="reference" href="#finalize%2CDBPool%2CDBSqlPrepared"
-    title="finalize(self: DBPool; pstmt: DBSqlPrepared): Future[void]">finalize,DBPool,DBSqlPrepared<span class="attachedType">DBPool</span></a></li>
+    title="finalize(self: DBPool; pstmt: DBSqlPrepared): Future[void]">finalize,<wbr>DBPool,<wbr>DBSqlPrepared</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">insert
       <li><a class="reference" href="#insert%2CDBPool%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
     title="insert(conn: DBPool; query: SqlQuery; pkName: string; args: varargs[string, `$`]): Future[
-    int64]">insert,DBPool,SqlQuery,string,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+    int64]">insert,<wbr>DBPool,<wbr>SqlQuery,<wbr>string,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">exec
       <li><a class="reference" href="#exec%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="exec(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    ResultSet[string]]">exec,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+    ResultSet[string]]">exec,<wbr>DBPool,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">newDBConn
       <li><a class="reference" href="#newDBConn%2Cptr.Channel%5BDBResult%5D"
-    title="newDBConn(writer: ptr Channel[DBResult]): DBConn">newDBConn,ptr.Channel[DBResult]<span class="attachedType">DBConn</span></a></li>
+    title="newDBConn(writer: ptr Channel[DBResult]): DBConn">newDBConn,<wbr>ptr.Channel[DBResult]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">tryInsertId
       <li><a class="reference" href="#tryInsertId%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="tryInsertId(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[
-    int64]">tryInsertId,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+    int64]">tryInsertId,<wbr>DBPool,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">getRow
       <li><a class="reference" href="#getRow%2CDBPool%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="getRow(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]">getRow,DBPool,SqlQuery,varargs[string,]<span class="attachedType">DBPool</span></a></li>
+    title="getRow(conn: DBPool; query: SqlQuery; args: varargs[string, `$`]): Future[Row]">getRow,<wbr>DBPool,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
 
@@ -235,6 +235,7 @@ function main() {
 </ul>
 
   </div>
+  
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
   
@@ -478,7 +479,7 @@ same as insertId
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-06 08:52:05 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-17 23:56:49 UTC</small>
       </div>
     </div>
   </div>

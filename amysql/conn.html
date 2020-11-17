@@ -101,9 +101,9 @@ function main() {
   <a class="reference reference-toplevel" href="#7" id="57">Types</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#Version"
-    title="Version = distinct string"><wbr />Version<span class="attachedType"></span></a></li>
+    title="Version = distinct string">Version</a></li>
   <li><a class="reference" href="#Connection"
-    title="Connection = ref ConnectionObj"><wbr />Connection<span class="attachedType"></span></a></li>
+    title="Connection = ref ConnectionObj">Connection</a></li>
   <li><a class="reference" href="#ConnectionObj"
     title="ConnectionObj = object of RootObj
   socket*: AsyncSocket
@@ -123,10 +123,12 @@ function main() {
 
   buf*: seq[char]
   bufLen*: int
-  bufPos*: int
   payloadLen*: int
-  curPayloadLen*: int
-  connectAttrs*: Table[string, string]"><wbr />Connection<wbr />Obj<span class="attachedType"></span></a></li>
+  bufPos*: int
+  fullPacketLen*: int
+  curPacketLen*: int
+  connectAttrs*: Table[string, string]
+  hasMoreResults*: bool">ConnectionObj</a></li>
 
   </ul>
 </li>
@@ -134,11 +136,11 @@ function main() {
   <a class="reference reference-toplevel" href="#10" id="60">Consts</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#BasicClientCaps"
-    title="BasicClientCaps = {Cap.longPassword, Cap.protocol41, Cap.secureConnection}"><wbr />Basic<wbr />Client<wbr />Caps<span class="attachedType"></span></a></li>
+    title="BasicClientCaps = {Cap.longPassword, Cap.protocol41, Cap.secureConnection}">BasicClientCaps</a></li>
   <li><a class="reference" href="#TestWhileIdle"
-    title="TestWhileIdle = true"><wbr />Test<wbr />While<wbr />Idle<span class="attachedType"></span></a></li>
+    title="TestWhileIdle = true">TestWhileIdle</a></li>
   <li><a class="reference" href="#MysqlBufSize"
-    title="MysqlBufSize = 1024"><wbr />Mysql<wbr />Buf<wbr />Size<span class="attachedType"></span></a></li>
+    title="MysqlBufSize = 1024">MysqlBufSize</a></li>
 
   </ul>
 </li>
@@ -147,69 +149,84 @@ function main() {
   <ul class="simple simple-toc-section">
       <ul class="simple nested-toc-section">$
       <li><a class="reference" href="#%24%2CVersion"
-    title="`$`(ver: Version): string">$,Version<span class="attachedType">Version</span></a></li>
+    title="`$`(ver: Version): string">$,<wbr>Version</a></li>
   <li><a class="reference" href="#%24%2CConnection"
-    title="`$`(conn: Connection): string">$,Connection<span class="attachedType">Connection</span></a></li>
+    title="`$`(conn: Connection): string">$,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section"><=
       <li><a class="reference" href="#%3C%3D%2CVersion%2CVersion"
-    title="`&lt;=`(ver: Version; ver2: Version): bool"><=,Version,Version<span class="attachedType">Version</span></a></li>
+    title="`&lt;=`(ver: Version; ver2: Version): bool"><=,<wbr>Version,<wbr>Version</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">zstdAvailable
       <li><a class="reference" href="#zstdAvailable%2CConnection"
-    title="zstdAvailable(conn: Connection): bool">zstdAvailable,Connection<span class="attachedType">Connection</span></a></li>
+    title="zstdAvailable(conn: Connection): bool">zstdAvailable,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">getPayloadLen
       <li><a class="reference" href="#getPayloadLen%2CConnection"
-    title="getPayloadLen(conn: Connection): int">getPayloadLen,Connection<span class="attachedType">Connection</span></a></li>
+    title="getPayloadLen(conn: Connection): int">getPayloadLen,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">use_zstd
       <li><a class="reference" href="#use_zstd%2CConnection"
-    title="use_zstd(conn: Connection): bool">use_zstd,Connection<span class="attachedType">Connection</span></a></li>
+    title="use_zstd(conn: Connection): bool">use_zstd,<wbr>Connection</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">resetPayloadLen
-      <li><a class="reference" href="#resetPayloadLen%2CConnection"
-    title="resetPayloadLen(conn: Connection)">resetPayloadLen,Connection<span class="attachedType">Connection</span></a></li>
+  <ul class="simple nested-toc-section">remainPacketLen
+      <li><a class="reference" href="#remainPacketLen%2CConnection"
+    title="remainPacketLen(conn: Connection): int">remainPacketLen,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section"><
       <li><a class="reference" href="#%3C%2CVersion%2CVersion"
-    title="`&lt;`(ver: Version; ver2: Version): bool"><,Version,Version<span class="attachedType">Version</span></a></li>
+    title="`&lt;`(ver: Version; ver2: Version): bool"><,<wbr>Version,<wbr>Version</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">getDatabaseVersion
       <li><a class="reference" href="#getDatabaseVersion%2CConnection"
-    title="getDatabaseVersion(self: Connection): Version">getDatabaseVersion,Connection<span class="attachedType">Connection</span></a></li>
+    title="getDatabaseVersion(self: Connection): Version">getDatabaseVersion,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">>
       <li><a class="reference" href="#%3E%2CVersion%2CVersion"
-    title="`&gt;`(ver: Version; ver2: Version): bool">>,Version,Version<span class="attachedType">Version</span></a></li>
+    title="`&gt;`(ver: Version; ver2: Version): bool">>,<wbr>Version,<wbr>Version</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">printBufInfo
+      <li><a class="reference" href="#printBufInfo%2CConnection"
+    title="printBufInfo(conn: Connection)">printBufInfo,<wbr>Connection</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">resetPacketLen
+      <li><a class="reference" href="#resetPacketLen%2CConnection"
+    title="resetPacketLen(conn: Connection)">resetPacketLen,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">firstByte
       <li><a class="reference" href="#firstByte%2CConnection"
-    title="firstByte(conn: Connection): lent char">firstByte,Connection<span class="attachedType">Connection</span></a></li>
+    title="firstByte(conn: Connection): lent char">firstByte,<wbr>Connection</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">headerLen
-      <li><a class="reference" href="#headerLen%2CConnection"
-    title="headerLen(conn: Connection): int">headerLen,Connection<span class="attachedType">Connection</span></a></li>
+  <ul class="simple nested-toc-section">zeroPos
+      <li><a class="reference" href="#zeroPos%2CConnection"
+    title="zeroPos(conn: Connection)">zeroPos,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">isMaria
       <li><a class="reference" href="#isMaria%2CConnection"
-    title="isMaria(self: Connection): bool">isMaria,Connection<span class="attachedType">Connection</span></a></li>
+    title="isMaria(self: Connection): bool">isMaria,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">==
       <li><a class="reference" href="#%3D%3D%2CVersion%2CVersion"
-    title="`==`(ver: Version; ver2: Version): bool">==,Version,Version<span class="attachedType">Version</span></a></li>
+    title="`==`(ver: Version; ver2: Version): bool">==,<wbr>Version,<wbr>Version</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">incPos
+      <li><a class="reference" href="#incPos%2CConnection%2Cint"
+    title="incPos(conn: Connection; count = 1)">incPos,<wbr>Connection,<wbr>int</a></li>
 
   </ul>
 
@@ -219,7 +236,7 @@ function main() {
   <a class="reference reference-toplevel" href="#16" id="66">Converters</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#toBoolean.c%2CVersion"
-    title="toBoolean(ver: Version): bool"><wbr />to<wbr />Boolean<span class="attachedType">Version</span></a></li>
+    title="toBoolean(ver: Version): bool">toBoolean</a></li>
 
   </ul>
 </li>
@@ -227,6 +244,7 @@ function main() {
 </ul>
 
   </div>
+  
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
   
@@ -272,10 +290,12 @@ function main() {
 
   <span class="Identifier">buf</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">char</span><span class="Other">]</span>
   <span class="Identifier">bufLen</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">bufPos</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
   <span class="Identifier">payloadLen</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
-  <span class="Identifier">curPayloadLen</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
+  <span class="Identifier">bufPos</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
+  <span class="Identifier">fullPacketLen</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
+  <span class="Identifier">curPacketLen</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
   <span class="Identifier">connectAttrs</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">Table</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">hasMoreResults</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
 </pre></dt>
 <dd>
 
@@ -383,15 +403,29 @@ This is synced from Nimble's version module.
 
 
 </dd>
-<a id="headerLen,Connection"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#headerLen%2CConnection"><span class="Identifier">headerLen</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">int</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<a id="firstByte,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#firstByte%2CConnection"><span class="Identifier">firstByte</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">lent</span> <span class="Identifier">char</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="firstByte,Connection"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#firstByte%2CConnection"><span class="Identifier">firstByte</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">lent</span> <span class="Identifier">char</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<a id="remainPacketLen,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#remainPacketLen%2CConnection"><span class="Identifier">remainPacketLen</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">int</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="zeroPos,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#zeroPos%2CConnection"><span class="Identifier">zeroPos</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="incPos,Connection,int"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#incPos%2CConnection%2Cint"><span class="Identifier">incPos</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">count</span> <span class="Other">=</span> <span class="DecNumber">1</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -404,8 +438,15 @@ This is synced from Nimble's version module.
 
 
 </dd>
-<a id="resetPayloadLen,Connection"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#resetPayloadLen%2CConnection"><span class="Identifier">resetPayloadLen</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<a id="resetPacketLen,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#resetPacketLen%2CConnection"><span class="Identifier">resetPacketLen</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="printBufInfo,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#printBufInfo%2CConnection"><span class="Identifier">printBufInfo</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -433,7 +474,7 @@ This is synced from Nimble's version module.
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-06 08:52:03 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-17 23:56:46 UTC</small>
       </div>
     </div>
   </div>

@@ -504,13 +504,13 @@ function main() {
 <li><a class="reference external"
           data-doc-search-tag="protocol: HandshakePacket" href="amysql/private/protocol.html#HandshakePacket">protocol: HandshakePacket</a></li>
           </ul></dd>
-<dt><a name="headerLen" href="#headerLen"><span>headerLen:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="conn: headerLen(conn: Connection): int" href="amysql/conn.html#headerLen%2CConnection">conn: headerLen(conn: Connection): int</a></li>
-          </ul></dd>
 <dt><a name="hexdump" href="#hexdump"><span>hexdump:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="protocol: hexdump(buf: openArray[char]; fp: File)" href="amysql/private/protocol.html#hexdump%2CopenArray%5Bchar%5D%2CFile">protocol: hexdump(buf: openArray[char]; fp: File)</a></li>
+          </ul></dd>
+<dt><a name="incPos" href="#incPos"><span>incPos:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="conn: incPos(conn: Connection; count = 1)" href="amysql/conn.html#incPos%2CConnection%2Cint">conn: incPos(conn: Connection; count = 1)</a></li>
           </ul></dd>
 <dt><a name="initDate" href="#initDate"><span>initDate:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -550,9 +550,17 @@ function main() {
 <li><a class="reference external"
           data-doc-search-tag="protocol: isAuthSwitchRequestPacket(conn: Connection): bool" href="amysql/private/protocol.html#isAuthSwitchRequestPacket%2CConnection">protocol: isAuthSwitchRequestPacket(conn: Connection): bool</a></li>
           </ul></dd>
+<dt><a name="isEOF" href="#isEOF"><span>isEOF:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: isEOF(stats: ResponseOK): bool" href="amysql/private/protocol.html#isEOF%2CResponseOK">protocol: isEOF(stats: ResponseOK): bool</a></li>
+          </ul></dd>
 <dt><a name="isEOFPacket" href="#isEOFPacket"><span>isEOFPacket:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="protocol: isEOFPacket(conn: Connection): bool" href="amysql/private/protocol.html#isEOFPacket%2CConnection">protocol: isEOFPacket(conn: Connection): bool</a></li>
+          </ul></dd>
+<dt><a name="isEOFPacketFollowed" href="#isEOFPacketFollowed"><span>isEOFPacketFollowed:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: isEOFPacketFollowed(conn: Connection): bool" href="amysql/private/protocol.html#isEOFPacketFollowed%2CConnection">protocol: isEOFPacketFollowed(conn: Connection): bool</a></li>
           </ul></dd>
 <dt><a name="isERRPacket" href="#isERRPacket"><span>isERRPacket:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -664,6 +672,10 @@ function main() {
           <li><a class="reference external"
           data-doc-search-tag="db_pool: prepare(self: DBPool; query: string): Future[DBSqlPrepared]" href="amysql/db_pool.html#prepare%2CDBPool%2Cstring">db_pool: prepare(self: DBPool; query: string): Future[DBSqlPrepared]</a></li>
           </ul></dd>
+<dt><a name="printBufInfo" href="#printBufInfo"><span>printBufInfo:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="conn: printBufInfo(conn: Connection)" href="amysql/conn.html#printBufInfo%2CConnection">conn: printBufInfo(conn: Connection)</a></li>
+          </ul></dd>
 <dt><a name="processMetadata" href="#processMetadata"><span>processMetadata:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="protocol: processMetadata(conn: Connection; meta: var seq[ColumnDefinition]; index: int)" href="amysql/private/protocol.html#processMetadata%2CConnection%2Cseq%5BColumnDefinition%5D%2Cint">protocol: processMetadata(conn: Connection; meta: var seq[ColumnDefinition]; index: int)</a></li>
@@ -744,9 +756,9 @@ function main() {
     ResultSet[ResultValue]]" href="amysql.html#query%2CConnection%2CSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D">amysql: query(conn: Connection; pstmt: SqlPrepared; params: varargs[SqlParam, asParam]): Future[
     ResultSet[ResultValue]]</a></li>
           <li><a class="reference external"
-          data-doc-search-tag="amysql: query(conn: Connection; qs: SqlQuery; args: varargs[string, `$`];
-      onlyFirst: static[bool] = false): Future[ResultSet[string]]" href="amysql.html#query%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D">amysql: query(conn: Connection; qs: SqlQuery; args: varargs[string, `$`];
-      onlyFirst: static[bool] = false): Future[ResultSet[string]]</a></li>
+          data-doc-search-tag="amysql: query(conn: Connection; qs: SqlQuery; onlyFirst: static[bool] = false;
+      args: varargs[string, `$`]): Future[ResultSet[string]]" href="amysql.html#query%2CConnection%2CSqlQuery%2Cstatic%5Bbool%5D%2Cvarargs%5Bstring%2C%5D">amysql: query(conn: Connection; qs: SqlQuery; onlyFirst: static[bool] = false;
+      args: varargs[string, `$`]): Future[ResultSet[string]]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="async_pool: query(pool: AsyncPool; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[
     void]" href="amysql/async_pool.html#query%2CAsyncPool%2CSqlPrepared%2CopenArray%5Bstatic%5BSqlParam%5D%5D">async_pool: query(pool: AsyncPool; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[
@@ -822,15 +834,25 @@ function main() {
 <li><a class="reference external"
           data-doc-search-tag="protocol: receivePacket(conn: Connection; drop_ok: bool = false): owned(Future[void])" href="amysql/private/protocol.html#receivePacket%2CConnection%2Cbool">protocol: receivePacket(conn: Connection; drop_ok: bool = false): owned(Future[void])</a></li>
           </ul></dd>
+<dt><a name="remainPacketLen" href="#remainPacketLen"><span>remainPacketLen:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="conn: remainPacketLen(conn: Connection): int" href="amysql/conn.html#remainPacketLen%2CConnection">conn: remainPacketLen(conn: Connection): int</a></li>
+          </ul></dd>
 <dt><a name="reset" href="#reset"><span>reset:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
+          data-doc-search-tag="amysql: reset(conn: Connection): Future[ResultSet[string]]" href="amysql.html#reset%2CConnection">amysql: reset(conn: Connection): Future[ResultSet[string]]</a></li>
+          <li><a class="reference external"
           data-doc-search-tag="amysql: reset(conn: Connection; pstmt: SqlPrepared): Future[void]" href="amysql.html#reset%2CConnection%2CSqlPrepared">amysql: reset(conn: Connection; pstmt: SqlPrepared): Future[void]</a></li>
           <li><a class="reference external"
           data-doc-search-tag="db_pool: reset(self: DBPool; pstmt: DBSqlPrepared): Future[void]" href="amysql/db_pool.html#reset%2CDBPool%2CDBSqlPrepared">db_pool: reset(self: DBPool; pstmt: DBSqlPrepared): Future[void]</a></li>
           </ul></dd>
-<dt><a name="resetPayloadLen" href="#resetPayloadLen"><span>resetPayloadLen:</span></a></dt><dd><ul class="simple">
+<dt><a name="ResetConnection" href="#ResetConnection"><span>ResetConnection:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="conn: resetPayloadLen(conn: Connection)" href="amysql/conn.html#resetPayloadLen%2CConnection">conn: resetPayloadLen(conn: Connection)</a></li>
+          data-doc-search-tag="amysql: ResetConnection" href="amysql.html#ResetConnection">amysql: ResetConnection</a></li>
+          </ul></dd>
+<dt><a name="resetPacketLen" href="#resetPacketLen"><span>resetPacketLen:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="conn: resetPacketLen(conn: Connection)" href="amysql/conn.html#resetPacketLen%2CConnection">conn: resetPacketLen(conn: Connection)</a></li>
           </ul></dd>
 <dt><a name="ResponseAuthMore" href="#ResponseAuthMore"><span>ResponseAuthMore:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -950,6 +972,14 @@ function main() {
 <li><a class="reference external"
           data-doc-search-tag="protocol: sendQuery(conn: Connection; query: string): Future[void]" href="amysql/private/protocol.html#sendQuery%2CConnection%2Cstring">protocol: sendQuery(conn: Connection; query: string): Future[void]</a></li>
           </ul></dd>
+<dt><a name="SessionState" href="#SessionState"><span>SessionState:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: SessionState" href="amysql/private/protocol.html#SessionState">protocol: SessionState</a></li>
+          </ul></dd>
+<dt><a name="SessionStateType" href="#SessionStateType"><span>SessionStateType:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="protocol: SessionStateType" href="amysql/private/protocol.html#SessionStateType">protocol: SessionStateType</a></li>
+          </ul></dd>
 <dt><a name="setEncoding" href="#setEncoding"><span>setEncoding:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="amysql: setEncoding(conn: Connection; encoding: string): Future[bool]" href="amysql.html#setEncoding%2CConnection%2Cstring">amysql: setEncoding(conn: Connection; encoding: string): Future[bool]</a></li>
@@ -977,10 +1007,6 @@ function main() {
 <dt><a name="startTransaction" href="#startTransaction"><span>startTransaction:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="amysql: startTransaction(conn: Connection): owned(Future[void])" href="amysql.html#startTransaction%2CConnection">amysql: startTransaction(conn: Connection): owned(Future[void])</a></li>
-          </ul></dd>
-<dt><a name="Status" href="#Status"><span>Status:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="protocol: Status" href="amysql/private/protocol.html#Status">protocol: Status</a></li>
           </ul></dd>
 <dt><a name="TestWhileIdle" href="#TestWhileIdle"><span>TestWhileIdle:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -1060,6 +1086,10 @@ function main() {
           <li><a class="reference external"
           data-doc-search-tag="protocol: writeTypeAndFlag(buf: var string; intVal: uint64)" href="amysql/private/protocol.html#writeTypeAndFlag%2Cstring%2Cuint64">protocol: writeTypeAndFlag(buf: var string; intVal: uint64)</a></li>
           </ul></dd>
+<dt><a name="zeroPos" href="#zeroPos"><span>zeroPos:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="conn: zeroPos(conn: Connection)" href="amysql/conn.html#zeroPos%2CConnection">conn: zeroPos(conn: Connection)</a></li>
+          </ul></dd>
 <dt><a name="zstdAvailable" href="#zstdAvailable"><span>zstdAvailable:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="conn: zstdAvailable(conn: Connection): bool" href="amysql/conn.html#zstdAvailable%2CConnection">conn: zstdAvailable(conn: Connection): bool</a></li>
@@ -1069,7 +1099,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-06 08:52:05 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-17 23:56:49 UTC</small>
       </div>
     </div>
   </div>

@@ -125,13 +125,13 @@ function main() {
       datetimeVal: DateTime
 
   of paramTime:
-      durVal: Duration"><wbr />Sql<wbr />Param<span class="attachedType"></span></a></li>
+      durVal: Duration">SqlParam</a></li>
   <li><a class="reference" href="#SqlPrepared"
-    title="SqlPrepared = ref SqlPreparedObj"><wbr />Sql<wbr />Prepared<span class="attachedType"></span></a></li>
+    title="SqlPrepared = ref SqlPreparedObj">SqlPrepared</a></li>
   <li><a class="reference" href="#Row"
-    title="Row = seq[string]"><wbr />Row<span class="attachedType"></span></a></li>
+    title="Row = seq[string]">Row</a></li>
   <li><a class="reference" href="#Date"
-    title="Date = object of DateTime"><wbr />Date<span class="attachedType"></span></a></li>
+    title="Date = object of DateTime">Date</a></li>
   <li><a class="reference" href="#ResultValue"
     title="ResultValue = object
   case typ: ResultValueType
@@ -160,7 +160,15 @@ function main() {
       durVal: Duration
 
   of rvtDate, rvtDateTime, rvtTimestamp:
-      datetimeVal: DateTime"><wbr />Result<wbr />Value<span class="attachedType"></span></a></li>
+      datetimeVal: DateTime">ResultValue</a></li>
+
+  </ul>
+</li>
+<li>
+  <a class="reference reference-toplevel" href="#10" id="60">Consts</a>
+  <ul class="simple simple-toc-section">
+      <li><a class="reference" href="#ResetConnection"
+    title="ResetConnection = true">ResetConnection</a></li>
 
   </ul>
 </li>
@@ -169,178 +177,180 @@ function main() {
   <ul class="simple simple-toc-section">
       <ul class="simple nested-toc-section">selectDatabase
       <li><a class="reference" href="#selectDatabase%2CConnection%2Cstring"
-    title="selectDatabase(conn: Connection; database: string): Future[ResponseOK]">selectDatabase,Connection,string<span class="attachedType"></span></a></li>
+    title="selectDatabase(conn: Connection; database: string): Future[ResponseOK]">selectDatabase,<wbr>Connection,<wbr>string</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">asParam
       <li><a class="reference" href="#asParam%2Cstring"
-    title="asParam(s: string): SqlParam">asParam,string<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(s: string): SqlParam">asParam,<wbr>string</a></li>
   <li><a class="reference" href="#asParam%2Cint"
-    title="asParam(i: int): SqlParam">asParam,int<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(i: int): SqlParam">asParam,<wbr>int</a></li>
   <li><a class="reference" href="#asParam%2Cuint"
-    title="asParam(i: uint): SqlParam">asParam,uint<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(i: uint): SqlParam">asParam,<wbr>uint</a></li>
   <li><a class="reference" href="#asParam%2Cint64"
-    title="asParam(i: int64): SqlParam">asParam,int64<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(i: int64): SqlParam">asParam,<wbr>int64</a></li>
   <li><a class="reference" href="#asParam%2Cuint64"
-    title="asParam(i: uint64): SqlParam">asParam,uint64<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(i: uint64): SqlParam">asParam,<wbr>uint64</a></li>
   <li><a class="reference" href="#asParam%2Cfloat32"
-    title="asParam(f: float32): SqlParam">asParam,float32<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(f: float32): SqlParam">asParam,<wbr>float32</a></li>
   <li><a class="reference" href="#asParam%2Cfloat64"
-    title="asParam(f: float64): SqlParam">asParam,float64<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(f: float64): SqlParam">asParam,<wbr>float64</a></li>
   <li><a class="reference" href="#asParam%2CDateTime"
-    title="asParam(d: DateTime): SqlParam">asParam,DateTime<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(d: DateTime): SqlParam">asParam,<wbr>DateTime</a></li>
   <li><a class="reference" href="#asParam%2CDate"
-    title="asParam(d: Date): SqlParam">asParam,Date<span class="attachedType">Date</span></a></li>
+    title="asParam(d: Date): SqlParam">asParam,<wbr>Date</a></li>
   <li><a class="reference" href="#asParam%2CTime"
-    title="asParam(d: Time): SqlParam">asParam,Time<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(d: Time): SqlParam">asParam,<wbr>Time</a></li>
   <li><a class="reference" href="#asParam%2CDuration"
-    title="asParam(d: Duration): SqlParam">asParam,Duration<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(d: Duration): SqlParam">asParam,<wbr>Duration</a></li>
   <li><a class="reference" href="#asParam%2CJsonNode"
-    title="asParam(d: JsonNode): SqlParam">asParam,JsonNode<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(d: JsonNode): SqlParam">asParam,<wbr>JsonNode</a></li>
   <li><a class="reference" href="#asParam%2CMyGeometry"
-    title="asParam(d: MyGeometry): SqlParam">asParam,MyGeometry<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(d: MyGeometry): SqlParam">asParam,<wbr>MyGeometry</a></li>
   <li><a class="reference" href="#asParam%2Cbool"
-    title="asParam(b: bool): SqlParam">asParam,bool<span class="attachedType">SqlParam</span></a></li>
+    title="asParam(b: bool): SqlParam">asParam,<wbr>bool</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">isNull
       <li><a class="reference" href="#isNull%2CResultValue"
-    title="isNull(v: ResultValue): bool">isNull,ResultValue<span class="attachedType">ResultValue</span></a></li>
+    title="isNull(v: ResultValue): bool">isNull,<wbr>ResultValue</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">performPreparedQuery
       <li><a class="reference" href="#performPreparedQuery%2CConnection%2CSqlPrepared%2CFuture%5Bvoid%5D%2Cstatic%5Bbool%5D"
     title="performPreparedQuery(conn: Connection; pstmt: SqlPrepared; st: Future[void];
                      onlyFirst: static[bool] = false): Future[
-    ResultSet[ResultValue]]">performPreparedQuery,Connection,SqlPrepared,Future[void],static[bool]<span class="attachedType">ResultValue</span></a></li>
+    ResultSet[ResultValue]]">performPreparedQuery,<wbr>Connection,<wbr>SqlPrepared,<wbr>Future[void],<wbr>static[bool]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">$
       <li><a class="reference" href="#%24%2CResultValue"
-    title="`$`(v: ResultValue): string">$,ResultValue<span class="attachedType">ResultValue</span></a></li>
+    title="`$`(v: ResultValue): string">$,<wbr>ResultValue</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">setEncoding
       <li><a class="reference" href="#setEncoding%2CConnection%2Cstring"
-    title="setEncoding(conn: Connection; encoding: string): Future[bool]">setEncoding,Connection,string<span class="attachedType"></span></a></li>
+    title="setEncoding(conn: Connection; encoding: string): Future[bool]">setEncoding,<wbr>Connection,<wbr>string</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">startTransaction
       <li><a class="reference" href="#startTransaction%2CConnection"
-    title="startTransaction(conn: Connection): owned(Future[void])">startTransaction,Connection<span class="attachedType"></span></a></li>
+    title="startTransaction(conn: Connection): owned(Future[void])">startTransaction,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">query
       <li><a class="reference" href="#query%2CConnection%2CSqlPrepared%2CopenArray%5Bstatic%5BSqlParam%5D%5D"
     title="query(conn: Connection; pstmt: SqlPrepared; params: openArray[static[SqlParam]]): Future[
-    void]">query,Connection,SqlPrepared,openArray[static[SqlParam]]<span class="attachedType">SqlPrepared</span></a></li>
+    void]">query,<wbr>Connection,<wbr>SqlPrepared,<wbr>openArray[static[SqlParam]]</a></li>
   <li><a class="reference" href="#query%2CConnection%2CSqlPrepared%2Cvarargs%5BSqlParam%2CasParam%5D"
     title="query(conn: Connection; pstmt: SqlPrepared; params: varargs[SqlParam, asParam]): Future[
-    ResultSet[ResultValue]]">query,Connection,SqlPrepared,varargs[SqlParam,asParam]<span class="attachedType">ResultValue</span></a></li>
-  <li><a class="reference" href="#query%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D"
-    title="query(conn: Connection; qs: SqlQuery; args: varargs[string, `$`];
-      onlyFirst: static[bool] = false): Future[ResultSet[string]]">query,Connection,SqlQuery,varargs[string,],static[bool]<span class="attachedType"></span></a></li>
+    ResultSet[ResultValue]]">query,<wbr>Connection,<wbr>SqlPrepared,<wbr>varargs[SqlParam,<wbr>asParam]</a></li>
+  <li><a class="reference" href="#query%2CConnection%2CSqlQuery%2Cstatic%5Bbool%5D%2Cvarargs%5Bstring%2C%5D"
+    title="query(conn: Connection; qs: SqlQuery; onlyFirst: static[bool] = false;
+      args: varargs[string, `$`]): Future[ResultSet[string]]">query,<wbr>Connection,<wbr>SqlQuery,<wbr>static[bool],<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">tryQuery
       <li><a class="reference" href="#tryQuery%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="tryQuery(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[
-    bool]">tryQuery,Connection,SqlQuery,varargs[string,]<span class="attachedType"></span></a></li>
+    bool]">tryQuery,<wbr>Connection,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">prepare
       <li><a class="reference" href="#prepare%2CConnection%2Cstring"
-    title="prepare(conn: Connection; qs: string): Future[SqlPrepared]">prepare,Connection,string<span class="attachedType">SqlPrepared</span></a></li>
+    title="prepare(conn: Connection; qs: string): Future[SqlPrepared]">prepare,<wbr>Connection,<wbr>string</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">commit
       <li><a class="reference" href="#commit%2CConnection"
-    title="commit(conn: Connection): owned(Future[void])">commit,Connection<span class="attachedType"></span></a></li>
+    title="commit(conn: Connection): owned(Future[void])">commit,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">getValue
       <li><a class="reference" href="#getValue%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="getValue(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[
-    string]">getValue,Connection,SqlQuery,varargs[string,]<span class="attachedType"></span></a></li>
+    string]">getValue,<wbr>Connection,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">getAllRows
       <li><a class="reference" href="#getAllRows%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="getAllRows(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[
-    seq[Row]]">getAllRows,Connection,SqlQuery,varargs[string,]<span class="attachedType">Row</span></a></li>
+    seq[Row]]">getAllRows,<wbr>Connection,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">reset
       <li><a class="reference" href="#reset%2CConnection%2CSqlPrepared"
-    title="reset(conn: Connection; pstmt: SqlPrepared): Future[void]">reset,Connection,SqlPrepared<span class="attachedType">SqlPrepared</span></a></li>
+    title="reset(conn: Connection; pstmt: SqlPrepared): Future[void]">reset,<wbr>Connection,<wbr>SqlPrepared</a></li>
+  <li><a class="reference" href="#reset%2CConnection"
+    title="reset(conn: Connection): Future[ResultSet[string]]">reset,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">tryInsert
       <li><a class="reference" href="#tryInsert%2CConnection%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
     title="tryInsert(conn: Connection; qs: SqlQuery; pkName: string;
-          args: varargs[string, `$`]): Future[int64]">tryInsert,Connection,SqlQuery,string,varargs[string,]<span class="attachedType"></span></a></li>
+          args: varargs[string, `$`]): Future[int64]">tryInsert,<wbr>Connection,<wbr>SqlQuery,<wbr>string,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">formatBoundParams
       <li><a class="reference" href="#formatBoundParams%2CConnection%2CSqlPrepared%2CopenArray%5BSqlParam%5D"
     title="formatBoundParams(conn: Connection; pstmt: SqlPrepared;
-                  params: openArray[SqlParam]): string">formatBoundParams,Connection,SqlPrepared,openArray[SqlParam]<span class="attachedType">SqlPrepared</span></a></li>
+                  params: openArray[SqlParam]): string">formatBoundParams,<wbr>Connection,<wbr>SqlPrepared,<wbr>openArray[SqlParam]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">insertId
       <li><a class="reference" href="#insertId%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="insertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[
-    int64]">insertId,Connection,SqlQuery,varargs[string,]<span class="attachedType"></span></a></li>
+    int64]">insertId,<wbr>Connection,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">rawExec
       <li><a class="reference" href="#rawExec%2CConnection%2Cstring"
-    title="rawExec(conn: Connection; qs: string): Future[ResultSet[string]]">rawExec,Connection,string<span class="attachedType"></span></a></li>
+    title="rawExec(conn: Connection; qs: string): Future[ResultSet[string]]">rawExec,<wbr>Connection,<wbr>string</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">rawQuery
       <li><a class="reference" href="#rawQuery%2CConnection%2Cstring%2Cbool"
     title="rawQuery(conn: Connection; qs: string; onlyFirst: bool = false): Future[
-    ResultSet[string]]">rawQuery,Connection,string,bool<span class="attachedType"></span></a></li>
+    ResultSet[string]]">rawQuery,<wbr>Connection,<wbr>string,<wbr>bool</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">finalize
       <li><a class="reference" href="#finalize%2CConnection%2CSqlPrepared"
-    title="finalize(conn: Connection; pstmt: SqlPrepared): Future[void]">finalize,Connection,SqlPrepared<span class="attachedType">SqlPrepared</span></a></li>
+    title="finalize(conn: Connection; pstmt: SqlPrepared): Future[void]">finalize,<wbr>Connection,<wbr>SqlPrepared</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">insert
       <li><a class="reference" href="#insert%2CConnection%2CSqlQuery%2Cstring%2Cvarargs%5Bstring%2C%5D"
     title="insert(conn: Connection; qs: SqlQuery; pkName: string;
-       args: varargs[string, `$`]): Future[int64]">insert,Connection,SqlQuery,string,varargs[string,]<span class="attachedType"></span></a></li>
+       args: varargs[string, `$`]): Future[int64]">insert,<wbr>Connection,<wbr>SqlQuery,<wbr>string,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">exec
       <li><a class="reference" href="#exec%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="exec(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[
-    ResultSet[string]]">exec,Connection,SqlQuery,varargs[string,]<span class="attachedType"></span></a></li>
+    ResultSet[string]]">exec,<wbr>Connection,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">rollback
       <li><a class="reference" href="#rollback%2CConnection"
-    title="rollback(conn: Connection): owned(Future[void])">rollback,Connection<span class="attachedType"></span></a></li>
+    title="rollback(conn: Connection): owned(Future[void])">rollback,<wbr>Connection</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">tryInsertId
       <li><a class="reference" href="#tryInsertId%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
     title="tryInsertId(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[
-    int64]">tryInsertId,Connection,SqlQuery,varargs[string,]<span class="attachedType"></span></a></li>
+    int64]">tryInsertId,<wbr>Connection,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">getRow
       <li><a class="reference" href="#getRow%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D"
-    title="getRow(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]">getRow,Connection,SqlQuery,varargs[string,]<span class="attachedType">Row</span></a></li>
+    title="getRow(conn: Connection; qs: SqlQuery; args: varargs[string, `$`]): Future[Row]">getRow,<wbr>Connection,<wbr>SqlQuery,<wbr>varargs[string,<wbr>]</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">initDate
       <li><a class="reference" href="#initDate%2CMonthdayRange%2CMonth%2Cint%2CTimezone"
     title="initDate(monthday: MonthdayRange; month: Month; year: int;
-         zone: Timezone = local()): Date">initDate,MonthdayRange,Month,int,Timezone<span class="attachedType">Date</span></a></li>
+         zone: Timezone = local()): Date">initDate,<wbr>MonthdayRange,<wbr>Month,<wbr>int,<wbr>Timezone</a></li>
 
   </ul>
 
@@ -350,35 +360,35 @@ function main() {
   <a class="reference reference-toplevel" href="#16" id="66">Converters</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#asInt8.c%2CResultValue"
-    title="asInt8(v: ResultValue): int8"><wbr />as<wbr />Int8<span class="attachedType">ResultValue</span></a></li>
+    title="asInt8(v: ResultValue): int8">asInt8</a></li>
   <li><a class="reference" href="#asInt.c%2CResultValue"
-    title="asInt(v: ResultValue): int"><wbr />as<wbr />Int<span class="attachedType">ResultValue</span></a></li>
+    title="asInt(v: ResultValue): int">asInt</a></li>
   <li><a class="reference" href="#asUInt.c%2CResultValue"
-    title="asUInt(v: ResultValue): uint"><wbr />as<wbr />UInt<span class="attachedType">ResultValue</span></a></li>
+    title="asUInt(v: ResultValue): uint">asUInt</a></li>
   <li><a class="reference" href="#asInt64.c%2CResultValue"
-    title="asInt64(v: ResultValue): int64"><wbr />as<wbr />Int64<span class="attachedType">ResultValue</span></a></li>
+    title="asInt64(v: ResultValue): int64">asInt64</a></li>
   <li><a class="reference" href="#asUint64.c%2CResultValue"
-    title="asUint64(v: ResultValue): uint64"><wbr />as<wbr />Uint64<span class="attachedType">ResultValue</span></a></li>
+    title="asUint64(v: ResultValue): uint64">asUint64</a></li>
   <li><a class="reference" href="#asFloat.c%2CResultValue"
-    title="asFloat(v: ResultValue): float32"><wbr />as<wbr />Float<span class="attachedType">ResultValue</span></a></li>
+    title="asFloat(v: ResultValue): float32">asFloat</a></li>
   <li><a class="reference" href="#asDouble.c%2CResultValue"
-    title="asDouble(v: ResultValue): float64"><wbr />as<wbr />Double<span class="attachedType">ResultValue</span></a></li>
+    title="asDouble(v: ResultValue): float64">asDouble</a></li>
   <li><a class="reference" href="#asString.c%2CResultValue"
-    title="asString(v: ResultValue): string"><wbr />as<wbr />String<span class="attachedType">ResultValue</span></a></li>
+    title="asString(v: ResultValue): string">asString</a></li>
   <li><a class="reference" href="#asDateTime.c%2CResultValue"
-    title="asDateTime(v: ResultValue): DateTime"><wbr />as<wbr />Date<wbr />Time<span class="attachedType">ResultValue</span></a></li>
+    title="asDateTime(v: ResultValue): DateTime">asDateTime</a></li>
   <li><a class="reference" href="#asDate.c%2CResultValue"
-    title="asDate(v: ResultValue): Date"><wbr />as<wbr />Date<span class="attachedType">ResultValue</span></a></li>
+    title="asDate(v: ResultValue): Date">asDate</a></li>
   <li><a class="reference" href="#asTime.c%2CResultValue"
-    title="asTime(v: ResultValue): Time"><wbr />as<wbr />Time<span class="attachedType">ResultValue</span></a></li>
+    title="asTime(v: ResultValue): Time">asTime</a></li>
   <li><a class="reference" href="#asDuration.c%2CResultValue"
-    title="asDuration(v: ResultValue): Duration"><wbr />as<wbr />Duration<span class="attachedType">ResultValue</span></a></li>
+    title="asDuration(v: ResultValue): Duration">asDuration</a></li>
   <li><a class="reference" href="#asMyGeometry.c%2CResultValue"
-    title="asMyGeometry(v: ResultValue): MyGeometry"><wbr />as<wbr />My<wbr />Geometry<span class="attachedType">ResultValue</span></a></li>
+    title="asMyGeometry(v: ResultValue): MyGeometry">asMyGeometry</a></li>
   <li><a class="reference" href="#asBool.c%2CResultValue"
-    title="asBool(v: ResultValue): bool"><wbr />as<wbr />Bool<span class="attachedType">ResultValue</span></a></li>
+    title="asBool(v: ResultValue): bool">asBool</a></li>
   <li><a class="reference" href="#asJson.c%2CResultValue"
-    title="asJson(v: ResultValue): JsonNode"><wbr />as<wbr />Json<span class="attachedType">ResultValue</span></a></li>
+    title="asJson(v: ResultValue): JsonNode">asJson</a></li>
 
   </ul>
 </li>
@@ -386,7 +396,7 @@ function main() {
   <a class="reference reference-toplevel" href="#17" id="67">Macros</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#asParam.m%2Cuntyped"
-    title="asParam(s: untyped): untyped"><wbr />as<wbr />Param<span class="attachedType"></span></a></li>
+    title="asParam(s: untyped): untyped">asParam</a></li>
 
   </ul>
 </li>
@@ -394,7 +404,7 @@ function main() {
   <a class="reference reference-toplevel" href="#18" id="68">Templates</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#transaction.t%2Ctyped%2Cuntyped"
-    title="transaction(conn: typed; process: untyped)"><wbr />transaction<span class="attachedType"></span></a></li>
+    title="transaction(conn: typed; process: untyped)">transaction</a></li>
 
   </ul>
 </li>
@@ -408,6 +418,7 @@ function main() {
 </ul>
 
   </div>
+  
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
   
@@ -419,7 +430,7 @@ function main() {
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
-<a class="reference external" href="amysql/private/protocol.html">amysql/private/protocol</a>, <a class="reference external" href="amysql/private/format.html">amysql/private/format</a>, <a class="reference external" href="amysql/conn.html">amysql/conn</a>, <a class="reference external" href="amysql/conn_connection.html">amysql/conn_connection</a>, <a class="reference external" href="amysql/private/json_sql_format.html">amysql/private/json_sql_format</a>, <a class="reference external" href="amysql/private/my_geometry.html">amysql/private/my_geometry</a>, <a class="reference external" href="amysql/private/quote.html">amysql/private/quote</a>, <a class="reference external" href="amysql/private/errors.html">amysql/private/errors</a>, <a class="reference external" href="amysql/async_varargs.html">amysql/async_varargs</a>
+<a class="reference external" href="amysql/private/protocol.html">amysql/private/protocol</a>, <a class="reference external" href="amysql/private/format.html">amysql/private/format</a>, <a class="reference external" href="amysql/conn.html">amysql/conn</a>, <a class="reference external" href="amysql/conn_connection.html">amysql/conn_connection</a>, <a class="reference external" href="amysql/private/json_sql_format.html">amysql/private/json_sql_format</a>, <a class="reference external" href="amysql/private/my_geometry.html">amysql/private/my_geometry</a>, <a class="reference external" href="amysql/private/quote.html">amysql/private/quote</a>, <a class="reference external" href="amysql/private/errors.html">amysql/private/errors</a>, <a class="reference external" href="amysql/async_varargs.html">amysql/async_varargs</a>, <a class="reference external" href="amysql/private/logger.html">amysql/private/logger</a>
 </dl></div>
 <div class="section" id="7">
 <h1><a class="toc-backref" href="#7">Types</a></h1>
@@ -509,6 +520,18 @@ This represents a value we're sending to the server as a parameter. Since parame
       <span class="Identifier">datetimeVal</span><span class="Other">:</span> <span class="Identifier">DateTime</span>
 
   </pre></dt>
+<dd>
+
+
+
+</dd>
+
+</dl></div>
+<div class="section" id="10">
+<h1><a class="toc-backref" href="#10">Consts</a></h1>
+<dl class="item">
+<a id="ResetConnection"></a>
+<dt><pre><a href="amysql.html#ResetConnection"><span class="Identifier">ResetConnection</span></a> <span class="Other">=</span> <span class="DecNumber">true</span></pre></dt>
 <dd>
 
 
@@ -664,6 +687,15 @@ This represents a value we're sending to the server as a parameter. Since parame
 
 
 </dd>
+<a id="reset,Connection"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#reset%2CConnection"><span class="Identifier">reset</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="amysql/conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="amysql/private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
 <a id="formatBoundParams,Connection,SqlPrepared,openArray[SqlParam]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#formatBoundParams%2CConnection%2CSqlPrepared%2CopenArray%5BSqlParam%5D"><span class="Identifier">formatBoundParams</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="amysql/conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">pstmt</span><span class="Other">:</span> <a href="amysql.html#SqlPrepared"><span class="Identifier">SqlPrepared</span></a><span class="Other">;</span>
                        <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><a href="amysql.html#SqlParam"><span class="Identifier">SqlParam</span></a><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
@@ -736,9 +768,9 @@ see <a class="reference external" href="https://mariadb.com/kb/en/com_stmt_execu
 
 
 </dd>
-<a id="query,Connection,SqlQuery,varargs[string,],static[bool]"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#query%2CConnection%2CSqlQuery%2Cvarargs%5Bstring%2C%5D%2Cstatic%5Bbool%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="amysql/conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">;</span>
-           <span class="Identifier">onlyFirst</span><span class="Other">:</span> <span class="Identifier">static</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="amysql/private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span></pre></dt>
+<a id="query,Connection,SqlQuery,static[bool],varargs[string,]"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#query%2CConnection%2CSqlQuery%2Cstatic%5Bbool%5D%2Cvarargs%5Bstring%2C%5D"><span class="Identifier">query</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="amysql/conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">qs</span><span class="Other">:</span> <span class="Identifier">SqlQuery</span><span class="Other">;</span> <span class="Identifier">onlyFirst</span><span class="Other">:</span> <span class="Identifier">static</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span>
+           <span class="Identifier">args</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Other">`</span><span class="Operator">$</span><span class="Other">`</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><a href="amysql/private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span></pre></dt>
 <dd>
 
 
@@ -957,7 +989,7 @@ sets the encoding of a database connection, returns true for success, false for 
 </dd>
 <a id="asJson.c,ResultValue"></a>
 <dt><pre><span class="Keyword">converter</span> <a href="#asJson.c%2CResultValue"><span class="Identifier">asJson</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <a href="amysql.html#ResultValue"><span class="Identifier">ResultValue</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">JsonNode</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
@@ -993,7 +1025,7 @@ experimental
 <div class="section" id="19">
 <h1><a class="toc-backref" href="#19">Exports</a></h1>
 <dl class="item">
-<a href="amysql/private/protocol.html#ResponseAuthSwitch"><span class="Identifier">ResponseAuthSwitch</span></a>, <a href="amysql/private/protocol.html#scanU32"><span class="Identifier">scanU32</span></a>, <a href="amysql/private/protocol.html#FieldType"><span class="Identifier">FieldType</span></a>, <a href="amysql/private/protocol.html#fieldTypeLongLong"><span class="Identifier">fieldTypeLongLong</span></a>, <a href="amysql/private/protocol.html#isExtraAuthDataPacket"><span class="Identifier">isExtraAuthDataPacket</span></a>, <a href="amysql/private/protocol.html#fieldTypeLongBlob"><span class="Identifier">fieldTypeLongBlob</span></a>, <a href="amysql/private/protocol.html#putTime"><span class="Identifier">putTime</span></a>, <a href="amysql/private/protocol.html#fieldTypeBit"><span class="Identifier">fieldTypeBit</span></a>, <a href="amysql/private/protocol.html#ResponseCode_LOCAL_INFILE"><span class="Identifier">ResponseCode_LOCAL_INFILE</span></a>, <a href="amysql/private/protocol.html#receiveMetadata"><span class="Identifier">receiveMetadata</span></a>, <a href="amysql/private/protocol.html#fieldTypeSet"><span class="Identifier">fieldTypeSet</span></a>, <a href="amysql/private/protocol.html#fieldTypeInt24"><span class="Identifier">fieldTypeInt24</span></a>, <a href="amysql/private/protocol.html#isAuthSwitchRequestPacket"><span class="Identifier">isAuthSwitchRequestPacket</span></a>, <a href="amysql/private/protocol.html#putValue"><span class="Identifier">putValue</span></a>, <a href="amysql/private/protocol.html#readLenStr"><span class="Identifier">readLenStr</span></a>, <a href="amysql/private/protocol.html#Status"><span class="Identifier">Status</span></a>, <a href="amysql/private/protocol.html#putDate"><span class="Identifier">putDate</span></a>, <a href="amysql/private/protocol.html#ResponseCode_EOF"><span class="Identifier">ResponseCode_EOF</span></a>, <a href="amysql/private/protocol.html#fieldTypeTimestamp"><span class="Identifier">fieldTypeTimestamp</span></a>, <a href="amysql/private/protocol.html#Charset_utf8_ci"><span class="Identifier">Charset_utf8_ci</span></a>, <a href="amysql/private/protocol.html#sendPacket"><span class="Identifier">sendPacket</span></a>, <a href="amysql/private/protocol.html#writeHandshakeResponse"><span class="Identifier">writeHandshakeResponse</span></a>, <a href="amysql/private/protocol.html#parseOKPacket"><span class="Identifier">parseOKPacket</span></a>, <a href="amysql/private/protocol.html#ResponseCode_ExtraAuthData"><span class="Identifier">ResponseCode_ExtraAuthData</span></a>, <a href="amysql/private/protocol.html#fieldTypeNull"><span class="Identifier">fieldTypeNull</span></a>, <a href="amysql/private/protocol.html#isERRPacket"><span class="Identifier">isERRPacket</span></a>, <a href="amysql/private/protocol.html#isLocalInfileRequestPacket"><span class="Identifier">isLocalInfileRequestPacket</span></a>, <a href="amysql/private/protocol.html#processMetadata"><span class="Identifier">processMetadata</span></a>, <a href="amysql/private/protocol.html#putDouble"><span class="Identifier">putDouble</span></a>, <a href="amysql/private/protocol.html#Command"><span class="Identifier">Command</span></a>, <a href="amysql/private/protocol.html#roundtrip"><span class="Identifier">roundtrip</span></a>, <a href="amysql/private/protocol.html#putNulString"><span class="Identifier">putNulString</span></a>, <a href="amysql/private/protocol.html#hexdump"><span class="Identifier">hexdump</span></a>, <a href="amysql/private/protocol.html#scanU64"><span class="Identifier">scanU64</span></a>, <a href="amysql/private/protocol.html#fieldTypeEnum"><span class="Identifier">fieldTypeEnum</span></a>, <a href="amysql/private/protocol.html#fieldTypeGeometry"><span class="Identifier">fieldTypeGeometry</span></a>, <a href="amysql/private/protocol.html#isEOFPacket"><span class="Identifier">isEOFPacket</span></a>, <a href="amysql/private/protocol.html#putLenStr"><span class="Identifier">putLenStr</span></a>, <a href="amysql/private/protocol.html#fieldTypeDecimal"><span class="Identifier">fieldTypeDecimal</span></a>, <a href="amysql/private/protocol.html#putDateTime"><span class="Identifier">putDateTime</span></a>, <a href="amysql/private/protocol.html#scanFloat"><span class="Identifier">scanFloat</span></a>, <a href="amysql/private/protocol.html#NullColumn"><span class="Identifier">NullColumn</span></a>, <a class="reference external" href="amysql/private/protocol.html">amysql/private/protocol</a>, <a href="amysql/private/protocol.html#ResponseERR"><span class="Identifier">ResponseERR</span></a>, <a href="amysql/private/protocol.html#readNulStringX"><span class="Identifier">readNulStringX</span></a>, <a href="amysql/private/protocol.html#isOKPacket"><span class="Identifier">isOKPacket</span></a>, <a href="amysql/private/protocol.html#setInt32"><span class="Identifier">setInt32</span></a>, <a href="amysql/private/protocol.html#fieldTypeYear"><span class="Identifier">fieldTypeYear</span></a>, <a href="amysql/private/protocol.html#fieldTypeFloat"><span class="Identifier">fieldTypeFloat</span></a>, <a href="amysql/private/protocol.html#fieldTypeVarString"><span class="Identifier">fieldTypeVarString</span></a>, <a href="amysql/private/protocol.html#ResponseCode_AuthSwitchRequest"><span class="Identifier">ResponseCode_AuthSwitchRequest</span></a>, <a href="amysql/private/protocol.html#writeTypeAndFlag"><span class="Identifier">writeTypeAndFlag</span></a>, <a href="amysql/private/protocol.html#HandshakePacket"><span class="Identifier">HandshakePacket</span></a>, <a href="amysql/private/protocol.html#fieldTypeNewDecimal"><span class="Identifier">fieldTypeNewDecimal</span></a>, <a href="amysql/private/protocol.html#readLenInt"><span class="Identifier">readLenInt</span></a>, <a href="amysql/private/protocol.html#readNulString"><span class="Identifier">readNulString</span></a>, <a href="amysql/private/protocol.html#readTime"><span class="Identifier">readTime</span></a>, <a href="amysql/private/protocol.html#putS64"><span class="Identifier">putS64</span></a>, <a href="amysql/private/protocol.html#scanDouble"><span class="Identifier">scanDouble</span></a>, <a href="amysql/private/protocol.html#putU32"><span class="Identifier">putU32</span></a>, <a href="amysql/private/protocol.html#sendFile"><span class="Identifier">sendFile</span></a>, <a href="amysql/private/protocol.html#putTimestamp"><span class="Identifier">putTimestamp</span></a>, <a href="amysql/private/protocol.html#fieldTypeVarchar"><span class="Identifier">fieldTypeVarchar</span></a>, <a href="amysql/private/protocol.html#putValue"><span class="Identifier">putValue</span></a>, <a href="amysql/private/protocol.html#CursorType"><span class="Identifier">CursorType</span></a>, <a href="amysql/private/protocol.html#ResponseCode_OK"><span class="Identifier">ResponseCode_OK</span></a>, <a href="amysql/private/protocol.html#receivePacket"><span class="Identifier">receivePacket</span></a>, <a href="amysql/private/protocol.html#sendQuery"><span class="Identifier">sendQuery</span></a>, <a href="amysql/private/protocol.html#fieldTypeShort"><span class="Identifier">fieldTypeShort</span></a>, <a href="amysql/private/protocol.html#ResponseCode_ERR"><span class="Identifier">ResponseCode_ERR</span></a>, <a href="amysql/private/protocol.html#writeTypeAndFlag"><span class="Identifier">writeTypeAndFlag</span></a>, <a href="amysql/private/protocol.html#fieldTypeTime"><span class="Identifier">fieldTypeTime</span></a>, <a href="amysql/private/protocol.html#ResponseAuthMore"><span class="Identifier">ResponseAuthMore</span></a>, <a href="amysql/private/protocol.html#fieldTypeJson"><span class="Identifier">fieldTypeJson</span></a>, <a href="amysql/private/protocol.html#putU64"><span class="Identifier">putU64</span></a>, <a href="amysql/private/protocol.html#fieldTypeDate"><span class="Identifier">fieldTypeDate</span></a>, <a href="amysql/private/protocol.html#fieldTypeBlob"><span class="Identifier">fieldTypeBlob</span></a>, <a href="amysql/private/protocol.html#parseErrorPacket"><span class="Identifier">parseErrorPacket</span></a>, <a href="amysql/private/protocol.html#parseAuthSwitchPacket"><span class="Identifier">parseAuthSwitchPacket</span></a>, <a href="amysql/private/protocol.html#countLenInt"><span class="Identifier">countLenInt</span></a>, <a href="amysql/private/protocol.html#FieldFlag"><span class="Identifier">FieldFlag</span></a>, <a href="amysql/private/protocol.html#ResponseOK"><span class="Identifier">ResponseOK</span></a>, <a href="amysql/private/protocol.html#parseHandshakePacket"><span class="Identifier">parseHandshakePacket</span></a>, <a href="amysql/private/protocol.html#sendEmptyPacket"><span class="Identifier">sendEmptyPacket</span></a>, <a href="amysql/private/protocol.html#writeTypeAndFlag"><span class="Identifier">writeTypeAndFlag</span></a>, <a href="amysql/private/protocol.html#readDateTime"><span class="Identifier">readDateTime</span></a>, <a href="amysql/private/protocol.html#parseResponseAuthMorePacket"><span class="Identifier">parseResponseAuthMorePacket</span></a>, <a href="amysql/private/protocol.html#putLenInt"><span class="Identifier">putLenInt</span></a>, <a href="amysql/private/protocol.html#scanU16"><span class="Identifier">scanU16</span></a>, <a href="amysql/private/protocol.html#putU16"><span class="Identifier">putU16</span></a>, <a href="amysql/private/protocol.html#putFloat"><span class="Identifier">putFloat</span></a>, <a href="amysql/private/protocol.html#fieldTypeDouble"><span class="Identifier">fieldTypeDouble</span></a>, <a href="amysql/private/protocol.html#fieldTypeString"><span class="Identifier">fieldTypeString</span></a>, <a href="amysql/private/protocol.html#putU8"><span class="Identifier">putU8</span></a>, <a href="amysql/private/protocol.html#parseLocalInfileRequestPacket"><span class="Identifier">parseLocalInfileRequestPacket</span></a>, <a href="amysql/private/protocol.html#checkEof"><span class="Identifier">checkEof</span></a>, <a href="amysql/private/protocol.html#fieldTypeDateTime"><span class="Identifier">fieldTypeDateTime</span></a>, <a href="amysql/private/protocol.html#fieldTypeMediumBlob"><span class="Identifier">fieldTypeMediumBlob</span></a>, <a href="amysql/private/protocol.html#fieldTypeTinyBlob"><span class="Identifier">fieldTypeTinyBlob</span></a>, <a href="amysql/private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a>, <a href="amysql/private/protocol.html#parseEOFPacket"><span class="Identifier">parseEOFPacket</span></a>, <a href="amysql/private/protocol.html#fieldTypeTiny"><span class="Identifier">fieldTypeTiny</span></a>, <a href="amysql/private/protocol.html#ColumnDefinition"><span class="Identifier">ColumnDefinition</span></a>, <a href="amysql/private/protocol.html#fieldTypeLong"><span class="Identifier">fieldTypeLong</span></a>, <a href="amysql/conn.html#$"><span class="Identifier">$</span></a>, <a href="amysql/conn.html#$"><span class="Identifier">$</span></a>, <a href="amysql/conn.html#resetPayloadLen"><span class="Identifier">resetPayloadLen</span></a>, <a href="amysql/conn.html#BasicClientCaps"><span class="Identifier">BasicClientCaps</span></a>, <a href="amysql/conn.html#ConnectionObj"><span class="Identifier">ConnectionObj</span></a>, <a href="amysql/conn.html#Version"><span class="Identifier">Version</span></a>, <a href="amysql/conn.html#TestWhileIdle"><span class="Identifier">TestWhileIdle</span></a>, <a class="reference external" href="amysql/conn.html">amysql/conn</a>, <a href="amysql/conn.html#Connection"><span class="Identifier">Connection</span></a>, <a href="amysql/conn.html#&lt;"><span class="Identifier">&lt;</span></a>, <a href="amysql/conn.html#getPayloadLen"><span class="Identifier">getPayloadLen</span></a>, <a href="amysql/conn.html#headerLen"><span class="Identifier">headerLen</span></a>, <a href="amysql/conn.html#=="><span class="Identifier">==</span></a>, <a href="amysql/conn.html#&lt;="><span class="Identifier">&lt;=</span></a>, <a href="amysql/conn.html#firstByte"><span class="Identifier">firstByte</span></a>, <a href="amysql/conn.html#&gt;"><span class="Identifier">&gt;</span></a>, <a href="amysql/conn.html#zstdAvailable"><span class="Identifier">zstdAvailable</span></a>, <a href="amysql/conn.html#use_zstd"><span class="Identifier">use_zstd</span></a>, <a href="amysql/conn.html#MysqlBufSize"><span class="Identifier">MysqlBufSize</span></a>, <a href="amysql/conn.html#isMaria"><span class="Identifier">isMaria</span></a>, <a href="amysql/conn.html#getDatabaseVersion"><span class="Identifier">getDatabaseVersion</span></a>, <a href="amysql/conn.html#toBoolean"><span class="Identifier">toBoolean</span></a>, <a href="amysql/conn_connection.html#open"><span class="Identifier">open</span></a>, <a href="amysql/conn_connection.html#establishConnection"><span class="Identifier">establishConnection</span></a>, <a href="amysql/conn_connection.html#close"><span class="Identifier">close</span></a>, <a href="amysql/conn_connection.html#open"><span class="Identifier">open</span></a>, <a class="reference external" href="amysql/conn_connection.html">amysql/conn_connection</a>, <a href="amysql/private/json_sql_format.html#sqlFormat"><span class="Identifier">sqlFormat</span></a>, <a class="reference external" href="amysql/private/json_sql_format.html">amysql/private/json_sql_format</a>, <a href="amysql/private/my_geometry.html#srid"><span class="Identifier">srid</span></a>, <a href="amysql/private/my_geometry.html#=="><span class="Identifier">==</span></a>, <a href="amysql/private/my_geometry.html#data"><span class="Identifier">data</span></a>, <a href="amysql/private/my_geometry.html#fromWkb"><span class="Identifier">fromWkb</span></a>, <a href="amysql/private/my_geometry.html#MyGeometry"><span class="Identifier">MyGeometry</span></a>, <a href="amysql/private/my_geometry.html#wkb"><span class="Identifier">wkb</span></a>, <a class="reference external" href="amysql/private/my_geometry.html">amysql/private/my_geometry</a>, <a href="amysql/private/my_geometry.html#newMyGeometry"><span class="Identifier">newMyGeometry</span></a>, <a href="amysql/private/quote.html#dbQuote"><span class="Identifier">dbQuote</span></a>, <a class="reference external" href="amysql/private/quote.html">amysql/private/quote</a>, <a href="amysql/private/errors.html#ProtocolError"><span class="Identifier">ProtocolError</span></a>, <a class="reference external" href="amysql/private/errors.html">amysql/private/errors</a>
+<a href="amysql/private/protocol.html#ResponseAuthSwitch"><span class="Identifier">ResponseAuthSwitch</span></a>, <a href="amysql/private/protocol.html#scanU32"><span class="Identifier">scanU32</span></a>, <a href="amysql/private/protocol.html#FieldType"><span class="Identifier">FieldType</span></a>, <a href="amysql/private/protocol.html#fieldTypeLongLong"><span class="Identifier">fieldTypeLongLong</span></a>, <a href="amysql/private/protocol.html#isExtraAuthDataPacket"><span class="Identifier">isExtraAuthDataPacket</span></a>, <a href="amysql/private/protocol.html#fieldTypeLongBlob"><span class="Identifier">fieldTypeLongBlob</span></a>, <a href="amysql/private/protocol.html#putTime"><span class="Identifier">putTime</span></a>, <a href="amysql/private/protocol.html#fieldTypeBit"><span class="Identifier">fieldTypeBit</span></a>, <a href="amysql/private/protocol.html#ResponseCode_LOCAL_INFILE"><span class="Identifier">ResponseCode_LOCAL_INFILE</span></a>, <a href="amysql/private/protocol.html#receiveMetadata"><span class="Identifier">receiveMetadata</span></a>, <a href="amysql/private/protocol.html#fieldTypeSet"><span class="Identifier">fieldTypeSet</span></a>, <a href="amysql/private/protocol.html#fieldTypeInt24"><span class="Identifier">fieldTypeInt24</span></a>, <a href="amysql/private/protocol.html#isAuthSwitchRequestPacket"><span class="Identifier">isAuthSwitchRequestPacket</span></a>, <a href="amysql/private/protocol.html#putValue"><span class="Identifier">putValue</span></a>, <a href="amysql/private/protocol.html#readLenStr"><span class="Identifier">readLenStr</span></a>, <a href="amysql/private/protocol.html#readDateTime"><span class="Identifier">readDateTime</span></a>, <a href="amysql/private/protocol.html#putDate"><span class="Identifier">putDate</span></a>, <a href="amysql/private/protocol.html#ResponseCode_EOF"><span class="Identifier">ResponseCode_EOF</span></a>, <a href="amysql/private/protocol.html#fieldTypeTimestamp"><span class="Identifier">fieldTypeTimestamp</span></a>, <a href="amysql/private/protocol.html#fieldTypeNull"><span class="Identifier">fieldTypeNull</span></a>, <a href="amysql/private/protocol.html#sendPacket"><span class="Identifier">sendPacket</span></a>, <a href="amysql/private/protocol.html#writeHandshakeResponse"><span class="Identifier">writeHandshakeResponse</span></a>, <a href="amysql/private/protocol.html#parseOKPacket"><span class="Identifier">parseOKPacket</span></a>, <a href="amysql/private/protocol.html#ResponseCode_ExtraAuthData"><span class="Identifier">ResponseCode_ExtraAuthData</span></a>, <a href="amysql/private/protocol.html#Charset_utf8_ci"><span class="Identifier">Charset_utf8_ci</span></a>, <a href="amysql/private/protocol.html#isERRPacket"><span class="Identifier">isERRPacket</span></a>, <a href="amysql/private/protocol.html#SessionStateType"><span class="Identifier">SessionStateType</span></a>, <a href="amysql/private/protocol.html#isLocalInfileRequestPacket"><span class="Identifier">isLocalInfileRequestPacket</span></a>, <a href="amysql/private/protocol.html#processMetadata"><span class="Identifier">processMetadata</span></a>, <a href="amysql/private/protocol.html#putDouble"><span class="Identifier">putDouble</span></a>, <a href="amysql/private/protocol.html#isEOF"><span class="Identifier">isEOF</span></a>, <a href="amysql/private/protocol.html#roundtrip"><span class="Identifier">roundtrip</span></a>, <a href="amysql/private/protocol.html#putNulString"><span class="Identifier">putNulString</span></a>, <a href="amysql/private/protocol.html#hexdump"><span class="Identifier">hexdump</span></a>, <a href="amysql/private/protocol.html#scanU64"><span class="Identifier">scanU64</span></a>, <a href="amysql/private/protocol.html#fieldTypeEnum"><span class="Identifier">fieldTypeEnum</span></a>, <a href="amysql/private/protocol.html#fieldTypeGeometry"><span class="Identifier">fieldTypeGeometry</span></a>, <a href="amysql/private/protocol.html#isEOFPacket"><span class="Identifier">isEOFPacket</span></a>, <a href="amysql/private/protocol.html#putLenStr"><span class="Identifier">putLenStr</span></a>, <a href="amysql/private/protocol.html#fieldTypeDecimal"><span class="Identifier">fieldTypeDecimal</span></a>, <a href="amysql/private/protocol.html#putDateTime"><span class="Identifier">putDateTime</span></a>, <a href="amysql/private/protocol.html#scanFloat"><span class="Identifier">scanFloat</span></a>, <a href="amysql/private/protocol.html#NullColumn"><span class="Identifier">NullColumn</span></a>, <a class="reference external" href="amysql/private/protocol.html">amysql/private/protocol</a>, <a href="amysql/private/protocol.html#ResponseERR"><span class="Identifier">ResponseERR</span></a>, <a href="amysql/private/protocol.html#readNulStringX"><span class="Identifier">readNulStringX</span></a>, <a href="amysql/private/protocol.html#isOKPacket"><span class="Identifier">isOKPacket</span></a>, <a href="amysql/private/protocol.html#setInt32"><span class="Identifier">setInt32</span></a>, <a href="amysql/private/protocol.html#fieldTypeYear"><span class="Identifier">fieldTypeYear</span></a>, <a href="amysql/private/protocol.html#fieldTypeFloat"><span class="Identifier">fieldTypeFloat</span></a>, <a href="amysql/private/protocol.html#fieldTypeVarString"><span class="Identifier">fieldTypeVarString</span></a>, <a href="amysql/private/protocol.html#Command"><span class="Identifier">Command</span></a>, <a href="amysql/private/protocol.html#ResponseCode_AuthSwitchRequest"><span class="Identifier">ResponseCode_AuthSwitchRequest</span></a>, <a href="amysql/private/protocol.html#writeTypeAndFlag"><span class="Identifier">writeTypeAndFlag</span></a>, <a href="amysql/private/protocol.html#HandshakePacket"><span class="Identifier">HandshakePacket</span></a>, <a href="amysql/private/protocol.html#fieldTypeNewDecimal"><span class="Identifier">fieldTypeNewDecimal</span></a>, <a href="amysql/private/protocol.html#readLenInt"><span class="Identifier">readLenInt</span></a>, <a href="amysql/private/protocol.html#readNulString"><span class="Identifier">readNulString</span></a>, <a href="amysql/private/protocol.html#readTime"><span class="Identifier">readTime</span></a>, <a href="amysql/private/protocol.html#putS64"><span class="Identifier">putS64</span></a>, <a href="amysql/private/protocol.html#SessionState"><span class="Identifier">SessionState</span></a>, <a href="amysql/private/protocol.html#putU32"><span class="Identifier">putU32</span></a>, <a href="amysql/private/protocol.html#sendFile"><span class="Identifier">sendFile</span></a>, <a href="amysql/private/protocol.html#putTimestamp"><span class="Identifier">putTimestamp</span></a>, <a href="amysql/private/protocol.html#fieldTypeVarchar"><span class="Identifier">fieldTypeVarchar</span></a>, <a href="amysql/private/protocol.html#putValue"><span class="Identifier">putValue</span></a>, <a href="amysql/private/protocol.html#isEOFPacketFollowed"><span class="Identifier">isEOFPacketFollowed</span></a>, <a href="amysql/private/protocol.html#CursorType"><span class="Identifier">CursorType</span></a>, <a href="amysql/private/protocol.html#ResponseCode_OK"><span class="Identifier">ResponseCode_OK</span></a>, <a href="amysql/private/protocol.html#receivePacket"><span class="Identifier">receivePacket</span></a>, <a href="amysql/private/protocol.html#sendQuery"><span class="Identifier">sendQuery</span></a>, <a href="amysql/private/protocol.html#fieldTypeShort"><span class="Identifier">fieldTypeShort</span></a>, <a href="amysql/private/protocol.html#ResponseCode_ERR"><span class="Identifier">ResponseCode_ERR</span></a>, <a href="amysql/private/protocol.html#writeTypeAndFlag"><span class="Identifier">writeTypeAndFlag</span></a>, <a href="amysql/private/protocol.html#fieldTypeTime"><span class="Identifier">fieldTypeTime</span></a>, <a href="amysql/private/protocol.html#ResponseAuthMore"><span class="Identifier">ResponseAuthMore</span></a>, <a href="amysql/private/protocol.html#fieldTypeJson"><span class="Identifier">fieldTypeJson</span></a>, <a href="amysql/private/protocol.html#putU64"><span class="Identifier">putU64</span></a>, <a href="amysql/private/protocol.html#fieldTypeDate"><span class="Identifier">fieldTypeDate</span></a>, <a href="amysql/private/protocol.html#fieldTypeBlob"><span class="Identifier">fieldTypeBlob</span></a>, <a href="amysql/private/protocol.html#parseErrorPacket"><span class="Identifier">parseErrorPacket</span></a>, <a href="amysql/private/protocol.html#parseAuthSwitchPacket"><span class="Identifier">parseAuthSwitchPacket</span></a>, <a href="amysql/private/protocol.html#countLenInt"><span class="Identifier">countLenInt</span></a>, <a href="amysql/private/protocol.html#FieldFlag"><span class="Identifier">FieldFlag</span></a>, <a href="amysql/private/protocol.html#ResponseOK"><span class="Identifier">ResponseOK</span></a>, <a href="amysql/private/protocol.html#parseHandshakePacket"><span class="Identifier">parseHandshakePacket</span></a>, <a href="amysql/private/protocol.html#sendEmptyPacket"><span class="Identifier">sendEmptyPacket</span></a>, <a href="amysql/private/protocol.html#writeTypeAndFlag"><span class="Identifier">writeTypeAndFlag</span></a>, <a href="amysql/private/protocol.html#fieldTypeLong"><span class="Identifier">fieldTypeLong</span></a>, <a href="amysql/private/protocol.html#parseResponseAuthMorePacket"><span class="Identifier">parseResponseAuthMorePacket</span></a>, <a href="amysql/private/protocol.html#putLenInt"><span class="Identifier">putLenInt</span></a>, <a href="amysql/private/protocol.html#scanU16"><span class="Identifier">scanU16</span></a>, <a href="amysql/private/protocol.html#putU16"><span class="Identifier">putU16</span></a>, <a href="amysql/private/protocol.html#putFloat"><span class="Identifier">putFloat</span></a>, <a href="amysql/private/protocol.html#fieldTypeDouble"><span class="Identifier">fieldTypeDouble</span></a>, <a href="amysql/private/protocol.html#fieldTypeString"><span class="Identifier">fieldTypeString</span></a>, <a href="amysql/private/protocol.html#putU8"><span class="Identifier">putU8</span></a>, <a href="amysql/private/protocol.html#parseLocalInfileRequestPacket"><span class="Identifier">parseLocalInfileRequestPacket</span></a>, <a href="amysql/private/protocol.html#checkEof"><span class="Identifier">checkEof</span></a>, <a href="amysql/private/protocol.html#fieldTypeDateTime"><span class="Identifier">fieldTypeDateTime</span></a>, <a href="amysql/private/protocol.html#fieldTypeMediumBlob"><span class="Identifier">fieldTypeMediumBlob</span></a>, <a href="amysql/private/protocol.html#fieldTypeTinyBlob"><span class="Identifier">fieldTypeTinyBlob</span></a>, <a href="amysql/private/protocol.html#ResultSet"><span class="Identifier">ResultSet</span></a>, <a href="amysql/private/protocol.html#parseEOFPacket"><span class="Identifier">parseEOFPacket</span></a>, <a href="amysql/private/protocol.html#fieldTypeTiny"><span class="Identifier">fieldTypeTiny</span></a>, <a href="amysql/private/protocol.html#ColumnDefinition"><span class="Identifier">ColumnDefinition</span></a>, <a href="amysql/private/protocol.html#scanDouble"><span class="Identifier">scanDouble</span></a>, <a href="amysql/conn.html#ConnectionObj"><span class="Identifier">ConnectionObj</span></a>, <a href="amysql/conn.html#incPos"><span class="Identifier">incPos</span></a>, <a href="amysql/conn.html#remainPacketLen"><span class="Identifier">remainPacketLen</span></a>, <a href="amysql/conn.html#toBoolean"><span class="Identifier">toBoolean</span></a>, <a href="amysql/conn.html#&lt;"><span class="Identifier">&lt;</span></a>, <a href="amysql/conn.html#=="><span class="Identifier">==</span></a>, <a href="amysql/conn.html#&lt;="><span class="Identifier">&lt;=</span></a>, <a href="amysql/conn.html#firstByte"><span class="Identifier">firstByte</span></a>, <a href="amysql/conn.html#&gt;"><span class="Identifier">&gt;</span></a>, <a href="amysql/conn.html#isMaria"><span class="Identifier">isMaria</span></a>, <a href="amysql/conn.html#getDatabaseVersion"><span class="Identifier">getDatabaseVersion</span></a>, <a href="amysql/conn.html#Version"><span class="Identifier">Version</span></a>, <a href="amysql/conn.html#$"><span class="Identifier">$</span></a>, <a href="amysql/conn.html#$"><span class="Identifier">$</span></a>, <a href="amysql/conn.html#BasicClientCaps"><span class="Identifier">BasicClientCaps</span></a>, <a href="amysql/conn.html#resetPacketLen"><span class="Identifier">resetPacketLen</span></a>, <a class="reference external" href="amysql/conn.html">amysql/conn</a>, <a href="amysql/conn.html#Connection"><span class="Identifier">Connection</span></a>, <a href="amysql/conn.html#TestWhileIdle"><span class="Identifier">TestWhileIdle</span></a>, <a href="amysql/conn.html#zstdAvailable"><span class="Identifier">zstdAvailable</span></a>, <a href="amysql/conn.html#zeroPos"><span class="Identifier">zeroPos</span></a>, <a href="amysql/conn.html#printBufInfo"><span class="Identifier">printBufInfo</span></a>, <a href="amysql/conn.html#getPayloadLen"><span class="Identifier">getPayloadLen</span></a>, <a href="amysql/conn.html#use_zstd"><span class="Identifier">use_zstd</span></a>, <a href="amysql/conn.html#MysqlBufSize"><span class="Identifier">MysqlBufSize</span></a>, <a href="amysql/conn_connection.html#open"><span class="Identifier">open</span></a>, <a href="amysql/conn_connection.html#establishConnection"><span class="Identifier">establishConnection</span></a>, <a href="amysql/conn_connection.html#close"><span class="Identifier">close</span></a>, <a href="amysql/conn_connection.html#open"><span class="Identifier">open</span></a>, <a class="reference external" href="amysql/conn_connection.html">amysql/conn_connection</a>, <a href="amysql/private/json_sql_format.html#sqlFormat"><span class="Identifier">sqlFormat</span></a>, <a class="reference external" href="amysql/private/json_sql_format.html">amysql/private/json_sql_format</a>, <a href="amysql/private/my_geometry.html#srid"><span class="Identifier">srid</span></a>, <a href="amysql/private/my_geometry.html#=="><span class="Identifier">==</span></a>, <a href="amysql/private/my_geometry.html#data"><span class="Identifier">data</span></a>, <a href="amysql/private/my_geometry.html#fromWkb"><span class="Identifier">fromWkb</span></a>, <a href="amysql/private/my_geometry.html#MyGeometry"><span class="Identifier">MyGeometry</span></a>, <a href="amysql/private/my_geometry.html#wkb"><span class="Identifier">wkb</span></a>, <a class="reference external" href="amysql/private/my_geometry.html">amysql/private/my_geometry</a>, <a href="amysql/private/my_geometry.html#newMyGeometry"><span class="Identifier">newMyGeometry</span></a>, <a href="amysql/private/quote.html#dbQuote"><span class="Identifier">dbQuote</span></a>, <a class="reference external" href="amysql/private/quote.html">amysql/private/quote</a>, <a href="amysql/private/errors.html#ProtocolError"><span class="Identifier">ProtocolError</span></a>, <a class="reference external" href="amysql/private/errors.html">amysql/private/errors</a>
 </dl></div>
 
   </div>
@@ -1003,7 +1035,7 @@ experimental
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-06 08:52:05 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-17 23:56:48 UTC</small>
       </div>
     </div>
   </div>
