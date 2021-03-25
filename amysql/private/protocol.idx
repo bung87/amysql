@@ -83,13 +83,10 @@ isLocalInfileRequestPacket	amysql/private/protocol.html#isLocalInfileRequestPack
 parseLocalInfileRequestPacket	amysql/private/protocol.html#parseLocalInfileRequestPacket,Connection	protocol: parseLocalInfileRequestPacket(conn: Connection): string	
 parseErrorPacket	amysql/private/protocol.html#parseErrorPacket,Connection	protocol: parseErrorPacket(conn: Connection): ref ResponseERR	
 checkEof	amysql/private/protocol.html#checkEof,Connection	protocol: checkEof(conn: Connection)	
-parseHandshakePacket	amysql/private/protocol.html#parseHandshakePacket,Connection	protocol: parseHandshakePacket(conn: Connection): HandshakePacket	
 parseAuthSwitchPacket	amysql/private/protocol.html#parseAuthSwitchPacket,Connection	protocol: parseAuthSwitchPacket(conn: Connection): ref ResponseAuthSwitch	
 parseResponseAuthMorePacket	amysql/private/protocol.html#parseResponseAuthMorePacket,Connection,string	protocol: parseResponseAuthMorePacket(conn: Connection; pkt: string): ref ResponseAuthMore	
 parseOKPacket	amysql/private/protocol.html#parseOKPacket,Connection	protocol: parseOKPacket(conn: Connection): ResponseOK	
 parseEOFPacket	amysql/private/protocol.html#parseEOFPacket,Connection	protocol: parseEOFPacket(conn: Connection): ResponseOK	
-sendPacket	amysql/private/protocol.html#sendPacket,Connection,sinkstring	protocol: sendPacket(conn: Connection; buf: sink string; resetSeqId = false): Future[void]	
-writeHandshakeResponse	amysql/private/protocol.html#writeHandshakeResponse,Connection,string,string,string,string	protocol: writeHandshakeResponse(conn: Connection; username: string;\n                       auth_response: string; database: string;\n                       auth_plugin: string): Future[void]	
 putTime	amysql/private/protocol.html#putTime,string,Duration	protocol: putTime(buf: var string; val: Duration): int	
 readTime	amysql/private/protocol.html#readTime,openArray[char],int	protocol: readTime(buf: openArray[char]; pos: var int): Duration	
 putDate	amysql/private/protocol.html#putDate,string,DateTime	protocol: putDate(buf: var string; val: DateTime): int	
@@ -100,7 +97,4 @@ hexdump	amysql/private/protocol.html#hexdump,openArray[char],File	protocol: hexd
 sendQuery	amysql/private/protocol.html#sendQuery,Connection,string	protocol: sendQuery(conn: Connection; query: string): Future[void]	
 sendFile	amysql/private/protocol.html#sendFile,Connection,string	protocol: sendFile(conn: Connection; filename: string): Future[void]	
 sendEmptyPacket	amysql/private/protocol.html#sendEmptyPacket,Connection	protocol: sendEmptyPacket(conn: Connection): Future[void]	
-receivePacket	amysql/private/protocol.html#receivePacket,Connection,bool	protocol: receivePacket(conn: Connection; drop_ok: bool = false): owned(Future[void])	
-roundtrip	amysql/private/protocol.html#roundtrip,Connection,string	protocol: roundtrip(conn: Connection; data: string): owned(Future[void])	
 processMetadata	amysql/private/protocol.html#processMetadata,Connection,seq[ColumnDefinition],int	protocol: processMetadata(conn: Connection; meta: var seq[ColumnDefinition]; index: int)	
-receiveMetadata	amysql/private/protocol.html#receiveMetadata,Connection,Positive	protocol: receiveMetadata(conn: Connection; count: Positive): Future[seq[ColumnDefinition]]	

@@ -205,14 +205,7 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
-      <ul class="simple nested-toc-section">writeHandshakeResponse
-      <li><a class="reference" href="#writeHandshakeResponse%2CConnection%2Cstring%2Cstring%2Cstring%2Cstring"
-    title="writeHandshakeResponse(conn: Connection; username: string;
-                       auth_response: string; database: string;
-                       auth_plugin: string): Future[void]">writeHandshakeResponse,<wbr>Connection,<wbr>string,<wbr>string,<wbr>string,<wbr>string</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">parseEOFPacket
+      <ul class="simple nested-toc-section">parseEOFPacket
       <li><a class="reference" href="#parseEOFPacket%2CConnection"
     title="parseEOFPacket(conn: Connection): ResponseOK">parseEOFPacket,<wbr>Connection</a></li>
 
@@ -222,19 +215,14 @@ function main() {
     title="hexdump(buf: openArray[char]; fp: File)">hexdump,<wbr>openArray[char],<wbr>File</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">parseHandshakePacket
-      <li><a class="reference" href="#parseHandshakePacket%2CConnection"
-    title="parseHandshakePacket(conn: Connection): HandshakePacket">parseHandshakePacket,<wbr>Connection</a></li>
+  <ul class="simple nested-toc-section">putDateTime
+      <li><a class="reference" href="#putDateTime%2Cstring%2CDateTime"
+    title="putDateTime(buf: var string; val: DateTime): int">putDateTime,<wbr>string,<wbr>DateTime</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">putDate
       <li><a class="reference" href="#putDate%2Cstring%2CDateTime"
     title="putDate(buf: var string; val: DateTime): int">putDate,<wbr>string,<wbr>DateTime</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">putDateTime
-      <li><a class="reference" href="#putDateTime%2Cstring%2CDateTime"
-    title="putDateTime(buf: var string; val: DateTime): int">putDateTime,<wbr>string,<wbr>DateTime</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">readDateTime
@@ -260,11 +248,6 @@ function main() {
   <ul class="simple nested-toc-section">scanFloat
       <li><a class="reference" href="#scanFloat%2CopenArray%5Bchar%5D%2Cint"
     title="scanFloat(buf: openArray[char]; pos: int): float32">scanFloat,<wbr>openArray[char],<wbr>int</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">receivePacket
-      <li><a class="reference" href="#receivePacket%2CConnection%2Cbool"
-    title="receivePacket(conn: Connection; drop_ok: bool = false): owned(Future[void])">receivePacket,<wbr>Connection,<wbr>bool</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">isOKPacket
@@ -327,11 +310,6 @@ function main() {
     title="readTime(buf: openArray[char]; pos: var int): Duration">readTime,<wbr>openArray[char],<wbr>int</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">receiveMetadata
-      <li><a class="reference" href="#receiveMetadata%2CConnection%2CPositive"
-    title="receiveMetadata(conn: Connection; count: Positive): Future[seq[ColumnDefinition]]">receiveMetadata,<wbr>Connection,<wbr>Positive</a></li>
-
-  </ul>
   <ul class="simple nested-toc-section">parseLocalInfileRequestPacket
       <li><a class="reference" href="#parseLocalInfileRequestPacket%2CConnection"
     title="parseLocalInfileRequestPacket(conn: Connection): string">parseLocalInfileRequestPacket,<wbr>Connection</a></li>
@@ -380,16 +358,6 @@ function main() {
   <ul class="simple nested-toc-section">isLocalInfileRequestPacket
       <li><a class="reference" href="#isLocalInfileRequestPacket%2CConnection"
     title="isLocalInfileRequestPacket(conn: Connection): bool">isLocalInfileRequestPacket,<wbr>Connection</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">roundtrip
-      <li><a class="reference" href="#roundtrip%2CConnection%2Cstring"
-    title="roundtrip(conn: Connection; data: string): owned(Future[void])">roundtrip,<wbr>Connection,<wbr>string</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">sendPacket
-      <li><a class="reference" href="#sendPacket%2CConnection%2Csinkstring"
-    title="sendPacket(conn: Connection; buf: sink string; resetSeqId = false): Future[void]">sendPacket,<wbr>Connection,<wbr>sinkstring</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">readNulString
@@ -495,7 +463,6 @@ function main() {
 </ul>
 
   </div>
-  
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
   
@@ -991,14 +958,6 @@ function main() {
 
 
 </dd>
-<a id="parseHandshakePacket,Connection"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#parseHandshakePacket%2CConnection"><span class="Identifier">parseHandshakePacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <a href="protocol.html#HandshakePacket"><span class="Identifier">HandshakePacket</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ProtocolError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-<a class="reference external" href="https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake">https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake</a>
-
-</dd>
 <a id="parseAuthSwitchPacket,Connection"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#parseAuthSwitchPacket%2CConnection"><span class="Identifier">parseAuthSwitchPacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">ref</span> <a href="protocol.html#ResponseAuthSwitch"><span class="Identifier">ResponseAuthSwitch</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
     <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
@@ -1025,24 +984,6 @@ function main() {
 </dd>
 <a id="parseEOFPacket,Connection"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#parseEOFPacket%2CConnection"><span class="Identifier">parseEOFPacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <a href="protocol.html#ResponseOK"><span class="Identifier">ResponseOK</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="sendPacket,Connection,sinkstring"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#sendPacket%2CConnection%2Csinkstring"><span class="Identifier">sendPacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">sink</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">resetSeqId</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="writeHandshakeResponse,Connection,string,string,string,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#writeHandshakeResponse%2CConnection%2Cstring%2Cstring%2Cstring%2Cstring"><span class="Identifier">writeHandshakeResponse</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">username</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
-                            <span class="Identifier">auth_response</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">database</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
-                            <span class="Identifier">auth_plugin</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -1106,7 +1047,7 @@ function main() {
 </dd>
 <a id="sendQuery,Connection,string"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#sendQuery%2CConnection%2Cstring"><span class="Identifier">sendQuery</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">query</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -1114,7 +1055,7 @@ function main() {
 </dd>
 <a id="sendFile,Connection,string"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#sendFile%2CConnection%2Cstring"><span class="Identifier">sendFile</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -1122,23 +1063,7 @@ function main() {
 </dd>
 <a id="sendEmptyPacket,Connection"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#sendEmptyPacket%2CConnection"><span class="Identifier">sendEmptyPacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="receivePacket,Connection,bool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#receivePacket%2CConnection%2Cbool"><span class="Identifier">receivePacket</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">drop_ok</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">owned</span><span class="Other">(</span><span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="roundtrip,Connection,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#roundtrip%2CConnection%2Cstring"><span class="Identifier">roundtrip</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">data</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">owned</span><span class="Other">(</span><span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">void</span><span class="Other">]</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -1147,15 +1072,6 @@ function main() {
 <a id="processMetadata,Connection,seq[ColumnDefinition],int"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#processMetadata%2CConnection%2Cseq%5BColumnDefinition%5D%2Cint"><span class="Identifier">processMetadata</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">meta</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="protocol.html#ColumnDefinition"><span class="Identifier">ColumnDefinition</span></a><span class="Other">]</span><span class="Other">;</span>
                      <span class="Identifier">index</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ProtocolError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="receiveMetadata,Connection,Positive"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#receiveMetadata%2CConnection%2CPositive"><span class="Identifier">receiveMetadata</span></a><span class="Other">(</span><span class="Identifier">conn</span><span class="Other">:</span> <a href="../conn.html#Connection"><span class="Identifier">Connection</span></a><span class="Other">;</span> <span class="Identifier">count</span><span class="Other">:</span> <span class="Identifier">Positive</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">seq</span><span class="Other">[</span><a href="protocol.html#ColumnDefinition"><span class="Identifier">ColumnDefinition</span></a><span class="Other">]</span><span class="Other">]</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-                             <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -1171,7 +1087,7 @@ function main() {
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2020-11-17 23:56:46 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-03-25 01:35:33 UTC</small>
       </div>
     </div>
   </div>
