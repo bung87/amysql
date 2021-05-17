@@ -2,7 +2,10 @@ import ../conn
 import ./errors
 import ./auth
 import ./protocol
-import asyncdispatch
+when defined(ChronosAsync):
+  import chronos
+else:
+  import asyncdispatch
 import strutils
 import logging
 

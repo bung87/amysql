@@ -9,7 +9,10 @@
 import ./conn
 import locks
 import times
-import asyncdispatch
+when defined(ChronosAsync):
+  import chronos
+else:
+  import asyncdispatch
 import ../amysql
 import uri
 import strutils

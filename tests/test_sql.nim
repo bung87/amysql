@@ -1,4 +1,8 @@
-import amysql, asyncdispatch, os
+import amysql, os
+when defined(ChronosAsync):
+  import chronos
+else:
+  import asyncdispatch
 import unittest
 import net
 

@@ -1,5 +1,8 @@
 import unittest
-import asyncdispatch
+when defined(ChronosAsync):
+  import chronos
+else:
+  import asyncdispatch
 import amysql/async_pool
 import amysql
 import logging

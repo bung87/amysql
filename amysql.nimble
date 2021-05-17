@@ -28,5 +28,6 @@ requires "nimcrypto"
 requires "regex"
 requires "https://github.com/bung87/zstd"
 requires "https://github.com/treeform/urlly"
+requires "chronos"
 # Optional dependencies:
 # https://github.com/bung87/zstd

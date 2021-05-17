@@ -33,7 +33,7 @@ when defined(ssl):
       buf.add( char(0) )
     await conn.sendPacket(buf)
     # The server will respond with the SSL SERVER_HELLO packet.
-    wrapConnectedSocket(ssl, conn.socket, handshake=SslHandshakeType.handshakeAsClient)
+    wrapConnectedSocket(ssl, conn.transp, handshake=SslHandshakeType.handshakeAsClient)
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
   
@@ -264,4 +264,4 @@ proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
   buf.add( char(Command.quit) )
   await conn.sendPacket(buf, resetSeqId=true)
   await conn.receivePacket(drop_ok=true)
-  conn.socket.close()
+  conn.transp.close()

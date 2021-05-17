@@ -1,5 +1,8 @@
 
-import asyncnet
+when defined(ChronosAsync):
+  import chronos
+else:
+  import asyncnet
 import ./private/cap
 import regex
 import ./private/utils
@@ -7,7 +10,6 @@ import strutils, parseutils
 import options
 import tables
 import times
-import asyncnet
 
 const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
 const TestWhileIdle* {.booldefine.} = true
@@ -17,7 +19,10 @@ type
   Version* = distinct string
   Connection* = ref ConnectionObj
   ConnectionObj* = object of RootObj
-    socket*: AsyncSocket               # Bytestream connection
+    when defined(ChronosAsync):
+      transp*: StreamTransport
+    else:
+      transp*: AsyncSocket               # Bytestream connection
     sequenceId*: uint8              # Next expected seq number (mod-256)
     when defined(mysql_compression_mode):
       compressedSequenceId*: uint8
