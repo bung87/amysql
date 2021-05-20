@@ -11,6 +11,11 @@
 ### Compile flags  
 
 ```
+async macro:
+ChronosAsync 
+
+chronos use its own async macro will conflicts with std async macro , use this flag if your project use chronos.  
+
 socket io:
 const ReadTimeOut {.intdefine.} = 30_000
 const WriteTimeOut {.intdefine.} = 60_000  
