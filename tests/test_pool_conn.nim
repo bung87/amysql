@@ -15,9 +15,10 @@ const host_name = "127.0.0.1"
 const user_name = "test_user"
 const pass_word = "12345678"
 
-let pool = waitFor newDBPool(fmt"mysql://{user_name}:{pass_word}@{host_name}/{database_name}?minPoolSize=2&maxPoolSize=4")
 
 proc mainTest(){.async.} = 
+  let pool = waitFor newDBPool(fmt"mysql://{user_name}:{pass_word}@{host_name}/{database_name}?minPoolSize=2&maxPoolSize=4")
+
   discard await pool.rawQuery("drop table if exists test_dt")
   discard await pool.rawQuery("CREATE TABLE test_dt(col DATE NOT NULL)")
   let r = await pool.rawQuery("SHOW TABLES LIKE 'test_dt'")

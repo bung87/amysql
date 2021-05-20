@@ -2,10 +2,10 @@ import amysql
 when defined(ChronosAsync):
   import chronos
 else:
-  import asyncdispatch
+  import asyncdispatch, times
 import unittest
 import net
-import times
+
 const database_name = "test"
 const port: int = 3306
 const host_name = "127.0.0.1"
