@@ -3,8 +3,32 @@ include ./protocol_basic
 import ./cap
 when defined(ChronosAsync):
   import chronos/[asyncloop, asyncsync, handles, transport, timer]
-  import times except milliseconds,Duration
+  import times except milliseconds,Duration,toParts,DurationZero,initDuration
+  const DurationZero = default(Duration)
   proc withTimeout*[T](fut: Future[T], timeout: int): Future[bool] = withTimeout(fut,timeout.milliseconds())
+  proc initDuration(nanoseconds: int64=0, microseconds: int64 = 0, milliseconds: int64 = 0, seconds: int64 = 0, minutes: int64 = 0, hours: int64 = 0, days: int64 = 0, weeks: int64 = 0): Duration =
+    default(Duration) + nanoseconds.nanoseconds + microseconds.microseconds + milliseconds.milliseconds + seconds.seconds + minutes.minutes + hours.hours + days.days + weeks.weeks
+  proc toParts*(dur: Duration): DurationParts =
+    
+    var remS = dur.seconds
+    var remNs = dur.nanoseconds.int
+
+    # Ensure the same sign for seconds and nanoseconds
+    if remS < 0 and remNs != 0:
+      remNs -= convert(Seconds, Nanoseconds, 1)
+      remS.inc 1
+
+    for unit in countdown(Weeks, Seconds):
+      let quantity = convert(Seconds, unit, remS)
+      remS = remS mod convert(unit, Seconds, 1)
+
+      result[unit] = quantity
+
+    for unit in countdown(Milliseconds, Nanoseconds):
+      let quantity = convert(Nanoseconds, unit, remNs)
+      remNs = remNs mod convert(unit, Nanoseconds, 1)
+
+      result[unit] = quantity
 else:
   import asyncnet,asyncdispatch
   import times except milliseconds
@@ -193,7 +217,10 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
   # us to write the packet header.
   # https://dev.mysql.com/doc/internals/en/compressed-packet-header.html
   when TestWhileIdle:
-    conn.lastOperationTime = now()
+    when not defined(ChronosAsync):
+      conn.lastOperationTime = now()
+    else:
+      conn.lastOperationTime = Moment.now()
   const TimeoutErrorMsg = "Timeout when send packet"
   let bodyLen = len(buf) - 4
   setInt32(buf,0,bodyLen)
@@ -513,7 +540,10 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
     conn.buf.setLen(MysqlBufSize)
   zeroMem conn.buf[0].addr,MysqlBufSize
   when TestWhileIdle:
-    conn.lastOperationTime = now()
+    when not defined(ChronosAsync):
+      conn.lastOperationTime = now()
+    else:
+      conn.lastOperationTime = Moment.now()
   const TimeoutErrorMsg = "Timeout when receive packet"
   const NormalLen = 4
   const CompressedLen = 7
@@ -522,7 +552,10 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   var uncompressedLen:int32
   when not defined(mysql_compression_mode):
     offset = NormalLen
-    let rec = conn.transp.recvInto(conn.buf[0].addr, NormalLen,flags = {})
+    when not defined(ChronosAsync):
+      let rec = conn.transp.recvInto(conn.buf[0].addr, NormalLen,flags = {})
+    else:
+      let rec = conn.transp.readOnce(conn.buf[0].addr, NormalLen)
     let success = await withTimeout(rec, ReadTimeOut)
     if not success:
       raise newException(TimeoutError, TimeoutErrorMsg)
@@ -564,7 +597,10 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
     return 
   if conn.fullPacketLen > MysqlBufSize:
     conn.buf.setLen(offset + conn.payloadLen)
-  let payload = conn.transp.recvInto(conn.buf[offset].addr,conn.payloadLen)
+  when not defined(ChronosAsync):
+    let payload = conn.transp.recvInto(conn.buf[offset].addr,conn.payloadLen)
+  else:
+    let payload = conn.transp.readOnce(conn.buf[offset].addr,conn.payloadLen)
   let payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
   if not payloadRecvSuccess:
     raise newException(TimeoutError, TimeoutErrorMsg)
@@ -590,7 +626,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
         debug "result is compressed" 
       # conn.resetPacketLen
 
-proc roundtrip*(conn:Connection, data: string) {.async, tags:[IOEffect,RootEffect].} =
+proc roundtrip*(conn:Connection, data: string):Future[void] {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
   buf.setLen(4)
   buf.add data

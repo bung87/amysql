@@ -1,3 +1,7 @@
+when defined(ChronosAsync):
+  import chronos/[asyncloop, asyncsync, handles, transport, timer]
+else:
+  import asyncnet,asyncdispatch, times
 import ./private/auth
 import ./private/conn_auth
 import ./private/protocol
@@ -7,9 +11,8 @@ import ./conn
 import net  # needed for the SslContext type
 import uri
 import strutils
-import asyncdispatch
 import asyncnet
-import times
+import chronos / transport
 import logging
 import tables
 import urlly
@@ -42,12 +45,21 @@ template addIdleCheck(conn: Connection) =
   const TimeBetweenEvictionRuns {.intdefine.} = 30_000
   const ValidationQuery = "SELECT 1"
   when TestWhileIdle:
-    let idleCheck = proc (fd:AsyncFD): bool  {.closure, gcsafe.} =
-      if conn.lastOperationTime - now() >= initDuration(milliseconds=MinEvictableIdleTime):
-        let q = char(Command.query) & ValidationQuery
-        asyncCheck conn.roundtrip(q)
-      return false
-    addTimer(TimeBetweenEvictionRuns,oneshot=false,idleCheck)
+    when not defined(ChronosAsync):
+      let idleCheck = proc (fd:AsyncFD): bool  {.closure, gcsafe.} =
+        if conn.lastOperationTime - now() >= initDuration(milliseconds=MinEvictableIdleTime):
+          let q = char(Command.query) & ValidationQuery
+          asyncCheck conn.roundtrip(q)
+        return false
+      addTimer(TimeBetweenEvictionRuns,oneshot=false,idleCheck)
+    else:
+      # TODO match behivor above ?
+      let idleCheck = proc (arg: pointer) {.gcsafe, raises: [Defect].} =
+        if conn.lastOperationTime - Moment.now() >= milliseconds(MinEvictableIdleTime):
+          let q = char(Command.query) & ValidationQuery
+          asyncCheck conn.roundtrip(q)
+      
+      discard setTimer(Moment.fromNow(milliseconds( TimeBetweenEvictionRuns)),idleCheck)
   
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
@@ -127,7 +139,7 @@ proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
   result = conn.parseHandshakePacket()
 
 when declared(SslContext) and declared(startTls):
-  proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", connectAttrs:Table[string,string] = default(Table[string, string]), ssl: SslContext): Future[Connection] {.async.} =
+  proc establishConnection*(sock: AsyncSocket , username: string, password: string = "", database: string = "", connectAttrs:Table[string,string] = default(Table[string, string]), ssl: SslContext): Future[Connection] {.async.} =
     result = Connection(socket: sock)
     result.connectAttrs = connectAttrs
     result.buf.setLen(MysqlBufSize)
@@ -136,8 +148,8 @@ when declared(SslContext) and declared(startTls):
     await result.startTls(ssl)
     await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc establishConnection*(sock: AsyncSocket, username: string, password: string = "", database: string = "", connectAttrs:Table[string,string] = default(Table[string, string])): Future[Connection] {.async.} =
-  result = Connection(socket: sock)
+proc establishConnection*(sock: AsyncSocket | StreamTransport, username: string, password: string = "", database: string = "", connectAttrs:Table[string,string] = default(Table[string, string])): Future[Connection] {.async.} =
+  result = Connection(transp: sock)
   result.connectAttrs = connectAttrs
   result.buf.setLen(MysqlBufSize)
   let handshakePacket = await connect(result)
@@ -232,21 +244,30 @@ proc open*(uriStr: string | uri.Uri): Future[Connection] {.async.} =
   ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
   let uri:uri.Uri = when uriStr is string: uri.parseUri(uriStr) else: uriStr
   let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
-  let sock = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
-  await connect(sock, uri.hostname, Port(port))
+  when not defined(Chronos):
+    let transp = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
+    await connect(transp, uri.hostname, Port(port))
+  else:
+    let transp = await connect(uri.host)
   let connectAttrs = handleConnectAttrs(uri.query)
-  result = await establishConnection(sock, uri.username, uri.password, uri.path[ 1 .. uri.path.high ],connectAttrs )
+  result = await establishConnection(transp, uri.username, uri.password, uri.path[ 1 .. uri.path.high ],connectAttrs )
   if uri.query.len > 0:
     await result.handleParams(uri.query)
 
 proc open*(connection, user, password:string; database = ""; connectAttrs:Table[string,string] = default(Table[string, string])): Future[Connection] {.async, #[tags: [DbEffect]]#.} =
   var isPath = false
-  var sock:AsyncSocket
+  when not defined(ChronosAsync):
+    var sock:AsyncSocket
+  else:
+    var sock:StreamTransport
   when defined(posix):
     isPath = connection[0] == '/'
   if isPath:
-    sock = newAsyncSocket(AF_UNIX, SOCK_STREAM, buffered = true)
-    await connectUnix(sock,connection)
+    when not defined(ChronosAsync):
+      sock = newAsyncSocket(AF_UNIX, SOCK_STREAM, buffered = true)
+      await connectUnix(sock,connection)
+    else:
+      sock = await connect initTAddress(connection)
   else:
     let
       colonPos = connection.find(':')
@@ -254,8 +275,11 @@ proc open*(connection, user, password:string; database = ""; connectAttrs:Table[
             else: substr(connection, 0, colonPos-1)
       port: int32 = if colonPos < 0: 3306'i32
                     else: substr(connection, colonPos+1).parseInt.int32
-    sock = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
-    await connect(sock, host, Port(port))
+    when not defined(ChronosAsync):
+      sock = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
+      await connect(sock, host, Port(port))
+    else:
+      sock = await connect( initTAddress(host & ":" & $port))
   result = await establishConnection(sock, user, password, database, connectAttrs)
 
 proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =

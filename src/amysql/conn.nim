@@ -38,7 +38,10 @@ type
     priv_isMaria: Option[bool]
     authenticated*: bool
     when TestWhileIdle:
-      lastOperationTime*: DateTime
+      when not defined(ChronosAsync):
+        lastOperationTime*: DateTime
+      else:
+        lastOperationTime*: Moment
     buf*: seq[char]
     bufLen*: int
     payloadLen*: int
