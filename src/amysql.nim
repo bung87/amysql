@@ -27,7 +27,12 @@ export quote
 import amysql/private/errors
 export errors
 
-import asyncdispatch
+when defined(ChronosAsync):
+  import times except milliseconds,Duration,toParts,DurationZero,initDuration
+  import chronos/[asyncloop, asyncsync, handles, transport, timer]
+  const DurationZero = default(Duration)
+else:
+  import asyncnet,asyncdispatch, times
 import macros except floatVal
 import net  # needed for the SslContext type
 import db_common
@@ -35,7 +40,6 @@ export db_common
 import strutils
 import amysql/async_varargs
 import uri
-import times
 import json
 import amysql/private/logger
 

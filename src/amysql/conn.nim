@@ -2,14 +2,13 @@
 when defined(ChronosAsync):
   import chronos
 else:
-  import asyncnet
+  import asyncnet,times
 import ./private/cap
 import regex
 import ./private/utils
 import strutils, parseutils
 import options
 import tables
-import times
 
 const BasicClientCaps* = { Cap.longPassword, Cap.protocol41, Cap.secureConnection }
 const TestWhileIdle* {.booldefine.} = true

@@ -83,7 +83,7 @@ before_script:
   #     sudo systemctl stop mysql
   #     sudo mysqld_safe --skip-grant-tables --skip-networking &
   #     # mariadb 10.4 and later replace to mysql.global_priv https://mariadb.com/kb/en/mysqluser-table/
-  #     # sudo mysql -u root -e "use mysql;UPDATE user SET authentication_string = PASSWORD('123456') WHERE User = 'root' AND Host = 'localhost';UPDATE user SET password = PASSWORD('123456') WHERE User = 'root' AND Host = 'localhost';FLUSH PRIVILEGES;"
+  #     # sudo mysql -u root -e "use mysql;UPDATE user SET authentication_string = PASSWORD('123456') WHERE User = 'root' AND Host = '127.0.0.1';UPDATE user SET password = PASSWORD('123456') WHERE User = 'root' AND Host = '127.0.0.1';FLUSH PRIVILEGES;"
   #     sudo mysql -u root -e "UPDATE mysql.user SET plugin = 'mysql_native_password' WHERE user = 'root' AND plugin = 'unix_socket';FLUSH PRIVILEGES;"
 
   #     sudo systemctl start mysql;
@@ -95,20 +95,20 @@ before_script:
       sudo mysql -u root -e "create database if not exists test;"
       if [ -z "$TRAVIS_MARIADB_VERSION" ] 
       then
-        sudo mysql -u root  -e "create user 'test_user'@'localhost' identified WITH mysql_native_password BY '12345678';"
+        sudo mysql -u root  -e "create user 'test_user'@'127.0.0.1' identified WITH mysql_native_password BY '12345678';"
         
         if [ "$USE_SHA2" == "true" ]
         then
-          sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'password';"
-          sudo mysql -u root  -e "grant all on *.* to 'sha2user'@'localhost';"
+          sudo mysql -u root  -e "CREATE USER 'sha2user'@'127.0.0.1' IDENTIFIED WITH caching_sha2_password BY 'password';"
+          sudo mysql -u root  -e "grant all on *.* to 'sha2user'@'127.0.0.1';"
         fi
       else
-        sudo mysql -u root  -e "create user 'test_user'@'localhost' identified VIA mysql_native_password USING PASSWORD('12345678');"
+        sudo mysql -u root  -e "create user 'test_user'@'127.0.0.1' identified VIA mysql_native_password USING PASSWORD('12345678');"
         # mariadb not well support https://mariadb.com/kb/en/authentication-plugin-sha-256/#client-authentication-plugins
-        # sudo mysql -u root  -e "CREATE USER 'sha2user'@'localhost' IDENTIFIED VIA caching_sha2_password USING PASSWORD('12345678');"
+        # sudo mysql -u root  -e "CREATE USER 'sha2user'@'127.0.0.1' IDENTIFIED VIA caching_sha2_password USING PASSWORD('12345678');"
       fi
-      sudo mysql -u root  -e "grant all on *.* to 'test_user'@'localhost';"
-      sudo mysql -u root -e "grant FILE on *.* to 'test_user'@'localhost';"
+      sudo mysql -u root  -e "grant all on *.* to 'test_user'@'127.0.0.1';"
+      sudo mysql -u root -e "grant FILE on *.* to 'test_user'@'127.0.0.1';"
     fi
 
 

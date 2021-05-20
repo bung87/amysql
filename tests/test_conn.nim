@@ -15,11 +15,11 @@ const pass_word = "12345678"
 const ssl: bool = false
 const verbose: bool = false
 
-# The handling of localhost on Unix depends on the type of transport protocol.
-# Connections using classic MySQL protocol handle localhost the same way as other MySQL clients,
-# which means that localhost is assumed to be for socket-based connections.
+# The handling of 127.0.0.1 on Unix depends on the type of transport protocol.
+# Connections using classic MySQL protocol handle 127.0.0.1 the same way as other MySQL clients,
+# which means that 127.0.0.1 is assumed to be for socket-based connections.
 # For connections using X Protocol, 
-# the behavior of localhost differs in that it is assumed to represent the loopback address, 
+# the behavior of 127.0.0.1 differs in that it is assumed to represent the loopback address, 
 # for example, IPv4 address 127.0.0.1.
 
 proc getCurrentDatabase(conn: Connection): Future[string] {.async.} =

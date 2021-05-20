@@ -1,5 +1,8 @@
 
-import asyncdispatch
+when defined(ChronosAsync):
+  import chronos
+else:
+  import asyncdispatch
 import macros
 import uri
 import ../amysql

@@ -10,7 +10,7 @@ import net
 
 const database_name = "test"
 const port: int = 3306
-const host_name = "localhost"
+const host_name = "127.0.0.1"
 const ssl: bool = false
 
 suite "test connection auth methods":

@@ -55,11 +55,11 @@ template addIdleCheck(conn: Connection) =
     else:
       # TODO match behivor above ?
       let idleCheck = proc (arg: pointer) {.gcsafe, raises: [Defect].} =
-        if conn.lastOperationTime - Moment.now() >= milliseconds(MinEvictableIdleTime):
+        if cast[Connection](arg).lastOperationTime - Moment.now() >= milliseconds(MinEvictableIdleTime):
           let q = char(Command.query) & ValidationQuery
-          asyncCheck conn.roundtrip(q)
+          asyncCheck cast[Connection](arg).roundtrip(q)
       
-      discard setTimer(Moment.fromNow(milliseconds( TimeBetweenEvictionRuns)),idleCheck)
+      discard setTimer(Moment.fromNow(milliseconds( TimeBetweenEvictionRuns)),idleCheck,cast[pointer](conn.unsafeAddr))
   
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
@@ -201,14 +201,13 @@ proc rawQuery(conn: Connection, query: string, onlyFirst:static[bool] = false): 
   else:
     conn.fetchResultset( result, onlyFirst, true, result.rows.add(conn.parseTextRow(columnCount)))
 
-proc handleParams(conn: Connection, q: string) {.async.} =
+proc handleParams(conn: Connection, q: seq[(string, string)]) {.async.} =
   ## SHOW VARIABLES;
   ## https://dev.mysql.com/doc/refman/8.0/en/using-system-variables.html
   var key, val: string
   var cmd = "SET "
   var pos = 0
-  for item in split(q,"&"):
-    (key, val) = item.split("=")
+  for (key, val) in q:
     case key
     of "charset":
       # https://dev.mysql.com/doc/refman/8.0/en/set-names.html
@@ -225,8 +224,8 @@ proc handleParams(conn: Connection, q: string) {.async.} =
   if cmd.len  > 4:
     discard await conn.rawQuery cmd
 
-proc handleConnectAttrs(q: string): Table[string,string] =
-  for (key, val) in urlly.parseUrl("?" & q).query:
+proc handleConnectAttrs(q: seq[(string, string)]): Table[string,string] =
+  for (key, val) in q:
     case key
       of "connection-attributes":
         let pairs = val[1 ..< ^1]
@@ -240,15 +239,15 @@ proc handleConnectAttrs(q: string): Table[string,string] =
           else:
             result[kv[0]] = kv[1]
   
-proc open*(uriStr: string | uri.Uri): Future[Connection] {.async.} =
+proc open*(uriStr: string | urlly.Url): Future[Connection] {.async.} =
   ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
-  let uri:uri.Uri = when uriStr is string: uri.parseUri(uriStr) else: uriStr
+  let uri:urlly.Url = when uriStr is string: urlly.parseUrl(uriStr) else: uriStr
   let port = if uri.port.len > 0: parseInt(uri.port).int32 else: 3306'i32
-  when not defined(Chronos):
+  when not defined(ChronosAsync):
     let transp = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
     await connect(transp, uri.hostname, Port(port))
   else:
-    let transp = await connect(uri.host)
+    let transp = await connect(initTAddress(uri.hostname & ":" & $port))
   let connectAttrs = handleConnectAttrs(uri.query)
   result = await establishConnection(transp, uri.username, uri.password, uri.path[ 1 .. uri.path.high ],connectAttrs )
   if uri.query.len > 0:

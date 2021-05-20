@@ -9,7 +9,7 @@ import strformat
 import logging
 
 const database_name = "test"
-const host_name = "localhost"
+const host_name = "127.0.0.1"
 const user_name = "test_user"
 const pass_word = "12345678"
 const ssl: bool = false

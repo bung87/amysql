@@ -8,19 +8,18 @@
 
 import ./conn
 import locks
-import times
 when defined(ChronosAsync):
-  import chronos
+  import chronos/[asyncloop, asyncsync, handles, transport, timer]
+  import times except milliseconds,Duration,toParts,DurationZero,initDuration
+  const DurationZero = default(Duration)
 else:
-  import asyncdispatch
+  import asyncdispatch,asyncnet,times
 import ../amysql
-import uri
+import urlly
 import strutils
 import macros
 import strformat
-import asyncnet
 import sets,hashes
-import times
 import cpuinfo
 import db_common
 import ./private/format
@@ -37,7 +36,7 @@ type
     numOpen: int
     maxLifetime: Duration # maximum amount of time a connection may be reused
     maxIdleTime: Duration # maximum amount of time a connection may be idle before being closed
-    openUri: Uri
+    openUri: urlly.Url
     reader:ptr Channel[DBResult]
    
   DBConn* = ref DBConnObj
@@ -85,21 +84,30 @@ type
     
   DBConnObj = object
     pool: DBPool
-    createdAt: DateTime #time.Time
+    when not defined(ChronosAsync):
+      createdAt: DateTime #time.Time
+      returnedAt: DateTime # Time the connection was created or returned.
+    else:
+      createdAt: Moment
+      returnedAt: Moment
     lock: Lock  # guards following
     conn: ptr Connection
     needReset: bool # The connection session should be reset before use if true.
     closed: bool
     # guarded by db.mu
     inUse: bool
-    returnedAt: DateTime # Time the connection was created or returned.
+   
     reader: ptr Channel[DBStmt]
     writer: ptr Channel[DBResult] # same as pool's reader
 
 proc newDBConn*(writer:ptr Channel[DBResult]): DBConn =
   new result
-  result.createdAt = now()
-  result.returnedAt = now()
+  when not defined(ChronosAsync):
+    result.createdAt = now()
+    result.returnedAt = now()
+  else:
+    result.createdAt = Moment.now()
+    result.returnedAt = Moment.now()
   result.reader = cast[ptr Channel[DBStmt]](
     allocShared0(sizeof(Channel[DBStmt]))
   )
@@ -114,14 +122,18 @@ proc close*(self: DBConn) {.async.} =
 proc expired*(self: DBConn, timeout:Duration): bool = 
   if timeout <= DurationZero:
     return false
-  return self.createdAt + timeout < now()
+  when not defined(ChronosAsync):
+    let n = now()
+  else:
+    let n = Moment.now()
+  return self.createdAt + timeout < n
 
 
 type 
   Context = ref ContextObj
   ContextObj = object
     dbConn: DBConn
-    openUri: Uri
+    openUri: urlly.Url
 
 proc workerProcess(ctx: sink Context): Future[void] {.async.} = 
   var conn = await open(ctx.openUri)
@@ -185,18 +197,17 @@ proc worker(ctx:Context) {.thread.} =
   asyncCheck workerProcess(ctx)
   runForever()
 
-proc handleParams(query: string,minPoolSize,maxPoolSize:var int):string =
+proc handleParams(query: seq[(string,string)],minPoolSize,maxPoolSize:var int):seq[(string,string)] {.inline.} =
   var key, val: string
   var pos = 0
-  for item in split(query,"&"):
-    (key, val) = item.split("=")
+  for (key, val) in query:
     case key
     of "minPoolSize":
       minPoolSize = parseInt(val)
     of "maxPoolSize":
       maxPoolSize = parseInt(val)
     else:
-      result.add key & '=' & val
+      result.add (key ,val)
       inc pos
 
 proc hash(x: DBConn): Hash = 
@@ -204,14 +215,14 @@ proc hash(x: DBConn): Hash =
   h = h !& hash($x.createdAt)
   result = !$h
 
-proc newDBPool*(uriStr: string | Uri): Future[DBPool] {.async.} = 
+proc newDBPool*(uriStr: string | Url): Future[DBPool] {.async.} = 
   ## min pool size
   ## max pool size
   ## max idle timeout exceed then close,affected freeConns,numOpen
   ## max open timeout
   ## max lifetime exceed then close,affected freeConns,numOpen
   new result
-  var uri:Uri = when uriStr is string: parseUri(uriStr) else: uriStr
+  var uri:Url = when uriStr is string: parseUrl(uriStr) else: uriStr
   var minPoolSize = countProcessors() * 2 + 1
   var maxPoolSize:int
   uri.query = handleParams(uri.query,minPoolSize,maxPoolSize)

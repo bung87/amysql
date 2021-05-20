@@ -272,14 +272,20 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
         packet.add cast[ptr UncheckedArray[char]](compressed[0].addr).toOpenArray(0,compressed.high)
       else:
         packet.add buf
-      let send = conn.transp.send(packet[0].addr,packetLen)
+      when not defined(ChronosAsync):
+        let send = conn.transp.send(packet[0].addr,packetLen)
+      else:
+        let send = conn.transp.write(packet[0].addr,packetLen)
       let success = await withTimeout(send, WriteTimeOut)
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
     else:
       buf[3] = char( conn.sequenceId )
       inc(conn.sequenceId)
-      let send = conn.transp.send(buf)
+      when not defined(ChronosAsync):
+        let send = conn.transp.send(buf)
+      else:
+        let send = conn.transp.write(buf)
       let success = await withTimeout(send, WriteTimeOut)
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
@@ -568,15 +574,22 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       # (1)sequence id                 = 00       ->  0
       # (3)uncompressed payload length = 32 00 00 -> 50
       offset = CompressedLen
-      let rec = conn.transp.recvInto(conn.buf[0].addr,CompressedLen)
+      when not defined(ChronosAsync):
+        let rec = conn.transp.recvInto(conn.buf[0].addr,CompressedLen)
+      else:
+        let rec = conn.transp.readOnce(conn.buf[0].addr,CompressedLen)
       let success = await withTimeout(rec, ReadTimeOut)
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
       headerLen = rec.read
+
       uncompressedLen = int32( uint32(conn.buf[conn.bufPos + 4]) or (uint32(conn.buf[conn.bufPos+5]) shl 8) or (uint32(conn.buf[conn.bufPos+6]) shl 16) )
     else:
       offset = NormalLen
-      let rec = conn.transp.recvInto(conn.buf[0].addr,NormalLen)
+      when not defined(ChronosAsync):
+        let rec = conn.transp.recvInto(conn.buf[0].addr,NormalLen)
+      else:
+        let rec = conn.transp.readOnce(conn.buf[0].addr,NormalLen)
       let success = await withTimeout(rec, ReadTimeOut)
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
