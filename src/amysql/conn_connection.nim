@@ -137,9 +137,9 @@ proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
   await conn.receivePacket()
   conn.resetPacketLen
   result = conn.parseHandshakePacket()
-
+type Attrs = Table[string,string]
 when declared(SslContext) and declared(startTls):
-  proc establishConnection*(sock: AsyncSocket , username: string, password: string = "", database: string = "", connectAttrs:Table[string,string] = default(Table[string, string]), ssl: SslContext): Future[Connection] {.async.} =
+  proc establishConnection*(sock: AsyncSocket , username: string, password: string = "", database: string = "", connectAttrs = default(Attrs), ssl: SslContext): Future[Connection] {.async.} =
     result = Connection(socket: sock)
     result.connectAttrs = connectAttrs
     result.buf.setLen(MysqlBufSize)
@@ -148,7 +148,7 @@ when declared(SslContext) and declared(startTls):
     await result.startTls(ssl)
     await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc establishConnection*(sock: AsyncSocket | StreamTransport, username: string, password: string = "", database: string = "", connectAttrs:Table[string,string] = default(Table[string, string])): Future[Connection] {.async.} =
+proc establishConnection*(sock: AsyncSocket | StreamTransport, username: string, password: string = "", database: string = "", connectAttrs = default(Attrs)): Future[Connection] {.async.} =
   result = Connection(transp: sock)
   result.connectAttrs = connectAttrs
   result.buf.setLen(MysqlBufSize)
