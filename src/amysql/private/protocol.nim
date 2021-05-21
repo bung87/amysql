@@ -5,7 +5,6 @@ when defined(ChronosAsync):
   import chronos/[asyncloop, asyncsync, handles, transport, timer]
   import times except milliseconds,Duration,toParts,DurationZero,initDuration
   const DurationZero* = default(Duration)
-  proc withTimeout*[T](fut: Future[T], timeout: int): Future[bool] = withTimeout(fut,timeout.milliseconds())
   proc initDuration*(nanoseconds: int64=0, microseconds: int64 = 0, milliseconds: int64 = 0, seconds: int64 = 0, minutes: int64 = 0, hours: int64 = 0, days: int64 = 0, weeks: int64 = 0): Duration =
     default(Duration) + nanoseconds.nanoseconds + microseconds.microseconds + milliseconds.milliseconds + seconds.seconds + minutes.minutes + hours.hours + days.days + weeks.weeks
   proc toParts*(dur: Duration): DurationParts =
