@@ -4,7 +4,7 @@ when defined(ChronosAsync):
 else:
   import asyncdispatch
 import macros
-import uri
+import urlly
 import ../amysql
 import ../amysql/private/format
 import ./async_varargs
@@ -25,18 +25,18 @@ proc newAsyncPool*(
   ## Create a new async pool of num connections.
   result = AsyncPool()
   for i in 0..<num:
-    let conn = await open(host, user, password, database)
+    let conn = await amysql.open(host, user, password, database)
     result.conns.add conn
     result.busy.add false
 
 proc newAsyncPool*(
-    uriStr: string | Uri,
+    uriStr: string | urlly.Url,
     num: int
   ): Future[AsyncPool] {.async.} =
   ## Create a new async pool of num connections.
   result = AsyncPool()
   for i in 0..<num:
-    let conn = await open(uriStr)
+    let conn = await amysql.open(uriStr)
     result.conns.add conn
     result.busy.add false
 
