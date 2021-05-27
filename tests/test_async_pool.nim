@@ -16,7 +16,7 @@ const ssl: bool = false
 const verbose: bool = false
 
 
-proc numberTests(pool: AsyncPool): Future[void] {.async.} =
+proc numberTests(pool: AsyncPoolRef): Future[void] {.async.} =
   discard await pool.selectDatabase(database_name)
   discard await pool.rawExec("drop table if exists num_tests")
   discard await pool.rawExec("create table num_tests (s text, u8 tinyint unsigned, s8 tinyint, u int unsigned, i int, b bigint)")

@@ -28,7 +28,7 @@ import logging
 when defined(release):  setLogFilter(lvlInfo)
 
 type 
-  DBPool* = ref DBPoolObj
+  DBPoolRef* = ref DBPoolObj
   DBPoolObj = object
     freeConn: HashSet[DBConn]
     closed: bool
@@ -83,7 +83,7 @@ type
       discard
     
   DBConnObj = object
-    pool: DBPool
+    pool: DBPoolRef
     when not defined(ChronosAsync):
       createdAt: DateTime #time.Time
       returnedAt: DateTime # Time the connection was created or returned.
@@ -215,7 +215,7 @@ proc hash(x: DBConn): Hash =
   h = h !& hash($x.createdAt)
   result = !$h
 
-proc newDBPool*(uriStr: string | Url): Future[DBPool] {.async.} = 
+proc newDBPool*(uriStr: string | Url): Future[DBPoolRef] {.async.} = 
   ## min pool size
   ## max pool size
   ## max idle timeout exceed then close,affected freeConns,numOpen
@@ -245,7 +245,7 @@ proc newDBPool*(uriStr: string | Url): Future[DBPool] {.async.} =
     # wait for established
     discard result.reader[].recv()
 
-proc close*(self:DBPool): Future[void] {.async.}=
+proc close*(self:DBPoolRef): Future[void] {.async.}=
   for dbConn in  self.freeConn:
     discard dbConn.reader[].trySend(DBStmt(met:InterfaceKind.close,kind:StmtKind.command))
     discard dbConn.writer[].tryRecv()
@@ -256,7 +256,7 @@ proc close*(self:DBPool): Future[void] {.async.}=
   deallocShared(self.reader)
   self.closed = true
 
-proc fetchConn*(self: DBPool): Future[DBConn] {.async.} = 
+proc fetchConn*(self: DBPoolRef): Future[DBConn] {.async.} = 
   ## conn returns a newly-opened or new DBconn.
   if self.closed:
     raise newException(IOError,"Connection closed.")
@@ -297,7 +297,7 @@ proc fetchConn*(self: DBPool): Future[DBConn] {.async.} =
   # wait for established
   discard self.reader[].recv()
 
-proc rawQuery*(self: DBPool, query: string, onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
+proc rawQuery*(self: DBPoolRef, query: string, onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
                async.} =
   let conn = await self.fetchConn()
   conn.reader[].send(DBStmt(met:InterfaceKind.rawQuery,kind:StmtKind.text,textVal:query,onlyFirst:onlyFirst))
@@ -305,17 +305,17 @@ proc rawQuery*(self: DBPool, query: string, onlyFirst:static[bool] = false): Fut
   self.freeConn.incl conn
   return msg.textVal
 
-proc query(self: DBPool, pstmt: DBSqlPrepared, params: seq[SqlParam]): Future[ResultSet[ResultValue]] {.async.} =
+proc query(self: DBPoolRef, pstmt: DBSqlPrepared, params: seq[SqlParam]): Future[ResultSet[ResultValue]] {.async.} =
   let conn = pstmt.dbConn
   conn.reader[].send(DBStmt(met:InterfaceKind.query,kind:StmtKind.binary,binVal:pstmt.pstmt,params:params))
   let msg = conn.writer[].recv()
   self.freeConn.incl conn
   return msg.binVal
 
-proc query*(self: DBPool, pstmt: DBSqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] =
+proc query*(self: DBPoolRef, pstmt: DBSqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] =
   result = self.query(pstmt, @params)
 
-proc rawExec*(self: DBPool, query: string): Future[ResultSet[string]] {.
+proc rawExec*(self: DBPoolRef, query: string): Future[ResultSet[string]] {.
                async.} =
   let conn = await self.fetchConn()
   conn.reader[].send(DBStmt(met:InterfaceKind.exec,kind:StmtKind.text,textVal:query))
@@ -323,38 +323,38 @@ proc rawExec*(self: DBPool, query: string): Future[ResultSet[string]] {.
   self.freeConn.incl conn
   return msg.textVal
 
-proc prepare*(self: DBPool, query: string): Future[DBSqlPrepared] {.async.} =
+proc prepare*(self: DBPoolRef, query: string): Future[DBSqlPrepared] {.async.} =
   let conn = await self.fetchConn()
   conn.reader[].send(DBStmt(met:InterfaceKind.prepare,kind:StmtKind.binary,q:query))
   let msg = conn.writer[].recv()
   return DBSqlPrepared(pstmt:msg.pstmt,dbConn:conn)
 
-proc finalize*(self: DBPool, pstmt: DBSqlPrepared): Future[void] {.async.} =
+proc finalize*(self: DBPoolRef, pstmt: DBSqlPrepared): Future[void] {.async.} =
   pstmt.dbConn.reader[].send(DBStmt(met:InterfaceKind.finalize,kind:StmtKind.binary,pstmt:pstmt.pstmt))
   discard pstmt.dbConn.writer[].recv()
   self.freeConn.incl pstmt.dbConn
 
-proc reset*(self: DBPool, pstmt: DBSqlPrepared): Future[void] {.async.} =
+proc reset*(self: DBPoolRef, pstmt: DBSqlPrepared): Future[void] {.async.} =
   pstmt.dbConn.reader[].send(DBStmt(met:InterfaceKind.reset,kind:StmtKind.binary,pstmt:pstmt.pstmt))
   discard pstmt.dbConn.writer[].recv()
 
-proc exec(conn: DBPool, query: SqlQuery, args: seq[string]): Future[ResultSet[string]] {.
+proc exec(conn: DBPoolRef, query: SqlQuery, args: seq[string]): Future[ResultSet[string]] {.
             async, #[tags: [ReadDbEffect]]#.} =
   var q = dbFormat(query, args)
   result = await conn.rawExec(q)
 
-proc exec*(conn: DBPool, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] =
+proc exec*(conn: DBPoolRef, query: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] =
   result = conn.exec(query, @args)
 
-proc query(conn: DBPool, query: SqlQuery, args: seq[string], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
+proc query(conn: DBPoolRef, query: SqlQuery, args: seq[string], onlyFirst:static[bool] = false): Future[ResultSet[string]] {.
             async, #[tags: [ReadDbEffect]]#.} =
   var q = dbFormat(query, args)
   result = await conn.rawQuery(q, onlyFirst)
 
-proc query*(conn: DBPool, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] =
+proc query*(conn: DBPoolRef, query: SqlQuery, args: varargs[string, `$`], onlyFirst:static[bool] = false): Future[ResultSet[string]] =
   result = conn.query(query, @args, onlyFirst)
 
-proc tryQuery(conn: DBPool, query: SqlQuery, args: seq[string]): Future[bool] {.
+proc tryQuery(conn: DBPoolRef, query: SqlQuery, args: seq[string]): Future[bool] {.
                async, #[tags: [ReadDbEffect]]#.} =
   ## tries to execute the query and returns true if successful, false otherwise.
   result = true
@@ -364,11 +364,11 @@ proc tryQuery(conn: DBPool, query: SqlQuery, args: seq[string]): Future[bool] {.
     result = false
   return result
 
-proc tryQuery*(conn: DBPool, query: SqlQuery, args: varargs[string, `$`]): Future[bool] =
+proc tryQuery*(conn: DBPoolRef, query: SqlQuery, args: varargs[string, `$`]): Future[bool] =
   ## tries to execute the query and returns true if successful, false otherwise.
   result = conn.tryQuery(query, @args)
 
-proc getRow(conn: DBPool, query: SqlQuery,
+proc getRow(conn: DBPoolRef, query: SqlQuery,
              args: seq[string]): Future[Row] {.async, #[tags: [ReadDbEffect]]#.} =
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
@@ -379,24 +379,24 @@ proc getRow(conn: DBPool, query: SqlQuery,
   else:
     result = resultSet.rows[0]
 
-proc getRow*(conn: DBPool, query: SqlQuery,
+proc getRow*(conn: DBPoolRef, query: SqlQuery,
              args: varargs[string, `$`]): Future[Row] =
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
   result = conn.getRow(query, @args)
 
-proc getAllRows(conn: DBPool, query: SqlQuery,
+proc getAllRows(conn: DBPoolRef, query: SqlQuery,
                  args: seq[string]): Future[seq[Row]] {.async, #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the whole result dataset.
   let resultSet = await conn.query(query, args)
   result = resultSet.rows
 
-proc getAllRows*(conn: DBPool, query: SqlQuery,
+proc getAllRows*(conn: DBPoolRef, query: SqlQuery,
                  args: varargs[string, `$`]): Future[seq[Row]] =
   ## executes the query and returns the whole result dataset.
   result = conn.getAllRows(query, @args)
 
-proc getValue(conn: DBPool, query: SqlQuery,
+proc getValue(conn: DBPoolRef, query: SqlQuery,
                args: seq[string]): Future[string] {.async, #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the first column of the first row of the
   ## result dataset. Returns "" if the dataset contains no rows or the database
@@ -404,14 +404,14 @@ proc getValue(conn: DBPool, query: SqlQuery,
   let row = await getRow(conn, query, args)
   result = row[0]
 
-proc getValue*(conn: DBPool, query: SqlQuery,
+proc getValue*(conn: DBPoolRef, query: SqlQuery,
                args: varargs[string, `$`]): Future[string] =
   ## executes the query and returns the first column of the first row of the
   ## result dataset. Returns "" if the dataset contains no rows or the database
   ## value is NULL.
   result = conn.getValue(query, @args)
 
-proc tryInsertId(conn: DBPool, query: SqlQuery,
+proc tryInsertId(conn: DBPoolRef, query: SqlQuery,
                   args: seq[string]): Future[int64] {.async, #[raises: [], tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row or -1 in case of an error.
@@ -423,43 +423,43 @@ proc tryInsertId(conn: DBPool, query: SqlQuery,
     return result
   result = resultSet.status.lastInsertId.int64
 
-proc tryInsertId*(conn: DBPool, query: SqlQuery,
+proc tryInsertId*(conn: DBPoolRef, query: SqlQuery,
                   args: varargs[string, `$`]): Future[int64] =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row or -1 in case of an error.
   result = conn.tryInsertId(query, @args)
 
-proc insertId(conn: DBPool, query: SqlQuery,
+proc insertId(conn: DBPoolRef, query: SqlQuery,
                args: seq[string]): Future[int64] {.async, #[tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
   let resultSet = await conn.exec(query, args)
   result = resultSet.status.lastInsertId.int64
 
-proc insertId*(conn: DBPool, query: SqlQuery,
+proc insertId*(conn: DBPoolRef, query: SqlQuery,
                args: varargs[string, `$`]): Future[int64] =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
   result = conn.insertId(query, @args)
 
-proc tryInsert(conn: DBPool, query: SqlQuery, pkName: string,
+proc tryInsert(conn: DBPoolRef, query: SqlQuery, pkName: string,
                 args: seq[string]): Future[int64] {.async,#[raises: [], tags: [WriteDbEffect]]#.} =
   ## same as tryInsertID
   result = await tryInsertID(conn, query, args)
 
-proc tryInsert*(conn: DBPool, query: SqlQuery, pkName: string,
+proc tryInsert*(conn: DBPoolRef, query: SqlQuery, pkName: string,
                 args: varargs[string, `$`]): Future[int64] =
   ## same as tryInsertID
   result = conn.tryInsert(query, pkName, @args)
 
-proc insert(conn: DBPool, query: SqlQuery, pkName: string,
+proc insert(conn: DBPoolRef, query: SqlQuery, pkName: string,
              args: seq[string]): Future[int64]
             {.async, #[tags: [WriteDbEffect]]#.} =
   ## same as insertId
   let resultSet = await conn.exec(query, args)
   result = resultSet.status.lastInsertId.int64
 
-proc insert*(conn: DBPool, query: SqlQuery, pkName: string,
+proc insert*(conn: DBPoolRef, query: SqlQuery, pkName: string,
              args: varargs[string, `$`]): Future[int64] =
   ## same as insertId
   result = conn.insert(query, pkName, @args)
