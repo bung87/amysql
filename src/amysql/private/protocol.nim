@@ -230,11 +230,16 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
   when not defined(mysql_compression_mode):
     buf[3] = char( conn.sequenceId )
     inc(conn.sequenceId)
+    var success = true
     when defined(ChronosAsync):
       let send = conn.transp.write(buf)
+      try:
+        discard await wait(send, WriteTimeOut)
+      except AsyncTimeoutError:
+        success = false
     else:
       let send = conn.transp.send(buf,flags = {})
-    let success = await withTimeout(send, WriteTimeOut)
+      success = await withTimeout(send, WriteTimeOut)
     if not success:
       raise newException(TimeoutError, TimeoutErrorMsg)
   else:
@@ -271,21 +276,31 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
         packet.add cast[ptr UncheckedArray[char]](compressed[0].addr).toOpenArray(0,compressed.high)
       else:
         packet.add buf
+      var success = true
       when not defined(ChronosAsync):
         let send = conn.transp.send(packet[0].addr,packetLen)
+        success = await withTimeout(send, WriteTimeOut)
       else:
         let send = conn.transp.write(packet[0].addr,packetLen)
-      let success = await withTimeout(send, WriteTimeOut)
+        try:
+          discard await wait(send, WriteTimeOut)
+        except AsyncTimeoutError:
+          success = false
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
     else:
       buf[3] = char( conn.sequenceId )
       inc(conn.sequenceId)
+      var success = true
       when not defined(ChronosAsync):
         let send = conn.transp.send(buf)
+        success = await withTimeout(send, WriteTimeOut)
       else:
         let send = conn.transp.write(buf)
-      let success = await withTimeout(send, WriteTimeOut)
+        try:
+          discard await wait(send, WriteTimeOut)
+        except AsyncTimeoutError:
+          success = false
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
 
@@ -557,11 +572,16 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   var uncompressedLen:int32
   when not defined(mysql_compression_mode):
     offset = NormalLen
+    var success = true
     when not defined(ChronosAsync):
       let rec = conn.transp.recvInto(conn.buf[0].addr, NormalLen,flags = {})
+      success = await withTimeout(rec, ReadTimeOut)
     else:
       let rec = conn.transp.readOnce(conn.buf[0].addr, NormalLen)
-    let success = await withTimeout(rec, ReadTimeOut)
+      try:
+        discard await wait(rec, ReadTimeOut)
+      except AsyncTimeoutError:
+        success = false
     if not success:
       raise newException(TimeoutError, TimeoutErrorMsg)
     headerLen = rec.read
@@ -573,11 +593,16 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       # (1)sequence id                 = 00       ->  0
       # (3)uncompressed payload length = 32 00 00 -> 50
       offset = CompressedLen
+      var success = true
       when not defined(ChronosAsync):
         let rec = conn.transp.recvInto(conn.buf[0].addr,CompressedLen)
+        success = await withTimeout(rec, ReadTimeOut)
       else:
         let rec = conn.transp.readOnce(conn.buf[0].addr,CompressedLen)
-      let success = await withTimeout(rec, ReadTimeOut)
+        try:
+          success = await wait(rec, ReadTimeOut)
+        except AsyncTimeoutError:
+          success = false
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
       headerLen = rec.read
@@ -585,11 +610,16 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       uncompressedLen = int32( uint32(conn.buf[conn.bufPos + 4]) or (uint32(conn.buf[conn.bufPos+5]) shl 8) or (uint32(conn.buf[conn.bufPos+6]) shl 16) )
     else:
       offset = NormalLen
+      var success = true
       when not defined(ChronosAsync):
         let rec = conn.transp.recvInto(conn.buf[0].addr,NormalLen)
+        success = await withTimeout(rec, ReadTimeOut)
       else:
         let rec = conn.transp.readOnce(conn.buf[0].addr,NormalLen)
-      let success = await withTimeout(rec, ReadTimeOut)
+        try:
+          success = await wait(rec, ReadTimeOut)
+        except AsyncTimeoutError:
+          success = false
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
       headerLen = rec.read
@@ -609,11 +639,16 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
     return 
   if conn.fullPacketLen > MysqlBufSize:
     conn.buf.setLen(offset + conn.payloadLen)
+  var payloadRecvSuccess = true
   when not defined(ChronosAsync):
     let payload = conn.transp.recvInto(conn.buf[offset].addr,conn.payloadLen)
+    payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
   else:
     let payload = conn.transp.readOnce(conn.buf[offset].addr,conn.payloadLen)
-  let payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
+    try:
+      discard await wait(payload, ReadTimeOut)
+    except AsyncTimeoutError:
+      payloadRecvSuccess = false
   if not payloadRecvSuccess:
     raise newException(TimeoutError, TimeoutErrorMsg)
   conn.bufLen = payload.read
