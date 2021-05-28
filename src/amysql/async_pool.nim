@@ -5,7 +5,6 @@ else:
   import asyncdispatch
 import macros
 import urlly
-# from ../amysql import Row,tryQuery,exec,SqlQuery,open,Connection,close,SqlPrepared,SqlParam,ResultSet,ResetConnection,reset,rawExec,query,rawQuery,ResultValue,ResponseOK,selectDatabase
 import ../amysql 
 import ../amysql/private/format
 import ./async_varargs
@@ -36,7 +35,7 @@ proc newAsyncPool*(
   ): Future[AsyncPoolRef] {.async.} =
   ## Create a new async pool of num connections.
   result = AsyncPoolRef()
-  for i in 0..<num:
+  for i in 0 ..< num:
     let conn = await amysql.open(uriStr)
     result.conns.add conn
     result.busy.add false
@@ -44,7 +43,7 @@ proc newAsyncPool*(
 proc getFreeConnIdx*(pool: AsyncPoolRef): Future[int] {.async.} =
   ## Wait for a free connection and return it.
   while true:
-    for conIdx in 0..<pool.conns.len:
+    for conIdx in 0 ..< pool.conns.len:
       if not pool.busy[conIdx]:
         pool.busy[conIdx] = true
         return conIdx
