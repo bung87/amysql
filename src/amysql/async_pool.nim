@@ -5,7 +5,8 @@ else:
   import asyncdispatch
 import macros
 import urlly
-import ../amysql
+# from ../amysql import Row,tryQuery,exec,SqlQuery,open,Connection,close,SqlPrepared,SqlParam,ResultSet,ResetConnection,reset,rawExec,query,rawQuery,ResultValue,ResponseOK,selectDatabase
+import ../amysql 
 import ../amysql/private/format
 import ./async_varargs
 
@@ -56,11 +57,11 @@ proc returnConn*(pool: AsyncPoolRef, conIdx: int) =
   ## Make the connection as free after using it and getting results.
   pool.busy[conIdx] = false
 
-template withConn(pool: AsyncPoolRef, conn, body) =
+template withConn(pool: AsyncPoolRef,connIns, body) =
   let conIdx = await pool.getFreeConnIdx()
-  var conn = pool.conns[conIdx]
+  var connIns  = pool.conns[conIdx]
   when ResetConnection:
-    discard await conn.reset()
+    discard await connIns.reset()
   body
   pool.returnConn(conIdx)
 
@@ -69,91 +70,91 @@ proc close*(pool: AsyncPoolRef) {.async.} =
     await conn.close()
 
 proc query*(pool: AsyncPoolRef, pstmt: SqlPrepared, params: openarray[static[SqlParam]]): Future[void] {.async.}=
-  pool.withConn(conn):
-    result = await conn.query(pstmt,params)
+  pool.withConn(connIns):
+    result = await connIns.query(pstmt,params)
 
 {.push warning[ObservableStores]: off.}
 proc rawExec*(pool: AsyncPoolRef, qs: string): Future[ResultSet[string]] {.
                async,#[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
-  pool.withConn(conn):
-    result = await conn.rawExec(qs)
+  pool.withConn(connIns):
+    result = await connIns.rawExec(qs)
 
 proc rawQuery*(pool: AsyncPoolRef, qs: string, onlyFirst:bool = false): Future[ResultSet[string]] {.
                async, #[ tags: [ReadDbEffect, WriteDbEffect,RootEffect]]#.} =
-  pool.withConn(conn):
-    result = await conn.rawQuery(qs,onlyFirst)
+  pool.withConn(connIns):
+    result = await connIns.rawQuery(qs,onlyFirst)
 {.pop.}
 
 proc query*(pool: AsyncPoolRef, pstmt: SqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] {.
             asyncVarargs#[tags: [ReadDbEffect, WriteDbEffect]]#.} =
-  pool.withConn(conn):
-    result = await conn.query(pstmt, params)
+  pool.withConn(connIns):
+    result = await connIns.query(pstmt, params)
 
 proc selectDatabase*(pool: AsyncPoolRef, database: string): Future[ResponseOK] {.async.} =
-  pool.withConn(conn):
-    result = await conn.selectDatabase(database)
+  pool.withConn(connIns):
+    result = await connIns.selectDatabase(database)
 
 proc exec*(pool: AsyncPoolRef, qs: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
            asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
-  pool.withConn(conn):
-    result = await conn.exec(qs, args)
+  pool.withConn(connIns):
+    result = await connIns.exec(qs, args)
 
 proc query*(pool: AsyncPoolRef, qs: SqlQuery, args: varargs[string, `$`],
             onlyFirst:static[bool] = false): Future[ResultSet[string]] {.asyncVarargs.} =
-  pool.withConn(conn):
+  pool.withConn(connIns):
     var q = dbFormat(qs, args)
-    result = await conn.rawQuery(q, onlyFirst)
+    result = await connIns.rawQuery(q, onlyFirst)
 
 proc tryQuery*(pool: AsyncPoolRef, qs: SqlQuery, args: varargs[string, `$`]): Future[bool] {.
                asyncVarargs, #[tags: [ReadDbEffect]]#.} =
   ## tries to execute the query and returns true if successful, false otherwise.
-  pool.withConn(conn):
-    result = await conn.tryQuery(qs, args)
+  pool.withConn(connIns):
+    result = await connIns.tryQuery(qs, args)
 
 proc getRow*(pool: AsyncPoolRef, qs: SqlQuery,
              args: varargs[string, `$`]): Future[Row] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
-  pool.withConn(conn):
-    result = await conn.getRow(qs, args)
+  pool.withConn(connIns):
+    result = await connIns.getRow(qs, args)
 
 proc getAllRows*(pool: AsyncPoolRef, qs: SqlQuery,
                  args: varargs[string, `$`]): Future[seq[Row]] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the whole result dataset.
-  pool.withConn(conn):
-    result = await conn.getAllRows(qs, args)
+  pool.withConn(connIns):
+    result = await connIns.getAllRows(qs, args)
 
 proc getValue*(pool: AsyncPoolRef, qs: SqlQuery,
                args: varargs[string, `$`]): Future[string] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   ## executes the query and returns the first column of the first row of the
   ## result dataset. Returns "" if the dataset contains no rows or the database
   ## value is NULL.
-  pool.withConn(conn):
-    result = await conn.getValue(qs, args)
+  pool.withConn(connIns):
+    result = await connIns.getValue(qs, args)
 
 proc tryInsertId*(pool: AsyncPoolRef, qs: SqlQuery,
                   args: varargs[string, `$`]): Future[int64] {.asyncVarargs, #[raises: [], tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row or -1 in case of an error.
-  pool.withConn(conn):
-    result = await conn.tryInsertId(qs, args)
+  pool.withConn(connIns):
+    result = await connIns.tryInsertId(qs, args)
 
 proc insertId*(pool: AsyncPoolRef, qs: SqlQuery,
                args: varargs[string, `$`]): Future[int64] {.asyncVarargs,  #[tags: [WriteDbEffect]]#.} =
   ## executes the query (typically "INSERT") and returns the
   ## generated ID for the row.
-  pool.withConn(conn):
-    result = await conn.insertId(qs, args)
+  pool.withConn(connIns):
+    result = await connIns.insertId(qs, args)
 
 proc tryInsert*(pool: AsyncPoolRef, qs: SqlQuery, pkName: string,
                 args: varargs[string, `$`]): Future[int64] {.asyncVarargs, #[raises: [], tags: [WriteDbEffect]]#.} =
   ## same as tryInsertID
-  pool.withConn(conn):
-    result = await tryInsertID(conn, qs, args)
+  pool.withConn(connIns):
+    result = await tryInsertID(connIns, qs, args)
 
 proc insert*(pool: AsyncPoolRef, qs: SqlQuery, pkName: string,
              args: varargs[string, `$`]): Future[int64]
             {.asyncVarargs,  #[tags: [WriteDbEffect]]#.} =
   ## same as insertId
-  pool.withConn(conn):
-    result = await conn.insert(qs, pkName, args)
+  pool.withConn(connIns):
+    result = await connIns.insert(qs, pkName, args)

@@ -21,10 +21,14 @@ conn = waitFor newAsyncPool(host_name,
   pass_word,
   database_name,2)
 
+discard waitFor conn.rawExec("drop table if exists num_tests")
+discard waitFor conn.rawExec("create table num_tests ( i int)")
+
 proc queriesHandler(req: Request) {.async.} =
+  
   for i in 1 .. 2:
     try:
-      discard await conn.rawQuery("select s, u8, s8, u, i, b from num_tests order by u8 asc")
+      discard await conn.rawQuery("select * from num_tests")
     except Exception as e:
       echo $type(e),e.msg
 

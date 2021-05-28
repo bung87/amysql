@@ -600,7 +600,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       else:
         let rec = conn.transp.readOnce(conn.buf[0].addr,CompressedLen)
         try:
-          success = await wait(rec, ReadTimeOut)
+          discard await wait(rec, ReadTimeOut)
         except AsyncTimeoutError:
           success = false
       if not success:
@@ -617,7 +617,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       else:
         let rec = conn.transp.readOnce(conn.buf[0].addr,NormalLen)
         try:
-          success = await wait(rec, ReadTimeOut)
+          discard await wait(rec, ReadTimeOut)
         except AsyncTimeoutError:
           success = false
       if not success:

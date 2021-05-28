@@ -12,17 +12,18 @@ const serverBinPath = currentSourcePath.parentDir / "test_concurrent_server"
 let threadsNum = nextPowerOfTwo(cpuinfo.countProcessors())
 
 when isMainModule:
-  var r = execCmdEx(fmt"nim c --hints:off {serverPath}", options = {poUsePath})
+  var r = execCmdEx(fmt"nim c -d:release -d:ChronosAsync --hints:off {serverPath}", options = {poUsePath})
   doAssert r.exitCode == 0
   const opts = {poUsePath, poDaemon, poStdErrToStdOut}
   var server = startProcess(serverBinPath,options=opts)
 
   sleep(1000)
- 
+
   proc asyncProc():Future[string] {.async.} =
     var client = newAsyncHttpClient()
     try:
       result = await  client.getContent("http://127.0.0.1:8080")
+      echo result
     except Exception as e:
       echo e.msg
   
@@ -34,6 +35,7 @@ when isMainModule:
   except Exception as e:
     echo e.msg
     server.terminate()
+  server.terminate()
 
   exitProcs.addExitProc proc() = server.terminate()
   
