@@ -23,10 +23,14 @@ proc newAsyncPool*(
     num: int
   ): Future[AsyncPoolRef] {.async.} =
   ## Create a new async pool of num connections.
-  result = AsyncPoolRef()
-  for i in 0..<num:
-    let conn = await amysql.open(host, user, password, database)
-    result.conns.add conn
+  result =  new AsyncPoolRef
+  var connIns:Connection
+  for i in 0 ..< num:
+    try:
+      connIns = await amysql.open(host, user, password, database)
+    except Exception as e:
+      echo e.msg
+    result.conns.add connIns
     result.busy.add false
 
 proc newAsyncPool*(
@@ -34,7 +38,7 @@ proc newAsyncPool*(
     num: int
   ): Future[AsyncPoolRef] {.async.} =
   ## Create a new async pool of num connections.
-  result = AsyncPoolRef()
+  result = new AsyncPoolRef
   for i in 0 ..< num:
     let conn = await amysql.open(uriStr)
     result.conns.add conn

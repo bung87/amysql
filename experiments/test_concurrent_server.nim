@@ -3,8 +3,10 @@ when defined(ChronosAsync):
 else:
   discard
 import scorper
+import amysql 
 import amysql / async_pool
 import cpuinfo, math
+import std / exitProcs
 const database_name = "test"
 const port: int = 3306
 const host_name = "127.0.0.1"
@@ -23,20 +25,28 @@ const verbose: bool = false
 # restart your mysql server
 # https://serverfault.com/questions/15564/where-are-the-default-ulimits-specified-on-os-x-10-5
 
-var conn{.threadvar.}:AsyncPoolRef
-conn = waitFor newAsyncPool(host_name,user_name,pass_word,database_name,512)
+# var conn:Connection
+# conn = waitFor amysql.open(host_name,user_name,pass_word,database_name)
+# discard waitFor conn.rawExec("drop table if exists num_tests")
+# discard waitFor conn.rawExec("create table num_tests ( i int)")
+# waitFor conn.close()
+
+var pool{.threadvar.}:AsyncPoolRef
+pool = waitFor newAsyncPool(host_name,user_name,pass_word,database_name,1024)
+exitProcs.addExitProc proc() = waitFor pool.close()
 echo "pool inited"
-discard waitFor conn.rawExec("drop table if exists num_tests")
-discard waitFor conn.rawExec("create table num_tests ( i int)")
+# discard waitFor pool.rawExec("drop table if exists num_tests")
+# discard waitFor pool.rawExec("create table num_tests ( i int)")
+# var lock = newAsyncLock()
 
 proc queriesHandler(req: Request) {.async.} =
-  
+  # await lock.acquire()
   for i in 1 .. 2:
     try:
-      discard await conn.rawQuery("select * from num_tests")
+      discard await pool.rawQuery("select * from num_tests")
     except Exception as e:
       echo $type(e),e.msg
-
+  # lock.release()
   await req.resp("hello world")
   
 let address = "127.0.0.1:8080"
