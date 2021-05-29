@@ -29,7 +29,7 @@ proc newAsyncPool*(
     try:
       connIns = await amysql.open(host, user, password, database)
     except Exception as e:
-      echo e.msg
+      raise e
     result.conns.add connIns
     result.busy.add false
 

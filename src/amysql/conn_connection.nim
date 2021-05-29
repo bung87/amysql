@@ -136,7 +136,9 @@ proc connect(conn: Connection): Future[HandshakePacket] {.async.} =
   await conn.receivePacket()
   conn.resetPacketLen
   result = conn.parseHandshakePacket()
+
 type Attrs = Table[string,string]
+
 when declared(SslContext) and declared(startTls):
   proc establishConnection*(sock: AsyncSocket , username: string, password: string = "", database: string = "", connectAttrs = default(Attrs), ssl: SslContext): Future[Connection] {.async.} =
     result = Connection(socket: sock)

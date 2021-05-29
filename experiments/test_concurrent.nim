@@ -3,7 +3,11 @@
 # import scorper / http / streamclient
 
 import httpclient
-let threadsNum = 100
+import locks
+
+var L: Lock
+
+let threadsNum = 512
 
 when isMainModule:
   when defined(useServer):
@@ -22,10 +26,13 @@ when isMainModule:
     let
       client = newHttpClient()
     let r = client.get("http://127.0.0.1:8080")
-    # echo r.body
+    # acquire(L)
+    # echo r.body()
+    # release(L)
     client.close()
-
+  initLock(L)
   var futs = newSeq[Thread[void]](threadsNum)
   for i in 0 ..< threadsNum:
     createThread(futs[i], threadFunc)
   joinThreads(futs)
+  deinitLock(L)

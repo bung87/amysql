@@ -21,7 +21,10 @@ const verbose: bool = false
 # on macOS: launchctl limit maxfiles 10240 unlimited
 # sudo sysctl -w kern.maxfiles=20480
 # [mysqld]
-# max_connections = 1000
+# thread_cache_size = 10240
+# max_user_connections = 10240
+# mysqlx_max_connections = 10240
+# max_connections = 10240
 # restart your mysql server
 # https://serverfault.com/questions/15564/where-are-the-default-ulimits-specified-on-os-x-10-5
 
@@ -32,7 +35,7 @@ const verbose: bool = false
 # waitFor conn.close()
 
 var pool{.threadvar.}:AsyncPoolRef
-pool = waitFor newAsyncPool(host_name,user_name,pass_word,database_name,1024)
+pool = waitFor newAsyncPool(host_name,user_name,pass_word,database_name,100)
 exitProcs.addExitProc proc() = waitFor pool.close()
 echo "pool inited"
 # discard waitFor pool.rawExec("drop table if exists num_tests")
