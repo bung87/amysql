@@ -97,6 +97,10 @@ proc selectDatabase*(pool: AsyncPoolRef, database: string): Future[ResponseOK] {
   pool.withConn(connIns):
     result = await connIns.selectDatabase(database)
 
+proc ping*(pool: AsyncPoolRef): Future[ResponseOK] {.async.} =
+  pool.withConn(connIns):
+    result = await connIns.ping()
+
 proc exec*(pool: AsyncPoolRef, qs: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
            asyncVarargs,  #[tags: [ReadDbEffect]]#.} =
   pool.withConn(connIns):

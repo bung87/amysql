@@ -785,6 +785,23 @@ proc selectDatabase*(conn: Connection, database: string): Future[ResponseOK] {.a
     const ErrorMsg = "unexpected response to COM_INIT_DB:$1"
     raise newException(ProtocolError, ErrorMsg.format cast[string](conn.buf))
 
+proc ping*(conn: Connection):Future[ResponseOK]{.async.} =
+  var buf: string = newStringOfCap(4 + 1)
+  buf.setLen(4)
+  buf.add( Command.ping.char )
+  await conn.sendPacket(buf, resetSeqId=true)
+  await conn.receivePacket()
+  conn.resetPacketLen
+  if isERRPacket(conn):
+    raise parseErrorPacket(conn)
+  elif isOKPacket(conn):
+    return parseOKPacket(conn)
+  elif isEOFPacket(conn):
+    return parseEOFPacket(conn)
+  else:
+    const ErrorMsg = "unexpected response to COM_PING:$1"
+    raise newException(ProtocolError, ErrorMsg.format cast[string](conn.buf))
+
 proc exec*(conn: Connection, qs: SqlQuery, args: varargs[string, `$`]): Future[ResultSet[string]] {.
             asyncVarargs.} =
   var q = dbFormat(qs, args)

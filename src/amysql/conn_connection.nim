@@ -9,7 +9,6 @@ import ./private/cap
 import ./private/errors
 import ./conn
 import net  # needed for the SslContext type
-import uri
 import strutils
 import asyncnet
 import chronos / transport
