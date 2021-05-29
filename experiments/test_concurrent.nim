@@ -1,13 +1,9 @@
-
-# import scorper
-# import scorper / http / streamclient
-
 import httpclient
 import locks
 
 var L: Lock
 
-let threadsNum = 125
+let threadsNum = 100
 
 when isMainModule:
   when defined(useServer):

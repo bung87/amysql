@@ -44,7 +44,7 @@ var lock = newAsyncLock()
 
 proc queriesHandler(req: Request) {.async.} =
   
-  for i in 1 .. 2:
+  for i in 1 .. 20:
     try:
       await lock.acquire()
       discard await pool.rawQuery("select * from num_tests")
