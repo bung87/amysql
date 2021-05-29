@@ -38,18 +38,20 @@ var pool{.threadvar.}:AsyncPoolRef
 pool = waitFor newAsyncPool(host_name,user_name,pass_word,database_name,100)
 exitProcs.addExitProc proc() = waitFor pool.close()
 echo "pool inited"
-# discard waitFor pool.rawExec("drop table if exists num_tests")
-# discard waitFor pool.rawExec("create table num_tests ( i int)")
-# var lock = newAsyncLock()
+discard waitFor pool.rawExec("drop table if exists num_tests")
+discard waitFor pool.rawExec("create table num_tests ( i int)")
+var lock = newAsyncLock()
 
 proc queriesHandler(req: Request) {.async.} =
-  # await lock.acquire()
+  
   for i in 1 .. 2:
     try:
+      await lock.acquire()
       discard await pool.rawQuery("select * from num_tests")
+      lock.release()
     except Exception as e:
       echo $type(e),e.msg
-  # lock.release()
+  
   await req.resp("hello world")
   
 let address = "127.0.0.1:8080"

@@ -7,7 +7,7 @@ import locks
 
 var L: Lock
 
-let threadsNum = 512
+let threadsNum = 125
 
 when isMainModule:
   when defined(useServer):
@@ -21,18 +21,22 @@ when isMainModule:
     var server = startProcess(serverBinPath,options=opts)
     exitProcs.addExitProc proc() = server.terminate()
     sleep(1000)
-
-  proc threadFunc() {.thread.} =
-    let
-      client = newHttpClient()
-    let r = client.get("http://127.0.0.1:8080")
-    # acquire(L)
-    # echo r.body()
-    # release(L)
+  var fails :int 
+  proc threadFunc(fails:ptr int) {.thread.} =
+    let client = newHttpClient()
+    try:
+      let r = client.getContent("http://127.0.0.1:8080")
+    except Exception as e:
+      acquire(L)
+      echo e.msg
+      release(L)
+      fails[].inc
+    
     client.close()
   initLock(L)
-  var futs = newSeq[Thread[void]](threadsNum)
+  var futs = newSeq[Thread[ptr int]](threadsNum)
   for i in 0 ..< threadsNum:
-    createThread(futs[i], threadFunc)
+    createThread(futs[i], threadFunc,fails.addr)
   joinThreads(futs)
+  echo "fails:" & $fails
   deinitLock(L)
