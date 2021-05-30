@@ -3,7 +3,7 @@ import locks
 
 var L: Lock
 
-let threadsNum = 100
+let threadsNum = 512
 
 when isMainModule:
   when defined(useServer):
@@ -34,5 +34,5 @@ when isMainModule:
   for i in 0 ..< threadsNum:
     createThread(futs[i], threadFunc,fails.addr)
   joinThreads(futs)
-  echo "fails:" & $fails
+  echo "total:" & $threadsNum & " fails:" & $fails
   deinitLock(L)
