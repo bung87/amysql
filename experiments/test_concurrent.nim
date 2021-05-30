@@ -6,7 +6,7 @@ let threadsNum = 512
 
 when isMainModule:
   when defined(useServer):
-    import std / [exitProcs,strformat,osproc]
+    import std / [os,exitProcs,strformat,osproc]
     const serverPath = currentSourcePath.parentDir / "test_concurrent_server.nim"
     const serverBinPath = currentSourcePath.parentDir / "test_concurrent_server"
 
