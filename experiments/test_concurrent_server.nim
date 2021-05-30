@@ -3,8 +3,8 @@ when defined(ChronosAsync):
 else:
   discard
 import scorper
-import amysql 
-import amysql / async_pool
+import ../ src / amysql 
+import  ../ src / amysql / async_pool
 import std / exitProcs
 
 const database_name = "test"
