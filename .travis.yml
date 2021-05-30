@@ -126,9 +126,8 @@ install:
 script:
   - nimble test --silent
   - nimble test -d:ChronosAsync --silent
-  - nimble install scorper
-  - nimble develop
-  - nim c -d:useServer -r experiments/test_concurrent.nim
+  # - nimble install scorper
+  # - nim c -d:useServer -r experiments/test_concurrent.nim
 
   
   
