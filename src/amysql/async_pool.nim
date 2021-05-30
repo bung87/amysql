@@ -53,6 +53,10 @@ proc getFreeConnIdx*(pool: AsyncPoolRef): Future[int] {.async.} =
         return conIdx
     await sleepAsync(0)
 
+proc pingAll*(pool: AsyncPoolRef){.async.} =
+  for conIdx in 0 ..< pool.conns.len:
+    discard await pool.conns[conIdx].ping()
+
 proc getFreeConn*(pool: AsyncPoolRef, conIdx: int):Connection =
   result = pool.conns[conIdx]
 
@@ -123,7 +127,10 @@ proc getRow*(pool: AsyncPoolRef, qs: SqlQuery,
   ## Retrieves a single row. If the query doesn't return any rows, this proc
   ## will return a Row with empty strings for each column.
   pool.withConn(connIns):
-    result = await connIns.getRow(qs, args)
+    try:
+      result = await connIns.getRow(qs, args)
+    except Exception as e:
+      echo $type(e),e.msg
 
 proc getAllRows*(pool: AsyncPoolRef, qs: SqlQuery,
                  args: varargs[string, `$`]): Future[seq[Row]] {.asyncVarargs,  #[tags: [ReadDbEffect]]#.} =

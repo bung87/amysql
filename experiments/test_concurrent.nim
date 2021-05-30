@@ -1,6 +1,5 @@
-import httpclient
+import asyncdispatch,httpclient
 import locks
-
 var L: Lock
 
 let threadsNum = 512
@@ -19,9 +18,9 @@ when isMainModule:
     sleep(1000)
   var fails :int 
   proc threadFunc(fails:ptr int) {.thread.} =
-    let client = newHttpClient()
+    let client = newAsyncHttpClient()
     try:
-      let r = client.getContent("http://127.0.0.1:8080")
+      let r =  waitFor client.getContent("http://127.0.0.1:8080")
     except Exception as e:
       acquire(L)
       echo e.msg

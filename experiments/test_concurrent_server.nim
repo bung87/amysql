@@ -5,7 +5,6 @@ else:
 import scorper
 import amysql 
 import amysql / async_pool
-import cpuinfo, math
 import std / exitProcs
 
 const database_name = "test"
@@ -31,11 +30,7 @@ const verbose: bool = false
 # restart your mysql server
 # https://serverfault.com/questions/15564/where-are-the-default-ulimits-specified-on-os-x-10-5
 
-# var conn:Connection
-# conn = waitFor amysql.open(host_name,user_name,pass_word,database_name)
-# discard waitFor conn.rawExec("drop table if exists num_tests")
-# discard waitFor conn.rawExec("create table num_tests ( i int)")
-# waitFor conn.close()
+
 echo getMaxOpenFiles()
 # setMaxOpenFiles(8192)
 var pool{.threadvar.}:AsyncPoolRef
@@ -45,15 +40,11 @@ echo "pool inited"
 discard waitFor pool.rawExec("drop table if exists num_tests")
 discard waitFor pool.rawExec("create table num_tests ( i int)")
 
-# var lock = newAsyncLock()
-
 proc queriesHandler(req: Request) {.async.} =
   
   for i in 1 .. 2:
     try:
-      # await lock.acquire()
-      discard await pool.rawQuery("select * from num_tests")
-      # lock.release()
+      discard await pool.getRow(sql"select * from num_tests")
     except Exception as e:
       echo $type(e),e.msg
   
