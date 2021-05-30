@@ -293,4 +293,7 @@ proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
   buf.add( char(Command.quit) )
   await conn.sendPacket(buf, resetSeqId=true)
   await conn.receivePacket(drop_ok=true)
-  conn.transp.close()
+  when defined(ChronosAsync):
+    await conn.transp.closeWait()
+  else:
+    conn.transp.close()
