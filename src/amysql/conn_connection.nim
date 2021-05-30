@@ -1,5 +1,6 @@
 when defined(ChronosAsync):
   import chronos/[asyncloop, asyncsync, handles, transport, timer]
+  import nativesockets
 else:
   import asyncnet,asyncdispatch, times
 import ./private/auth
@@ -239,7 +240,7 @@ proc handleConnectAttrs(q: seq[(string, string)]): Table[string,string] =
             result[kv[0]] = ""
           else:
             result[kv[0]] = kv[1]
-  
+
 proc open*(uriStr: string | urlly.Url): Future[Connection] {.async.} =
   ## https://dev.mysql.com/doc/refman/8.0/en/connecting-using-uri-or-key-value-pairs.html
   let uri:urlly.Url = when uriStr is string: urlly.parseUrl(uriStr) else: uriStr
@@ -248,7 +249,9 @@ proc open*(uriStr: string | urlly.Url): Future[Connection] {.async.} =
     let transp = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
     await connect(transp, uri.hostname, Port(port))
   else:
-    let transp = await connect(initTAddress(uri.hostname & ":" & $port))
+    let isIp = net.isIpAddress(uri.hostname)
+    let host:string = if isIp: uri.hostname else: nativesockets.getHostByName(uri.hostname).addrList[^1]
+    let transp = await connect(initTAddress(host,Port(port) ))
   let connectAttrs = handleConnectAttrs(uri.query)
   result = await establishConnection(transp, uri.username, uri.password, uri.path[ 1 .. uri.path.high ],connectAttrs )
   if uri.query.len > 0:
@@ -279,7 +282,9 @@ proc open*(connection, user, password:string; database = ""; connectAttrs:Table[
       sock = newAsyncSocket(AF_INET, SOCK_STREAM, buffered = true)
       await connect(sock, host, Port(port))
     else:
-      sock = await connect( initTAddress(host & ":" & $port))
+      let isIp = net.isIpAddress(host)
+      let ip:string = if isIp: host else: nativesockets.getHostByName(host).addrList[^1]
+      sock = await connect( initTAddress(ip, Port(port)))
   result = await establishConnection(sock, user, password, database, connectAttrs)
 
 proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =

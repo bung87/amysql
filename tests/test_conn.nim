@@ -82,3 +82,10 @@ suite "connnection":
   test "dsn multiple charset":
     let conn = waitFor amysql.open(fmt"mysql://{user_name}:{pass_word}@{host_name}/{database_name}?charset=utf8mb4,utf8&sql_mode=TRADITIONAL")
     waitFor conn.close()
+
+  test "hostname resolve":
+    let conn = waitFor amysql.open("localhost:3306",user_name,pass_word,database_name)
+    waitFor conn.close()
+  test "hostname resolve with uri":
+    let conn = waitFor amysql.open(fmt"mysql://{user_name}:{pass_word}@localhost:3306/{database_name}")
+    waitFor conn.close()
