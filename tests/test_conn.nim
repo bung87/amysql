@@ -28,7 +28,7 @@ proc getCurrentDatabase(conn: Connection): Future[string] {.async.} =
   doAssert(len(rslt.rows) == 1, "wrong number of result rows")
   return rslt.rows[0][0]
 
-proc connTest(): Future[Connection] {.async.} =
+proc connTest()  {.async.} =
   let conn1 = await open(host_name,user_name,pass_word,database_name)
   let conn1db1 = await getCurrentDatabase(conn1)
   check conn1db1 == database_name
@@ -51,13 +51,11 @@ proc connTest(): Future[Connection] {.async.} =
       saw_conn2 = true
   check saw_conn1
   check saw_conn2
-
+  await conn1.close()
   await conn2.close()
-  return conn1
 
 proc runTests(): Future[void] {.async.} =
-  let conn = await connTest()
-  await conn.close()
+  await connTest()
 
 suite "connnection":
   test "connnection with multiple instance":
