@@ -10,7 +10,7 @@ when isMainModule:
     const serverPath = currentSourcePath.parentDir / "test_concurrent_server.nim"
     const serverBinPath = currentSourcePath.parentDir / "test_concurrent_server"
 
-    var r = execCmdEx(fmt"nim c -d:release -d:ChronosAsync --hints:off {serverPath}", options = {poUsePath})
+    var r = execCmdEx(fmt"nim c -d:release -d:ChronosAsync --hints:off {serverPath}", options = {poUsePath,poStdErrToStdOut})
     if r.exitCode != 0:
       echo r.output
     doAssert r.exitCode == 0
