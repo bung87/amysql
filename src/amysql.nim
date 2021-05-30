@@ -666,7 +666,6 @@ template processResultset(conn: Connection, resultset: typed, onlyFirst: typed, 
         if not firstHandled:
           process
           firstHandled = true
-          continue
         if conn.isEOFPacketFollowed:
           resultset.status = parseEOFPacket(conn)
           break
