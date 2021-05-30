@@ -45,15 +45,15 @@ echo "pool inited"
 discard waitFor pool.rawExec("drop table if exists num_tests")
 discard waitFor pool.rawExec("create table num_tests ( i int)")
 
-var lock = newAsyncLock()
+# var lock = newAsyncLock()
 
 proc queriesHandler(req: Request) {.async.} =
   
   for i in 1 .. 2:
     try:
-      await lock.acquire()
+      # await lock.acquire()
       discard await pool.rawQuery("select * from num_tests")
-      lock.release()
+      # lock.release()
     except Exception as e:
       echo $type(e),e.msg
   
