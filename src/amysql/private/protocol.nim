@@ -673,7 +673,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
         debug "result is compressed" 
       # conn.resetPacketLen
 
-proc roundtrip*(conn:Connection, data: string):Future[void] {.async, tags:[IOEffect,RootEffect].} =
+proc roundtrip*(conn:Connection, data:sink string):Future[void] {.async, tags:[IOEffect,RootEffect].} =
   var buf: string = newStringOfCap(32)
   buf.setLen(4)
   buf.add data

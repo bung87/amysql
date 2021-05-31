@@ -17,6 +17,9 @@ import logging
 import tables
 import urlly
 
+const MinEvictableIdleTime {.intdefine.} = 60_0000
+const TimeBetweenEvictionRuns {.intdefine.} = 30_000
+
 when defined(release):  setLogFilter(lvlInfo)
 
 when defined(ssl):
@@ -39,27 +42,46 @@ when defined(ssl):
     wrapConnectedSocket(ssl, conn.transp, handshake=SslHandshakeType.handshakeAsClient)
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
-  
+
+proc roundtripQuery(conn:Connection, data: string):Future[void] {.async, tags:[IOEffect,RootEffect].} =
+  await conn.sendQuery(data)
+  await conn.receivePacket()
+  if isERRPacket(conn):
+    raise parseErrorPacket(conn)
+  return
+
 template addIdleCheck(conn: Connection) =
-  const MinEvictableIdleTime {.intdefine.} = 60_0000
-  const TimeBetweenEvictionRuns {.intdefine.} = 30_000
+
   const ValidationQuery = "SELECT 1"
   when TestWhileIdle:
     when not defined(ChronosAsync):
       let idleCheck = proc (fd:AsyncFD): bool  {.closure, gcsafe.} =
-        if conn.lastOperationTime - now() >= initDuration(milliseconds=MinEvictableIdleTime):
+        if now() - conn.lastOperationTime >= initDuration(milliseconds=MinEvictableIdleTime):
           let q = char(Command.query) & ValidationQuery
-          asyncCheck conn.roundtrip(q)
+          asyncCheck conn.roundtripQuery(q)
         return false
       addTimer(TimeBetweenEvictionRuns,oneshot=false,idleCheck)
     else:
-      # TODO match behivor above ?
+      proc addInterval(every: Duration, cb: CallbackFunc, udata: pointer = nil): Future[void] =
+        var retFuture = newFuture[void]("chronos.addInterval(Duration)")
+        var interval:CallbackFunc
+        proc scheduleNext() =
+          if not retFuture.finished():
+            addTimer(Moment.fromNow(every), interval,udata)
+
+        interval = proc (arg: pointer = nil) {.gcsafe,raises: [Defect].} =
+          cb(udata)
+          scheduleNext()
+
+        scheduleNext()
+        return retFuture
+
       let idleCheck = proc (arg: pointer) {.gcsafe, raises: [Defect].} =
-        if cast[Connection](arg).lastOperationTime - Moment.now() >= milliseconds(MinEvictableIdleTime):
-          let q = char(Command.query) & ValidationQuery
-          asyncCheck cast[Connection](arg).roundtrip(q)
+        if  Moment.now() - cast[Connection](arg).lastOperationTime  >= milliseconds(MinEvictableIdleTime):
+          const q = char(Command.query) & ValidationQuery
+          asyncSpawn cast[Connection](arg).roundtripQuery(q)
       
-      discard setTimer(Moment.fromNow(milliseconds( TimeBetweenEvictionRuns)),idleCheck,cast[pointer](conn.unsafeAddr))
+      asyncSpawn addInterval(milliseconds( TimeBetweenEvictionRuns),idleCheck,cast[pointer](conn.unsafeAddr))
   
 proc finishEstablishingConnection(conn: Connection,
                                   username, password, database: string,
