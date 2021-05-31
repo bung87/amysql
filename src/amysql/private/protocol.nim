@@ -232,7 +232,7 @@ proc sendPacket*(conn: Connection, buf: sink string, resetSeqId = false): Future
     inc(conn.sequenceId)
     var success = true
     when defined(ChronosAsync):
-      let send = conn.transp.write(buf[0].addr,buf.len)
+      let send = conn.transp.write(buf)
       try:
         discard await wait(send, WriteTimeOut)
       except AsyncTimeoutError:
