@@ -34,7 +34,7 @@ const verbose: bool = false
 echo getMaxOpenFiles()
 # setMaxOpenFiles(8192)
 var pool{.threadvar.}:AsyncPoolRef
-pool = waitFor newAsyncPool(host_name,user_name,pass_word,database_name,1024)
+pool = waitFor newAsyncPool(host_name,user_name,pass_word,database_name,2)
 exitProcs.addExitProc proc() = waitFor pool.close()
 echo "pool inited"
 discard waitFor pool.rawExec("drop table if exists num_tests")
