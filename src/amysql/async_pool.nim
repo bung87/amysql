@@ -8,7 +8,7 @@ import urlly
 import ../amysql 
 import ../amysql/private/format
 import ./async_varargs
-
+const ResetConnection {.booldefine.} = true
 type
   ## db pool
   AsyncPoolRef* = ref object
