@@ -13,7 +13,7 @@ when defined(ChronosAsync):
   import times except milliseconds,Duration,toParts,DurationZero,initDuration
   const DurationZero = default(Duration)
 else:
-  import asyncdispatch,asyncnet,times
+  import asyncdispatch,times
 import ../amysql
 import urlly
 import strutils
@@ -24,6 +24,8 @@ import cpuinfo
 import db_common
 import ./private/format
 import logging
+
+const ResetConnection {.booldefine.} = true
 
 when defined(release):  setLogFilter(lvlInfo)
 
@@ -48,7 +50,7 @@ type
     binary,
     command
   InterfaceKind {.pure.} = enum
-    none,query,rawQuery,prepare,finalize,reset,exec,close,resetConnection
+    none,ping,query,rawQuery,prepare,finalize,reset,exec,close,resetConnection
   DBStmt {.pure.} = object
     case kind:StmtKind
     of text:
@@ -63,14 +65,14 @@ type
       onlyFirst:bool
     of InterfaceKind.query:
       params:seq[SqlParam]
-    of InterfaceKind.none,InterfaceKind.close,InterfaceKind.resetConnection:
+    of InterfaceKind.none,InterfaceKind.ping,InterfaceKind.close,InterfaceKind.resetConnection:
       discard
     of InterfaceKind.prepare,InterfaceKind.exec:
       q:string
     of InterfaceKind.finalize,InterfaceKind.reset:
       pstmt:SqlPrepared
   DBResultKind = enum
-    resultsetText,resultsetBinary,pstmt,none
+    resultsetText,resultsetBinary,pstmt,none,ok
   DBResult {.pure.} = object
     case kind:DBResultKind
     of resultsetText:
@@ -79,6 +81,8 @@ type
       binVal:ResultSet[ResultValue]
     of pstmt:
       pstmt:SqlPrepared
+    of ok:
+      ok:ResponseOK
     of none:
       discard
     
@@ -126,7 +130,7 @@ proc expired*(self: DBConn, timeout:Duration): bool =
     let n = now()
   else:
     let n = Moment.now()
-  return self.createdAt + timeout < n
+  return self.createdAt + timeout >= n
 
 
 type 
@@ -189,6 +193,10 @@ proc workerProcess(ctx: sink Context): Future[void] {.async.} =
         of InterfaceKind.resetConnection:
           discard await ctx.dbConn.conn[].reset()
           let p = DBResult(kind:DBResultKind.none)
+          discard ctx.dbConn.writer[].trySend(p)
+        of InterfaceKind.ping:
+          let ok = await ctx.dbConn.conn[].ping()
+          let p = DBResult(kind:DBResultKind.ok,ok:ok)
           discard ctx.dbConn.writer[].trySend(p)
         else:
           discard
@@ -311,6 +319,13 @@ proc query(self: DBPoolRef, pstmt: DBSqlPrepared, params: seq[SqlParam]): Future
   let msg = conn.writer[].recv()
   self.freeConn.incl conn
   return msg.binVal
+
+proc ping*(self: DBPoolRef ): Future[ResponseOK] {.async.} =
+  let conn = await self.fetchConn()
+  conn.reader[].send(DBStmt(met:InterfaceKind.ping,kind:StmtKind.command))
+  let msg = conn.writer[].recv()
+  self.freeConn.incl conn
+  return msg.ok
 
 proc query*(self: DBPoolRef, pstmt: DBSqlPrepared, params: varargs[SqlParam, asParam]): Future[ResultSet[ResultValue]] =
   result = self.query(pstmt, @params)

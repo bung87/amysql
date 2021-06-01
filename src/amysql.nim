@@ -43,8 +43,6 @@ import uri
 import json
 import amysql/private/logger
 
-const ResetConnection* {.booldefine.} = true
-
 type
   ParamBindingType = enum
     paramNull,

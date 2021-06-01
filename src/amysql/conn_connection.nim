@@ -43,7 +43,7 @@ when defined(ssl):
     # and, once the encryption is negotiated, we will continue
     # with the real handshake response.
 
-proc roundtripQuery(conn:Connection, query: string):Future[void] {.async,raises:[], tags:[IOEffect,RootEffect].} =
+proc roundtripQuery(conn:Connection, query: string):Future[void] {.async, tags:[IOEffect,RootEffect].} =
   # TODO if error occurs what should to do ?
   var buf: string = newStringOfCap(4 + 1 + len(query))
   buf.setLen(4)
