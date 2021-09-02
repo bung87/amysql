@@ -576,15 +576,16 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
     when not defined(ChronosAsync):
       let rec = conn.transp.recvInto(conn.buf[0].addr, NormalLen,flags = {})
       success = await withTimeout(rec, ReadTimeOut)
+      headerLen = rec.read
     else:
-      let rec = conn.transp.readOnce(conn.buf[0].addr, NormalLen)
       try:
-        discard await wait(rec, ReadTimeOut)
+        await wait(conn.transp.readOnce(conn.buf[0].addr, NormalLen), ReadTimeOut)
       except AsyncTimeoutError:
         success = false
+      headerLen = NormalLen
     if not success:
       raise newException(TimeoutError, TimeoutErrorMsg)
-    headerLen = rec.read
+    
   else:
     if conn.use_zstd():
       # https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_compression_packet.html#sect_protocol_basic_compression_packet_header
@@ -597,15 +598,16 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       when not defined(ChronosAsync):
         let rec = conn.transp.recvInto(conn.buf[0].addr,CompressedLen)
         success = await withTimeout(rec, ReadTimeOut)
+        headerLen = rec.read
       else:
-        let rec = conn.transp.readOnce(conn.buf[0].addr,CompressedLen)
         try:
-          discard await wait(rec, ReadTimeOut)
+          await wait(conn.transp.readExactly(conn.buf[0].addr,CompressedLen), ReadTimeOut)
         except AsyncTimeoutError:
           success = false
+        headerLen = CompressedLen
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
-      headerLen = rec.read
+      
 
       uncompressedLen = int32( uint32(conn.buf[conn.bufPos + 4]) or (uint32(conn.buf[conn.bufPos+5]) shl 8) or (uint32(conn.buf[conn.bufPos+6]) shl 16) )
     else:
@@ -614,15 +616,15 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       when not defined(ChronosAsync):
         let rec = conn.transp.recvInto(conn.buf[0].addr,NormalLen)
         success = await withTimeout(rec, ReadTimeOut)
+        headerLen = rec.read
       else:
-        let rec = conn.transp.readOnce(conn.buf[0].addr,NormalLen)
         try:
-          discard await wait(rec, ReadTimeOut)
+          await wait(conn.transp.readExactly(conn.buf[0].addr,NormalLen), ReadTimeOut)
         except AsyncTimeoutError:
           success = false
+        headerLen = NormalLen
       if not success:
         raise newException(TimeoutError, TimeoutErrorMsg)
-      headerLen = rec.read
   if headerLen == 0:
     if drop_ok:
       return 
@@ -643,15 +645,15 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
   when not defined(ChronosAsync):
     let payload = conn.transp.recvInto(conn.buf[offset].addr,conn.payloadLen)
     payloadRecvSuccess = await withTimeout(payload, ReadTimeOut)
+    conn.bufLen = payload.read
   else:
-    let payload = conn.transp.readOnce(conn.buf[offset].addr,conn.payloadLen)
     try:
-      discard await wait(payload, ReadTimeOut)
+      await wait(conn.transp.readExactly(conn.buf[offset].addr,conn.payloadLen), ReadTimeOut)
     except AsyncTimeoutError:
       payloadRecvSuccess = false
+    conn.bufLen = conn.payloadLen
   if not payloadRecvSuccess:
     raise newException(TimeoutError, TimeoutErrorMsg)
-  conn.bufLen = payload.read
   if conn.bufLen == 0:
     raise newException(ProtocolError, "Connection closed unexpectedly")
   if conn.bufLen != conn.payloadLen:
