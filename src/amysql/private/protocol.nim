@@ -579,7 +579,7 @@ proc receivePacket*(conn:Connection, drop_ok: bool = false) {.async, tags:[ReadI
       headerLen = rec.read
     else:
       try:
-        await wait(conn.transp.readOnce(conn.buf[0].addr, NormalLen), ReadTimeOut)
+        await wait(conn.transp.readExactly(conn.buf[0].addr, NormalLen), ReadTimeOut)
       except AsyncTimeoutError:
         success = false
       headerLen = NormalLen
