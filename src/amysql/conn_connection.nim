@@ -1,6 +1,7 @@
 when defined(ChronosAsync):
   import chronos/[asyncloop, asyncsync, handles, transport, timer]
   import nativesockets
+  import chronos / transport
 else:
   import asyncnet,asyncdispatch, times
 import ./private/auth
@@ -12,7 +13,7 @@ import ./conn
 import net  # needed for the SslContext type
 import strutils
 import asyncnet
-import chronos / transport
+
 import logging
 import tables
 import urlly
@@ -177,7 +178,7 @@ when declared(SslContext) and declared(startTls):
     await result.startTls(ssl)
     await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc establishConnection*(sock: AsyncSocket | StreamTransport, username: string, password: string = "", database: string = "", connectAttrs = default(Attrs)): Future[Connection] {.async.} =
+proc establishConnection*[T](sock: T, username: string, password: string = "", database: string = "", connectAttrs = default(Attrs)): Future[Connection] {.async.} =
   result = Connection(transp: sock)
   result.connectAttrs = connectAttrs
   result.buf.setLen(MysqlBufSize)

@@ -2,6 +2,7 @@
 
 import scorper
 import scorper / http / streamclient
+import os
 
 let threadsNum = 512
 
@@ -11,7 +12,7 @@ when isMainModule:
     const serverPath = currentSourcePath.parentDir / "test_concurrent_server.nim"
     const serverBinPath = currentSourcePath.parentDir / "test_concurrent_server"
 
-    var r = execCmdEx(fmt"nim c -d:release -d:ChronosAsync --hints:off {serverPath}", options = {poUsePath})
+    var r = execCmdEx(fmt"nim c -d:release --hints:off {serverPath}", options = {poUsePath})
     doAssert r.exitCode == 0
     const opts = {poUsePath, poDaemon, poStdErrToStdOut}
     var server = startProcess(serverBinPath,options=opts)
