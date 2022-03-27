@@ -97,7 +97,7 @@ await conn.selectDatabase()
 
 ### exec and query  
 
-**rawQuery** api return every row in form `seq[string` , `query`  
+**rawQuery** api return every row in form `seq[string]`
 
 **query** api return every row in variant bounded types  
 
