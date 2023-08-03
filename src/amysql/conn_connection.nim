@@ -294,11 +294,12 @@ proc open*(connection, user, password:string; database = ""; connectAttrs:Table[
   when defined(posix):
     isPath = connection[0] == '/'
   if isPath:
-    when not defined(ChronosAsync):
-      sock = newAsyncSocket(AF_UNIX, SOCK_STREAM, buffered = true)
-      await connectUnix(sock,connection)
-    else:
-      sock = await connect initTAddress(connection)
+    when defined(posix):
+      when not defined(ChronosAsync):
+        sock = newAsyncSocket(AF_UNIX, SOCK_STREAM, buffered = true)
+        await connectUnix(sock,connection)
+      else:
+        sock = await connect initTAddress(connection)
   else:
     let
       colonPos = connection.find(':')
