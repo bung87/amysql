@@ -400,7 +400,10 @@ converter asJson*(v: ResultValue): JsonNode =
     raise newException(ValueError, "Can't convert " & $(v.typ) & " to JsonNode")
 
 proc initDate*(monthday: MonthdayRange, month: Month, year: int, zone: Timezone = local()): Date =
-  var dt = initDateTime(monthday,month,year,0,0,0,zone)
+  when (NimMajor, NimMinor) >= (2, 0):
+    var dt = dateTime(year.int, month.Month, monthday, 0, 0, 0, 0, zone)
+  else:
+    var dt = initDateTime(monthday,month,year,0,0,0,zone)
   copyMem(result.addr,dt.addr,sizeof(Date))
 
 proc parseTextRow(conn: Connection, resultset: var ResultSet[string]) =

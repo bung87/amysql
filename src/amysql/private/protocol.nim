@@ -487,7 +487,10 @@ proc readDateTime*(buf: openarray[char], pos: var int, zone: Timezone = utc()): 
   inc(pos,3)
   if year == 0 and month == 0 and day == 0:
     return default(DateTime)
-  result = initDateTime(day,month.Month,year.int,hour,minute,second,zone)
+  when (NimMajor, NimMinor) >= (2, 0):
+    result = dateTime(year.int, month.Month, day, hour, minute, second, 0, zone)
+  else:
+    result = initDateTime(day,month.Month,year.int,hour,minute,second,zone)
 
 proc putTimestamp*(buf: var string, val: DateTime): int {.discardable.} = 
   # for text protocol
