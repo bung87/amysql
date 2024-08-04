@@ -21,7 +21,10 @@ import macros
 import strformat
 import sets,hashes
 import cpuinfo
-import db_common
+when (NimMajor, NimMinor) >= (2, 0):
+  import db_connector/db_common
+else:
+  import db_common
 import ./private/format
 import logging
 

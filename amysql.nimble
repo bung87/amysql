@@ -29,6 +29,8 @@ requires "regex"
 requires "zstd"
 requires "urlly"
 requires "chronos"
+when (NimMajor, NimMinor) >= (2, 0):
+  requires "db_connector"
 
 # Optional dependencies:
 # zstd

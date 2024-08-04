@@ -32,10 +32,13 @@ when defined(ChronosAsync):
   import chronos/[asyncloop, asyncsync, handles, transport, timer]
   const DurationZero = default(Duration)
 else:
-  import asyncnet,asyncdispatch, times
+  import asyncdispatch, times
 import macros except floatVal
 import net  # needed for the SslContext type
-import db_common
+when (NimMajor, NimMinor) >= (2, 0):
+  import db_connector/db_common
+else:
+  import db_common
 export db_common
 import strutils
 import amysql/async_varargs
