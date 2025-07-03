@@ -304,7 +304,12 @@ mariadb: 10
 - [ ] Testing ssl mode ,unix socket mode.  
 - [x] mutiple statements and mutilple resultsets.
 - [x] compression mode (zstd)  
-- [x] handle connection options  
+- [x] handle connection options
+
+## Sponsor
+
+💙 Consider using my [Vultr referral](https://www.vultr.com/?ref=7263256) if you need cloud hosting.
+
 
 ## Acknowledgements  
 
