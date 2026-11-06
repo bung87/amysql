@@ -25,7 +25,7 @@ task ghpage,"gh page":
 # Dependencies
 requires "nim >= 1.3.1" # await inside template needs
 requires "nimcrypto"
-requires "regex"
+requires "regex >= 0.20.2" # effectsOf compatibility with Nim 2.2
 requires "zstd"
 requires "urlly"
 requires "chronos"
