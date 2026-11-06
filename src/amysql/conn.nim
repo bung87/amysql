@@ -36,6 +36,7 @@ type
     databaseVersion: Option[Version]
     priv_isMaria: Option[bool]
     authenticated*: bool
+    secure*: bool                    # TLS or Unix socket transport
     when TestWhileIdle:
       when not defined(ChronosAsync):
         lastOperationTime*: DateTime

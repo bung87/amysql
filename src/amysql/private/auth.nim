@@ -1,6 +1,6 @@
 import std/sha1, nimcrypto
 import math # used by scramble323
-# import openssl
+import std/openssl
 
 const Sha1DigestSize = 20
 
@@ -38,6 +38,34 @@ proc scramble_caching_sha2*(scrambleBuff: string, password: string): string =
   let p2 = sha256.digest($p1)
   let p3 = sha256.digest($p2 & scrambleBuff)
   result = p1 xor p3
+
+proc sha2_rsa_encrypt*(password, scrambleBuff, publicKey: string): string =
+  if scrambleBuff.len == 0:
+    raise newException(ValueError, "caching sha2: Empty scramble")
+  if publicKey.len == 0:
+    raise newException(ValueError, "caching sha2: Empty server public key")
+
+  var plain = password & char(0)
+  for i in 0 ..< plain.len:
+    plain[i] = char(plain[i].uint8 xor scrambleBuff[i mod scrambleBuff.len].uint8)
+
+  let bio = BIO_new_mem_buf(publicKey[0].unsafeAddr, publicKey.len.cint)
+  if bio == nil:
+    raise newException(ValueError, "caching sha2: Could not read server public key")
+  defer: discard BIO_free(bio)
+
+  let rsa = PEM_read_bio_RSA_PUBKEY(bio, nil, nil, nil)
+  if rsa == nil:
+    raise newException(ValueError, "caching sha2: Invalid server public key")
+  defer: RSA_free(rsa)
+
+  result = newString(RSA_size(rsa))
+  let encryptedLen = RSA_public_encrypt(plain.len.cint,
+    cast[ptr uint8](plain[0].unsafeAddr), cast[ptr uint8](result[0].addr),
+    rsa, RSA_PKCS1_OAEP_PADDING)
+  if encryptedLen <= 0:
+    raise newException(ValueError, "caching sha2: RSA encryption failed")
+  result.setLen(encryptedLen)
 
 proc hash323(s: string): tuple[a: uint32, b: uint32] =
   var nr = 0x50305735'u32

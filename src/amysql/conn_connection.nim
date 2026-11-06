@@ -127,12 +127,20 @@ proc finishEstablishingConnection(conn: Connection,
           buf.add authData
       await conn.sendPacket(buf)
       await conn.receivePacket()
+      conn.resetPacketLen()
       if isOKPacket(conn):
         conn.authenticated = true
         conn.addIdleCheck()
         return
       elif isERRPacket(conn):
         raise parseErrorPacket(conn)
+      elif isExtraAuthDataPacket(conn) and responseAuthSwitch.pluginName == "caching_sha2_password":
+        await caching_sha2_password_auth(conn, responseAuthSwitch.pluginData, password)
+        conn.authenticated = true
+        conn.addIdleCheck()
+        return
+      else:
+        raise newException(ProtocolError, "Unexpected packet received after auth switch")
     else:
       debug "legacy handshake"
       var buf: string = newStringOfCap(32)
@@ -141,6 +149,7 @@ proc finishEstablishingConnection(conn: Connection,
       putNulString(buf,data)
       await conn.sendPacket(buf)
       await conn.receivePacket()
+      conn.resetPacketLen()
       if isOKPacket(conn):
         conn.authenticated = true
         conn.addIdleCheck()
@@ -151,7 +160,7 @@ proc finishEstablishingConnection(conn: Connection,
     debug "isExtraAuthDataPacket"
     # https://dev.mysql.com/doc/internals/en/successful-authentication.html
     if handshakePacket.plugin == "caching_sha2_password":
-        await caching_sha2_password_auth(conn, password, handshakePacket.scrambleBuff)
+        await caching_sha2_password_auth(conn, handshakePacket.scrambleBuff, password)
     # elif handshakePacket.plugin == "sha256_password":
     #     discard await = sha256_password_auth(conn, auth_packet, password)
     else:
@@ -170,7 +179,7 @@ type Attrs = Table[string,string]
 
 when declared(SslContext) and declared(startTls):
   proc establishConnection*(sock: AsyncSocket , username: string, password: string = "", database: string = "", connectAttrs = default(Attrs), ssl: SslContext): Future[Connection] {.async.} =
-    result = Connection(socket: sock)
+    result = Connection(transp: sock, secure: true)
     result.connectAttrs = connectAttrs
     result.buf.setLen(MysqlBufSize)
     let handshakePacket = await connect(result)
@@ -178,8 +187,8 @@ when declared(SslContext) and declared(startTls):
     await result.startTls(ssl)
     await result.finishEstablishingConnection(username, password, database, handshakePacket)
 
-proc establishConnection*[T](sock: T, username: string, password: string = "", database: string = "", connectAttrs = default(Attrs)): Future[Connection] {.async.} =
-  result = Connection(transp: sock)
+proc establishConnection*[T](sock: T, username: string, password: string = "", database: string = "", connectAttrs = default(Attrs), secure = false): Future[Connection] {.async.} =
+  result = Connection(transp: sock, secure: secure)
   result.connectAttrs = connectAttrs
   result.buf.setLen(MysqlBufSize)
   let handshakePacket = await connect(result)
@@ -314,7 +323,7 @@ proc open*(connection, user, password:string; database = ""; connectAttrs:Table[
       let isIp = net.isIpAddress(host)
       let ip:string = if isIp: host else: nativesockets.getHostByName(host).addrList[^1]
       sock = await connect( initTAddress(ip, Port(port)))
-  result = await establishConnection(sock, user, password, database, connectAttrs)
+  result = await establishConnection(sock, user, password, database, connectAttrs, secure = isPath)
 
 proc close*(conn: Connection): Future[void] {.async, #[tags: [DbEffect]]#.} =
   var buf: string = newStringOfCap(5)

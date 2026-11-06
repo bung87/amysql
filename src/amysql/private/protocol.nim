@@ -684,6 +684,7 @@ proc roundtrip*(conn:Connection, data:sink string):Future[void] {.async, tags:[I
   buf.add data
   await conn.sendPacket(buf)
   await conn.receivePacket()
+  conn.resetPacketLen()
   if isERRPacket(conn):
     raise parseErrorPacket(conn)
   return

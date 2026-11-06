@@ -32,26 +32,31 @@ proc caching_sha2_password_auth*(conn:Connection,scrambleBuff, password: string)
   # 2 - request public key
   # 3 - fast auth succeeded
   # 4 - need full auth
-  # var pos: int = 1
   let n = int(conn.buf[conn.bufPos + 1])
   if n == 3:
     await conn.receivePacket()
+    conn.resetPacketLen()
     if isERRPacket(conn):
       raise parseErrorPacket(conn)
-    return #pkt
+    if not isOKPacket(conn):
+      raise newException(ProtocolError, "caching sha2: Expected OK after fast auth")
+    return
   if n != 4:
     raise newException(ProtocolError,"caching sha2: Unknown packet for fast auth:" & $n)
-  # full path
+
   debug "full path magic number:" & $n
-  # raise newException(CatchableError, "Unimplemented")
-  # if conn.secure # Sending plain password via secure connection (Localhost via UNIX socket or ssl)
-  await conn.roundtrip(password & char(0))
-  return 
-  # if not conn.server_public_key:
-  #   pkt = await roundtrip(conn, "2") 
-  #   if not isExtraAuthDataPacket(conn):
-  #     raise newException(ProtocolError,"caching sha2: Unknown packet for public key: "  & pkt)
-  #   conn.server_public_key = pkt[1..pkt.high]
-  # let data = sha2_rsa_encrypt(password, scrambleBuff, conn.server_public_key)
-  # pkt = await roundtrip(conn, data)
-  # return pkt
+  if conn.secure:
+    # TLS and Unix sockets protect the NUL-terminated clear-text password.
+    await conn.roundtrip(password & char(0))
+  else:
+    await conn.roundtrip("\x02")
+    if not conn.isExtraAuthDataPacket():
+      raise newException(ProtocolError, "caching sha2: Expected server public key")
+    if conn.fullPacketLen <= conn.bufPos + 1:
+      raise newException(ProtocolError, "caching sha2: Empty server public key")
+    let publicKey = cast[string](conn.buf[conn.bufPos + 1 ..< conn.fullPacketLen])
+    let data = sha2_rsa_encrypt(password, scrambleBuff, publicKey)
+    await conn.roundtrip(data)
+
+  if not isOKPacket(conn):
+    raise newException(ProtocolError, "caching sha2: Expected OK after full auth")
